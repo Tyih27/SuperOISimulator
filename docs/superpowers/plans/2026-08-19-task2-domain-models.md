@@ -67,7 +67,7 @@ export function createProfile({ accountId, studentIds }) {
 }
 ```
 
-Each student owns independent `abilities` and `skillLevels` objects initialized from static data.
+Each student owns independent `abilities`, `skillGroupId`, and `skillGroupLevels` objects initialized from static data. The normal and burst skills live in the referenced catalogue entry rather than on a position or inline student record.
 
 - [x] **Step 3: Implement immutable snapshot creation.**
 
@@ -88,7 +88,7 @@ export function createBattleSnapshot(profile, selection) {
 }
 ```
 
-The returned object contains only selected students, cloned persistent stats and skill levels, the selected level and its topic data, formation, seed, versions, and timestamp.
+The returned object contains only selected students, cloned persistent stats and selected skill-group levels, the immutable skill-group catalogue, the selected level and its topic data (including each topic skill), formation, seed, versions, and timestamp.
 
 - [x] **Step 4: Run `node src/tests/domain-profile.test.js`.**
 

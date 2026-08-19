@@ -33,7 +33,7 @@ assert.ok(Object.values(profile.students).every(({ aptitude }) => aptitude === "
 - [x] **Step 1: Set each technical template's `defaultAptitude` to `"普通"`.**
 
 ```js
-{ id: "planner", defaultAptitude: "普通", /* combat skills */ }
+{ id: "planner", defaultAptitude: "普通", skillGroupId: "planner" }
 ```
 
 - [x] **Step 2: Update the design documentation so the initial six-student roster starts ordinary.**

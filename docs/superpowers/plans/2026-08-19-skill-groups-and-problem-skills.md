@@ -12,10 +12,10 @@
 
 ## File Structure
 
-- Modify `src/data.js`: export the skill-group catalogue, replace each student's inline `skills` and `{ normal, burst }` levels with a `skillGroupId` and a per-group level record, and add a configured skill to every topic.
+- Modify `src/data.js`: export the skill-group catalogue, replace each student's legacy inline skill fields and standalone `{ normal, burst }` levels with a `skillGroupId` and a per-group level record, and add a configured skill to every topic.
 - Modify `src/combat/engine.js`: resolve a student's selected group, apply declarative support effects, and execute a topic's configured skill in `B1`–`B3` stages.
 - Modify `src/combat/math.js`: calculate topic-skill damage from the declared multiplier and additive modifier while retaining the existing base formula.
-- Modify `src/domain/profile.js`, `src/domain/progression.js`, and `src/domain/snapshot.js`: create, migrate, and snapshot group references/catalogue rather than copying inline student skills.
+- Modify `src/domain/profile.js`, `src/domain/progression.js`, and `src/domain/snapshot.js`: create, migrate, and snapshot group references/catalogue rather than copying skill definitions onto student records.
 - Modify `server/services/profile-service.js` and `shared/contracts/v1.js`: validate and expose the new profile/snapshot shape without silently accepting malformed group references.
 - Modify `src/app/main.js`: render the acting student's selected group and the acting topic's skill name/category.
 - Modify `docs/GAME_DESIGN.md` and `README.md`: document the player-facing model and the prototype's scope.
@@ -87,7 +87,7 @@ git commit -m "feat: define extensible skill groups and topic skills"
 - Test: `src/tests/combat-engine.test.js`
 - Test: `src/tests/task6-verification.test.js`
 
-- [ ] **Step 1: Write failing behavior tests**
+- [x] **Step 1: Write failing behavior tests**
 
 ```js
 const groupEngine = new CombatEngine({ students: [{ ...STUDENTS[0], skillGroupId: "structurer" }, ...STUDENTS.slice(1)] });
@@ -106,13 +106,13 @@ recovery.step();
 assert.ok(recovery.students.planner.energy > 1);
 ```
 
-- [ ] **Step 2: Run behavior tests to verify they fail**
+- [x] **Step 2: Run behavior tests to verify they fail**
 
 Run: `node --test src/tests/combat-engine.test.js src/tests/task6-verification.test.js`
 
-Expected: FAIL because the engine reads `data.skills`, topics always use the hard-coded `problem-attack`, and recovery is selected by an ID prefix.
+Expected: FAIL because the engine still reads legacy `data.skills`, topics always use the hard-coded `problem-attack`, and recovery is selected by an ID prefix.
 
-- [ ] **Step 3: Resolve skill groups and declarative effects in the engine**
+- [x] **Step 3: Resolve skill groups and declarative effects in the engine**
 
 ```js
 studentSkill(studentData, focus) {
@@ -134,7 +134,7 @@ const damage = calculateTopicSkillDamage(this.effectiveStudent(snapshot, target.
 
 Pass `options.skillGroups ?? SKILL_GROUPS` into `this.skillGroups`; derive `this.focusMax` from the level. Emit topic actions with `skill`, `skillName`, `category`, and `burst: false`. Keep default `energyDamage` only as an explicit backward-compatible fallback for custom test problems without `skill`.
 
-- [ ] **Step 4: Add and use the topic skill formula**
+- [x] **Step 4: Add and use the topic skill formula**
 
 ```js
 export function calculateTopicSkillDamage(student, topic, skill = {}) {
@@ -145,7 +145,7 @@ export function calculateTopicSkillDamage(student, topic, skill = {}) {
 
 Use `effectType` to reject unsupported topic effects with a clear `Error`, rather than silently treating new content as an attack.
 
-- [ ] **Step 5: Run the focused regression suite**
+- [x] **Step 5: Run the focused regression suite**
 
 Run: `node --test src/tests/combat-engine.test.js src/tests/task6-verification.test.js`
 
@@ -167,7 +167,7 @@ git commit -m "feat: execute student groups and topic skills"
 - Test: `src/tests/domain-profile.test.js`
 - Test: `src/tests/student-identity.test.js`
 
-- [ ] **Step 1: Write failing migration and snapshot tests**
+- [x] **Step 1: Write failing migration and snapshot tests**
 
 ```js
 const profile = createProfile({ accountId: "groups", studentIds: ["planner"] });
@@ -183,19 +183,19 @@ assert.equal(snapshot.team[0].skillGroupId, profile.students.planner.skillGroupI
 assert.notEqual(snapshot.skillGroups, SKILL_GROUPS);
 ```
 
-- [ ] **Step 2: Run the domain tests to verify they fail**
+- [x] **Step 2: Run the domain tests to verify they fail**
 
 Run: `node --test src/tests/domain-profile.test.js src/tests/student-identity.test.js`
 
-Expected: FAIL because profiles and snapshots still contain inline `skills` and `{ normal, burst }` level maps.
+Expected: FAIL because profiles and snapshots still contain legacy inline skill fields and standalone `{ normal, burst }` level maps instead of a selected group reference.
 
-- [ ] **Step 3: Implement the v3 profile migration**
+- [x] **Step 3: Implement the v3 profile migration**
 
 Set `PROFILE_SCHEMA_VERSION` and `BATTLE_SNAPSHOT_VERSION` to `3`. New and recruited students must receive `skillGroupId: template.skillGroupId` and `skillGroupLevels: { [template.skillGroupId]: { normal: 1, burst: 1 } }`. During migration, map legacy inline skills to the template's stable group ID and move legacy `{ normal, burst }` levels into that group's entry. Preserve any already-v3 group records, reject an unknown group ID, and do not mutate legacy inputs.
 
 Make each battle snapshot include a deep clone of the full `skillGroups` catalogue and include only each team's `skillGroupId` and `skillGroupLevels`; no snapshot may retain `skills` or `skillLevels` fields. Pass `snapshot.skillGroups` into `CombatEngine` in the test helper.
 
-- [ ] **Step 4: Run the domain tests to verify they pass**
+- [x] **Step 4: Run the domain tests to verify they pass**
 
 Run: `node --test src/tests/domain-profile.test.js src/tests/student-identity.test.js`
 
@@ -215,7 +215,7 @@ git commit -m "feat: persist skill group selections in profiles"
 - Modify: `server/services/profile-service.js:51-72,130-146`
 - Test: `server/tests/profile.test.js`
 
-- [ ] **Step 1: Write failing API validation tests**
+- [x] **Step 1: Write failing API validation tests**
 
 ```js
 const invalidGroup = structuredClone(profile);
@@ -227,19 +227,19 @@ delete invalidLevels.students.planner.skillGroupLevels.planner.burst;
 await assert.rejects(() => service.update(accountId, invalidLevels), { code: "INVALID_PROFILE" });
 ```
 
-- [ ] **Step 2: Run the server profile test to verify it fails**
+- [x] **Step 2: Run the server profile test to verify it fails**
 
 Run: `node --test server/tests/profile.test.js`
 
 Expected: FAIL because validation requires the retired fields and does not validate a catalogue reference.
 
-- [ ] **Step 3: Define and validate the v3 shape**
+- [x] **Step 3: Define and validate the v3 shape**
 
 Replace `skillLevelMap` in profile-v3 student schemas with `skillGroupLevels`, an object whose additional property is a map requiring positive-integer `normal` and `burst`. Require non-empty `skillGroupId`. Preserve v1/v2 schemas for historical payloads; export explicit v3 DTO constants rather than changing old schema constants in place.
 
 In `validateStudent`, import `SKILL_GROUPS`, require an existing `student.skillGroupId`, require exactly one `{ normal, burst }` record for that selected group, and reject retired `skills` and `skillLevels` keys. In `mergeUpdate`, treat `skillGroupId` and `skillGroupLevels` as server-managed progression fields beside abilities.
 
-- [ ] **Step 4: Run the server profile test to verify it passes**
+- [x] **Step 4: Run the server profile test to verify it passes**
 
 Run: `node --test server/tests/profile.test.js`
 
@@ -252,13 +252,13 @@ git add shared/contracts/v1.js server/services/profile-service.js server/tests/p
 git commit -m "feat: validate skill group profile records"
 ```
 
-### Task 5: Show Skills by Actor, Not Position
+### Task 5: Show Student Skill Groups by Actor, Not Position
 
 **Files:**
 - Modify: `src/app/main.js:77-167`
 - Test: `src/tests/page-audit.test.js`
 
-- [ ] **Step 1: Write the failing UI audit**
+- [x] **Step 1: Write the failing UI audit**
 
 ```js
 assert.match(source, /skillGroupId/);
@@ -266,13 +266,13 @@ assert.match(source, /topic\.skill/);
 assert.doesNotMatch(source, /data\.skills\[/);
 ```
 
-- [ ] **Step 2: Run the UI audit to verify it fails**
+- [x] **Step 2: Run the UI audit to verify it fails**
 
 Run: `node --test src/tests/page-audit.test.js`
 
-Expected: FAIL because rendering selects `data.skills` from a slot's student data and topic actions are labelled as a generic attack.
+Expected: FAIL because rendering selects legacy `data.skills` from a slot's student data and topic actions are labelled as a generic attack instead of using the actor's configured skill metadata.
 
-- [ ] **Step 3: Render resolved group and topic skill metadata**
+- [x] **Step 3: Render resolved group and topic skill metadata**
 
 ```js
 function currentStudentSkill(studentData, runtimeStudent) {
@@ -287,7 +287,7 @@ const actorSkill = studentById[action.actor]
 
 Use the group name beside the student skill in the skill panel. For topic actions, render `action.skillName` and state that it is a topic skill; do not infer topic attacks from a missing name. Keep A/B slot labels solely as board locations.
 
-- [ ] **Step 4: Run the UI audit to verify it passes**
+- [x] **Step 4: Run the UI audit to verify it passes**
 
 Run: `node --test src/tests/page-audit.test.js`
 
@@ -306,21 +306,21 @@ git commit -m "feat: display student groups and topic skills"
 - Modify: `docs/GAME_DESIGN.md:78-114,203-253,321-361,600-612`
 - Modify: `README.md:7-19,105-113`
 
-- [ ] **Step 1: Update the design rules**
+- [x] **Step 1: Update the design rules**
 
 Replace the statement that every student has only two inline skills with: every student selects exactly one personal skill group; each group contains a normal and burst skill; a student's group is independent of A1/A2/A3; future content may add groups without changing the student schema. Document topic `skill` data, `energyDamage` effect, target rules, and the formula `round(baseDamage × damageMultiplier + flatBonus)`.
 
-- [ ] **Step 2: Update the project README**
+- [x] **Step 2: Update the project README**
 
 Add current-feature bullets for extensible student skill groups and configured topic skills. Amend the design principles to state that positions decide turn order/targeting only, never skills.
 
-- [ ] **Step 3: Run full checks**
+- [x] **Step 3: Run full checks**
 
 Run: `npm run check`
 
 Expected: PASS with all client and server test groups plus syntax checks passing.
 
-- [ ] **Step 4: Perform a deterministic smoke check**
+- [x] **Step 4: Perform a deterministic smoke check**
 
 Run: `node --input-type=module -e 'import { CombatEngine } from "./src/combat/engine.js"; import { serializeEvents } from "./src/combat/events.js"; const a = new CombatEngine({ seed: "skill-groups" }).run(); const b = new CombatEngine({ seed: "skill-groups" }).run(); if (serializeEvents(a.events) !== serializeEvents(b.events)) throw new Error("non-deterministic events"); console.log(a.events.filter((e) => e.type === "action" && String(e.actor).includes("treeKnapsack")).map((e) => e.skillName).join(","));'`
 

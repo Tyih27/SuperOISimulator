@@ -53,7 +53,7 @@ assert.equal(migrated.students.planner.id, "planner");
 assert.deepEqual(migrated.students.planner.abilities, v1Profile.students.planner.abilities);
 ```
 
-- [x] **Step 2: Add versioned name pools and aptitude-by-ability ranges in `src/data.js`, retaining technical IDs and combat skills.**
+- [x] **Step 2: Add versioned name pools and aptitude-by-ability ranges in `src/data.js`, retaining technical IDs and each student's skill-group reference.**
 
 - [x] **Step 3: Implement `createProfile` v2 defaults and `migrateProfile` in `src/domain/profile.js`.**
 
@@ -71,7 +71,7 @@ export function migrateProfile(profile, { seed = profile.accountId } = {}) { /* 
 - Modify: `shared/contracts/v1.js`
 - Modify: `src/tests/domain-profile.test.js`
 
-- [x] **Step 1: Add tests that a snapshot stores the current persisted name, aptitude, skills, name-pool version, and remains unchanged after a rename.**
+- [x] **Step 1: Add tests that a snapshot stores the current persisted name, aptitude, skill-group reference and levels, name-pool version, and remains unchanged after a rename.**
 
 ```js
 const snapshot = createBattleSnapshot(profile, selection);
