@@ -122,7 +122,7 @@ export function createBattleSnapshot(profile, selection) {
 }
 ```
 
-The snapshot must contain only selected students, their effective persistent stats and skill levels, level data, formation, seed, ruleset version, and timestamp. Add `engineVersion` and `rulesetVersion` to every serialized result without changing event order.
+The snapshot must contain only selected students, their effective persistent stats, selected skill-group references and levels, the immutable skill-group catalogue, level data (including topic skills), formation, seed, ruleset version, and timestamp. Add `engineVersion` and `rulesetVersion` to every serialized result without changing event order.
 
 - [ ] **Step 4: Run `npm test`; add the domain test to the `test` script and verify deterministic replay tests still pass.**
 
@@ -143,7 +143,7 @@ This is new work after the completed domain-model Task 2. It must not rewrite th
 
 - [x] **Step 1: Write migration and behavior tests.**
 
-Cover deterministic generation from a versioned name pool and stored seed; player rename after trimming and validating 1～12 visible characters; preservation of stable ID, aptitude, abilities, skills, formation, and profile ownership after rename; and immutability of an already-created battle snapshot.
+Cover deterministic generation from a versioned name pool and stored seed; player rename after trimming and validating 1～12 visible characters; preservation of stable ID, aptitude, abilities, skill-group reference and levels, formation, and profile ownership after rename; and immutability of an already-created battle snapshot.
 
 - [x] **Step 2: Version the student identity model.**
 
@@ -153,7 +153,7 @@ The existing v1 DTO requires a `role` in battle snapshots, so introduce a new co
 
 - [x] **Step 3: Build battle snapshots from persistent identity data.**
 
-The new snapshot version includes stable ID, current player-visible name, aptitude, abilities, skills, ruleset version, and name-pool version. A later rename must not mutate an existing snapshot or historical event log.
+The new snapshot version includes stable ID, current player-visible name, aptitude, abilities, skill-group reference and levels, the immutable skill-group catalogue, ruleset version, and name-pool version. A later rename must not mutate an existing snapshot or historical event log.
 
 - [x] **Step 4: Run `npm test && npm run check`.**
 
@@ -301,7 +301,7 @@ git commit -m "feat: add campaign progression economy"
 - Create: `server/routes/battles.js`, `server/services/battle-service.js`, `server/repositories/battle-repository.js`, `server/migrations/004_battles.sql`, `server/tests/battle-service.test.js`
 - Modify: `src/combat/engine.js`, `src/combat/events.js`, `shared/contracts/v1.js`, `server/app.js`
 
-- [ ] **Step 1: Write tests that reject client-supplied rewards and accept only a server-created battle ID.**
+- [x] **Step 1: Write tests that reject client-supplied rewards and accept only a server-created battle ID.**
 
 ```js
 const started = await request.post("/api/v1/campaign/battles", { levelId: "chapter-1-1", teamIds: ["planner", "graphist", "structurer"], positions });
@@ -310,9 +310,9 @@ assert.equal(settled.json().eventLogHash, settled.json().recomputedEventLogHash)
 assert.equal((await request.post(`/api/v1/campaign/battles/${started.json().id}/settle`, {})).statusCode, 409);
 ```
 
-- [ ] **Step 2: Run `node server/tests/battle-service.test.js`; expect failure because battle endpoints do not exist.**
+- [x] **Step 2: Run `node server/tests/battle-service.test.js`; expect failure because battle endpoints do not exist.**
 
-- [ ] **Step 3: Implement server-owned battle snapshots and settlement.**
+- [x] **Step 3: Implement server-owned battle snapshots and settlement.**
 
 ```js
 const result = new CombatEngine(snapshot).run();
@@ -321,7 +321,7 @@ await transaction(async (db) => saveBattleAndApplyReward(db, { snapshot, result,
 
 The browser may play the returned event list but never submits progress, victory, resources, or seed. Store `engineVersion`, `rulesetVersion`, full snapshot, ordered event log, and SHA-256 event-log hash in `battle_records`.
 
-- [ ] **Step 4: Run `npm run check && npm run test:api`; assert identical snapshots produce identical hashes and an account cannot settle another account's battle.**
+- [x] **Step 4: Run `npm run check && npm run test:api`; assert identical snapshots produce identical hashes and an account cannot settle another account's battle.**
 
 - [ ] **Step 5: Commit.**
 

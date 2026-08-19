@@ -25,22 +25,10 @@ try {
   assert.equal(initial.statusCode, 200);
   const before = initial.json();
   const abilityBefore = before.students.planner.abilities.dynamicProgramming;
-
-  const settlement = await request(app, {
-    method: "POST", url: "/api/v1/progression/campaign/settlements", cookies: auth,
-    payload: { settlementId: "battle-001", levelId: "chapter-1-1", result: "win" },
-  });
-  assert.equal(settlement.statusCode, 200);
-  assert.equal(settlement.json().reward.trainingCoins, 100);
-  assert.equal(settlement.json().profile.currencies.trainingCoins, before.currencies.trainingCoins + 100);
-  assert.deepEqual(settlement.json().profile.unlockedLevelIds, ["chapter-1-1", "chapter-1-2"]);
-
-  const duplicateSettlement = await request(app, {
-    method: "POST", url: "/api/v1/progression/campaign/settlements", cookies: auth,
-    payload: { settlementId: "battle-001", levelId: "chapter-1-1", result: "win" },
-  });
-  assert.equal(duplicateSettlement.statusCode, 409);
-  assert.equal(duplicateSettlement.json().code, "BATTLE_ALREADY_SETTLED");
+  await app.db.query(
+    "UPDATE player_profiles SET payload = jsonb_set(payload, '{inventory,specialist-book-dynamicProgramming}', '1'::jsonb) WHERE account_id = $1",
+    [before.accountId],
+  );
 
   const training = await request(app, {
     method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
@@ -69,14 +57,12 @@ try {
 
   const currencyEntries = await app.db.query("SELECT currency, delta, source_type FROM currency_ledger ORDER BY id");
   assert.deepEqual(currencyEntries.rows.map(({ currency, delta, source_type: sourceType }) => [currency, delta, sourceType]), [
-    ["trainingCoins", 100, "campaign"],
     ["trainingCoins", -100, "specialist-training"],
     ["trainingCoins", -120, "shop"],
     ["recruitmentTickets", -1, "recruitment"],
   ]);
   const inventoryEntries = await app.db.query("SELECT item_id, quantity, source_type FROM inventory_entries ORDER BY id");
   assert.deepEqual(inventoryEntries.rows.map(({ item_id: itemId, quantity, source_type: sourceType }) => [itemId, quantity, sourceType]), [
-    ["specialist-book-dynamicProgramming", 1, "campaign"],
     ["specialist-book-dynamicProgramming", 1, "shop"],
   ]);
   console.log("progression API tests passed");

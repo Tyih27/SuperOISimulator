@@ -1,8 +1,4 @@
-import {
-  CAMPAIGN_SETTLEMENT_DTO_SCHEMA,
-  SHOP_PURCHASE_DTO_SCHEMA,
-  SPECIALIST_TRAINING_DTO_SCHEMA,
-} from "../../shared/contracts/v1.js";
+import { SHOP_PURCHASE_DTO_SCHEMA, SPECIALIST_TRAINING_DTO_SCHEMA } from "../../shared/contracts/v1.js";
 import { AuthService } from "../services/auth-service.js";
 import { ProgressionError, ProgressionService } from "../services/progression-service.js";
 
@@ -44,14 +40,6 @@ function action(schema, handler) {
 export async function progressionRoutes(app) {
   const service = new ProgressionService(app.db, { now: app.config.now, idFactory: app.config.idFactory });
   app.decorate("progressionAuthService", new AuthService(app.db, { sessionTtlMs: app.config.sessionTtlMs }));
-
-  app.post("/campaign/settlements", action(CAMPAIGN_SETTLEMENT_DTO_SCHEMA, async (request, reply) => {
-    try {
-      return await service.settleCampaignBattle({ accountId: request.account.id, ...request.body });
-    } catch (error) {
-      return sendProgressionError(reply, error);
-    }
-  }));
 
   app.post("/training/specialist", action(SPECIALIST_TRAINING_DTO_SCHEMA, async (request, reply) => {
     try {

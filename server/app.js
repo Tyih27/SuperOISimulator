@@ -4,6 +4,7 @@ import rateLimit from "@fastify/rate-limit";
 import { authRoutes } from "./routes/auth.js";
 import { profileRoutes } from "./routes/profile.js";
 import { progressionRoutes } from "./routes/progression.js";
+import { battleRoutes } from "./routes/battles.js";
 
 function requirePool(pool) {
   if (!pool || typeof pool.query !== "function") {
@@ -20,7 +21,11 @@ function requireSessionSecret(secret) {
 }
 
 export function buildApp({ pool, config = {} } = {}) {
-  const app = Fastify({ logger: config.logger ?? false });
+  const app = Fastify({
+    logger: config.logger ?? false,
+    // Reject unknown request fields instead of silently dropping forged data.
+    ajv: { customOptions: { removeAdditional: false } },
+  });
   app.decorate("db", requirePool(pool));
   app.decorate("config", Object.freeze({
     ...config,
@@ -38,6 +43,7 @@ export function buildApp({ pool, config = {} } = {}) {
     await api.register(authRoutes, { prefix: "/api/v1/auth" });
     await api.register(profileRoutes, { prefix: "/api/v1/profile" });
     await api.register(progressionRoutes, { prefix: "/api/v1/progression" });
+    await api.register(battleRoutes, { prefix: "/api/v1" });
   });
 
   return app;

@@ -305,6 +305,24 @@ export const CAMPAIGN_SETTLEMENT_DTO_SCHEMA = deepFreeze({
   additionalProperties: false,
 });
 
+export const EMPTY_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/empty-v1",
+  type: "object",
+  additionalProperties: false,
+});
+
+export const BATTLE_START_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/battle-start-v1",
+  type: "object",
+  required: ["levelId", "teamIds", "formation"],
+  properties: {
+    levelId: { type: "string", minLength: 1, maxLength: 128 },
+    teamIds: { type: "array", minItems: 3, maxItems: 3, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 128 } },
+    formation,
+  },
+  additionalProperties: false,
+});
+
 export const SPECIALIST_TRAINING_DTO_SCHEMA = deepFreeze({
   $id: "super-oi/specialist-training-v1",
   type: "object",

@@ -13,6 +13,27 @@ function sortedByPosition(items) {
 }
 
 export class CombatEngine {
+  static fromSnapshot(snapshot) {
+    if (!snapshot || snapshot.snapshotVersion !== 3 || !Array.isArray(snapshot.team) || !snapshot.level || !snapshot.skillGroups) {
+      throw new Error('A versioned battle snapshot is required');
+    }
+    return new CombatEngine({
+      level: snapshot.level,
+      seed: snapshot.seed,
+      students: snapshot.team,
+      skillGroups: snapshot.skillGroups,
+      topics: snapshot.level.topics,
+      teamIds: snapshot.team.map(({ id }) => id),
+      positions: snapshot.formation,
+      maxRounds: snapshot.level.maxRounds,
+      focusMax: snapshot.level.focusMax,
+      goal: {
+        type: snapshot.level.objective.type,
+        target: snapshot.level.objective.requiredTopics,
+      },
+    });
+  }
+
   constructor(options = {}) {
     const level = clone(options.level ?? LEVELS[0]);
     this.seed = options.seed ?? level.seed;
