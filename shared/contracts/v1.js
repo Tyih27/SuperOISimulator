@@ -19,6 +19,23 @@ export const AUTH_CREDENTIALS_DTO_SCHEMA = deepFreeze({
   },
   additionalProperties: false,
 });
+export const PASSWORD_CHANGE_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/password-change-v1",
+  type: "object",
+  required: ["currentPassword", "newPassword"],
+  properties: {
+    currentPassword: { type: "string", minLength: 12, maxLength: 1024 },
+    newPassword: { type: "string", minLength: 12, maxLength: 1024 },
+  },
+  additionalProperties: false,
+});
+export const ACCOUNT_DELETE_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/account-delete-v1",
+  type: "object",
+  required: ["password"],
+  properties: { password: { type: "string", minLength: 12, maxLength: 1024 } },
+  additionalProperties: false,
+});
 const versionString = { type: "string", const: "1" };
 const abilityMap = {
   type: "object",

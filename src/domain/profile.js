@@ -2,6 +2,7 @@ import { NAME_POOL_VERSION, SKILL_GROUPS, STUDENTS } from "../data.js";
 import {
   aptitudeForAbilities,
   createStudentIdentity,
+  generateInitialAbilities,
   generateStudentName,
   normalizeStudentName,
 } from "./student-identity.js";
@@ -114,6 +115,7 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
     }
     return {
       ...structuredClone(profile),
+      formation: structuredClone(profile.formation ?? { A1: "planner", A2: "graphist", A3: "structurer" }),
       inventory: structuredClone(profile.inventory ?? {}),
       currencies: structuredClone(profile.currencies ?? DEFAULT_CURRENCIES),
       unlockedLevelIds: structuredClone(profile.unlockedLevelIds ?? DEFAULT_UNLOCKED_LEVEL_IDS),
@@ -131,8 +133,11 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
     if (!SKILL_GROUPS[content.skillGroupId]) {
       throw new Error(`Unknown skill group: ${content.skillGroupId}`);
     }
-    const abilities = structuredClone(legacyStudent.abilities);
-    const aptitude = aptitudeForAbilities(abilities, legacyStudent.aptitude ?? content.defaultAptitude);
+    const preferredAptitude = legacyStudent.aptitude ?? content.defaultAptitude;
+    const abilities = legacyStudent.abilities
+      ? structuredClone(legacyStudent.abilities)
+      : generateInitialAbilities({ aptitude: preferredAptitude, seed, studentId });
+    const aptitude = aptitudeForAbilities(abilities, preferredAptitude);
     const name = legacyStudent.name === undefined
       ? generateStudentName({ studentId, seed, namePoolVersion })
       : normalizeStudentName(legacyStudent.name);
@@ -141,12 +146,16 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
       name,
       aptitude,
       abilities,
-      maxEnergy: legacyStudent.maxEnergy,
+      maxEnergy: legacyStudent.maxEnergy ?? content.maxEnergy,
       skillGroupId: content.skillGroupId,
       skillGroupLevels: {
         [content.skillGroupId]: {
-          normal: legacyStudent.skillLevels?.normal ?? 1,
-          burst: legacyStudent.skillLevels?.burst ?? 1,
+          normal: legacyStudent.skillLevels?.normal
+            ?? legacyStudent.skillGroupLevels?.[content.skillGroupId]?.normal
+            ?? 1,
+          burst: legacyStudent.skillLevels?.burst
+            ?? legacyStudent.skillGroupLevels?.[content.skillGroupId]?.burst
+            ?? 1,
         },
       },
     }];
@@ -157,6 +166,7 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
     identitySeed: seed,
     namePoolVersion,
     students,
+    formation: structuredClone(profile.formation ?? { A1: "planner", A2: "graphist", A3: "structurer" }),
     inventory: structuredClone(profile.inventory ?? {}),
     currencies: structuredClone(profile.currencies ?? DEFAULT_CURRENCIES),
     unlockedLevelIds: structuredClone(profile.unlockedLevelIds ?? DEFAULT_UNLOCKED_LEVEL_IDS),

@@ -8,6 +8,7 @@ import { LedgerRepository } from "../repositories/ledger-repository.js";
 import { BattleRepository } from "../repositories/battle-repository.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
 import { ProfileService, profileFromRow } from "./profile-service.js";
+import { AuditRepository } from "../repositories/audit-repository.js";
 
 const levelById = new Map(LEVELS.map((level) => [level.id, level]));
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -79,6 +80,7 @@ export class BattleService {
     this.profiles = new ProfileRepository(pool);
     this.profileDefaults = new ProfileService(pool);
     this.ledger = new LedgerRepository();
+    this.audit = new AuditRepository();
   }
 
   async start(accountId, selection = {}) {
@@ -110,6 +112,11 @@ export class BattleService {
       }
       const battle = await this.battles.create(client, {
         id: this.idFactory(), accountId, levelId: level.id, snapshot,
+      });
+      await this.audit.append(client, {
+        accountId,
+        actionType: "battle_started",
+        payload: { battleId: battle.id, levelId: level.id },
       });
       await client.query("COMMIT");
       return { id: battle.id, snapshot };
@@ -150,6 +157,11 @@ export class BattleService {
       }
       const savedBattle = await this.battles.settle(client, { id: battleId, result, events: result.events, eventLogHash: hash });
       if (!savedBattle) throw conflict("Battle has already been settled");
+      await this.audit.append(client, {
+        accountId,
+        actionType: "battle_settlement",
+        payload: { battleId, result: result.result, eventLogHash: hash },
+      });
       await client.query("COMMIT");
       return {
         id: battleId,

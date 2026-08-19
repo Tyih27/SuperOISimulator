@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import argon2 from "argon2";
 import { AccountRepository } from "../repositories/account-repository.js";
+import { AuditRepository } from "../repositories/audit-repository.js";
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,24}$/;
 const MINIMUM_PASSWORD_LENGTH = 12;
@@ -55,6 +56,7 @@ export class AuthService {
   constructor(pool, { sessionTtlMs = DEFAULT_SESSION_TTL_MS } = {}) {
     this.pool = pool;
     this.repository = new AccountRepository(pool);
+    this.audit = new AuditRepository();
     this.sessionTtlMs = sessionTtlMs;
   }
 
@@ -117,6 +119,51 @@ export class AuthService {
 
   async logout(token) {
     if (token) await this.repository.revokeSession(hashSessionToken(token));
+  }
+
+  async changePassword(accountId, currentPassword, newPassword) {
+    if (typeof accountId !== "string" || !accountId) throw new AuthError("UNAUTHENTICATED", 401, "Authentication required");
+    const normalized = normalizeCredentials({ username: "password", password: newPassword });
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const account = await this.repository.findAccountByIdForUpdate(client, accountId);
+      const matches = account && typeof currentPassword === "string"
+        ? await argon2.verify(account.password_hash, currentPassword) : false;
+      if (!matches) throw new AuthError("INVALID_CURRENT_PASSWORD", 400, "Current password is incorrect");
+      const passwordHash = await argon2.hash(normalized.password, { type: argon2.argon2id });
+      await this.repository.updatePassword(client, accountId, passwordHash);
+      await this.repository.revokeAllSessions(client, accountId);
+      await this.audit.append(client, { accountId, actionType: "password_change", payload: { changed: true } });
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async queueDeletion(accountId, password, { retentionDays = 30 } = {}) {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const account = await this.repository.findAccountByIdForUpdate(client, accountId);
+      const matches = account && typeof password === "string"
+        ? await argon2.verify(account.password_hash, password) : false;
+      if (!matches) throw new AuthError("INVALID_CURRENT_PASSWORD", 400, "Current password is incorrect");
+      const deleteAfter = new Date(Date.now() + Math.max(1, retentionDays) * 24 * 60 * 60 * 1000);
+      await this.repository.queueDeletion(client, { accountId, deleteAfter });
+      await this.repository.revokeAllSessions(client, accountId);
+      await this.audit.append(client, { accountId, actionType: "account_deletion_requested", payload: { deleteAfter: deleteAfter.toISOString() } });
+      await client.query("COMMIT");
+      return { deleteAfter: deleteAfter.toISOString() };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   createSessionInput() {

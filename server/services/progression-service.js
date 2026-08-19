@@ -9,6 +9,7 @@ import {
 import { LedgerRepository } from "../repositories/ledger-repository.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
 import { ProfileService, profileFromRow } from "./profile-service.js";
+import { AuditRepository } from "../repositories/audit-repository.js";
 
 const levelById = new Map(LEVELS.map((level) => [level.id, level]));
 const offerById = new Map(SHOP_OFFERS.map((offer) => [offer.id, offer]));
@@ -57,6 +58,7 @@ export class ProgressionService {
     this.pool = pool;
     this.repository = new ProfileRepository(pool);
     this.ledger = new LedgerRepository();
+    this.audit = new AuditRepository();
     this.profileDefaults = new ProfileService(pool);
     this.now = now;
     this.idFactory = idFactory;
@@ -74,8 +76,10 @@ export class ProgressionService {
       const outcome = await mutate({ client, profile, currentVersion: row.version });
       profile.version = row.version + 1;
       const saved = await this.repository.update(client, { accountId, version: profile.version, profile });
+      const { auditAction = "progression_update", auditPayload = {}, ...publicOutcome } = outcome;
+      await this.audit.append(client, { accountId, actionType: auditAction, payload: auditPayload });
       await client.query("COMMIT");
-      return { ...outcome, profile: structuredClone(saved.payload) };
+      return { ...publicOutcome, profile: structuredClone(saved.payload) };
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -109,7 +113,7 @@ export class ProgressionService {
       for (const [itemId, quantity] of Object.entries(reward.inventory ?? {})) {
         await this.ledger.recordInventoryGrant(client, { accountId, itemId, quantity, sourceType: "campaign", sourceId: settlementId });
       }
-      return { reward };
+      return { reward, auditAction: "campaign_reward", auditPayload: { settlementId, levelId } };
     });
   }
 
@@ -132,7 +136,11 @@ export class ProgressionService {
         sourceType: "specialist-training",
         sourceId: `${studentId}:${ability}`,
       });
-      return { training: { studentId, ability, itemId: specialistTrainingBookId(ability) } };
+      return {
+        training: { studentId, ability, itemId: specialistTrainingBookId(ability) },
+        auditAction: "specialist_training",
+        auditPayload: { studentId, ability },
+      };
     });
   }
 
@@ -154,7 +162,7 @@ export class ProgressionService {
       for (const [itemId, quantity] of Object.entries(offer.grants)) {
         await this.ledger.recordInventoryGrant(client, { accountId, itemId, quantity, sourceType: "shop", sourceId: offerId });
       }
-      return { offer: structuredClone(offer) };
+      return { offer: structuredClone(offer), auditAction: "shop_purchase", auditPayload: { offerId } };
     });
   }
 
@@ -174,7 +182,7 @@ export class ProgressionService {
       profile.students[studentId] = student;
       profile.currencies.recruitmentTickets -= 1;
       await this.ledger.recordCurrency(client, { accountId, currency: "recruitmentTickets", delta: -1, sourceType: "recruitment", sourceId: studentId });
-      return { student };
+      return { student, auditAction: "student_recruitment", auditPayload: { studentId } };
     });
   }
 }

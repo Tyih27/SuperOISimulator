@@ -1,10 +1,13 @@
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
+import { readFile } from "node:fs/promises";
+import { extname, isAbsolute, join, normalize, resolve } from "node:path";
 import { authRoutes } from "./routes/auth.js";
 import { profileRoutes } from "./routes/profile.js";
 import { progressionRoutes } from "./routes/progression.js";
 import { battleRoutes } from "./routes/battles.js";
+import { accountDataRoutes } from "./routes/account-data.js";
 
 function requirePool(pool) {
   if (!pool || typeof pool.query !== "function") {
@@ -18,6 +21,59 @@ function requireSessionSecret(secret) {
     throw new Error("config.sessionSecret must contain at least 32 characters");
   }
   return secret;
+}
+
+const CONTENT_TYPES = Object.freeze({
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+});
+
+function staticPath(staticDir, pathname) {
+  let decoded;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+  const relative = normalize(decoded === "/" ? "index.html" : decoded.replace(/^[/\\]+/, ""));
+  const isPublicAsset = relative === "index.html"
+    || relative === "favicon.ico"
+    || relative.startsWith("assets/")
+    || relative.startsWith("src/")
+    || relative.startsWith("styles/");
+  if (!isPublicAsset) return null;
+  const root = resolve(staticDir);
+  const file = resolve(join(root, relative));
+  return file === root || file.startsWith(`${root}/`) ? file : null;
+}
+
+function configureStaticFiles(app, staticDir) {
+  if (typeof staticDir !== "string" || staticDir.trim() === "") return;
+  const root = isAbsolute(staticDir) ? staticDir : resolve(staticDir);
+  app.setNotFoundHandler(async (request, reply) => {
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return reply.code(404).send({ code: "NOT_FOUND", message: "Route not found" });
+    }
+    if (request.url.startsWith("/api/")) {
+      return reply.code(404).send({ code: "NOT_FOUND", message: "Route not found" });
+    }
+    const pathname = new URL(request.url, "http://localhost").pathname;
+    const file = staticPath(root, pathname);
+    if (!file) return reply.code(404).send({ code: "NOT_FOUND", message: "File not found" });
+    try {
+      const content = await readFile(file);
+      return reply.type(CONTENT_TYPES[extname(file)] ?? "application/octet-stream").send(request.method === "HEAD" ? undefined : content);
+    } catch (error) {
+      if (error?.code === "ENOENT" || error?.code === "EISDIR") {
+        return reply.code(404).send({ code: "NOT_FOUND", message: "File not found" });
+      }
+      throw error;
+    }
+  });
 }
 
 export function buildApp({ pool, config = {} } = {}) {
@@ -41,10 +97,13 @@ export function buildApp({ pool, config = {} } = {}) {
     });
     await api.register(rateLimit, { global: false });
     await api.register(authRoutes, { prefix: "/api/v1/auth" });
+    await api.register(accountDataRoutes, { prefix: "/api/v1/account" });
     await api.register(profileRoutes, { prefix: "/api/v1/profile" });
     await api.register(progressionRoutes, { prefix: "/api/v1/progression" });
     await api.register(battleRoutes, { prefix: "/api/v1" });
   });
+
+  configureStaticFiles(app, config.staticDir);
 
   return app;
 }

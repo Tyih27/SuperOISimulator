@@ -65,6 +65,10 @@ try {
   assert.deepEqual(inventoryEntries.rows.map(({ item_id: itemId, quantity, source_type: sourceType }) => [itemId, quantity, sourceType]), [
     ["specialist-book-dynamicProgramming", 1, "shop"],
   ]);
+  const auditEntries = await app.db.query("SELECT action_type FROM account_audit_log ORDER BY id");
+  assert.deepEqual(auditEntries.rows.map(({ action_type: actionType }) => actionType), [
+    "specialist_training", "shop_purchase", "student_recruitment",
+  ]);
   console.log("progression API tests passed");
 } finally {
   await app.close();

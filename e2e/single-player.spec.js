@@ -1,0 +1,93 @@
+import { expect, test } from "@playwright/test";
+
+const students = Object.fromEntries([
+  ["planner", "林澈"], ["graphist", "周岚"], ["structurer", "程野"],
+  ["mathematician", "许知"], ["implementer", "沈言"], ["supporter", "顾宁"],
+].map(([id, name], index) => [id, {
+  id, name, aptitude: "普通", maxEnergy: 5000 + index * 10,
+  abilities: { dynamicProgramming: 820, graphTheory: 820, dataStructures: 820, mathematics: 820, implementation: 820 },
+  skillGroupId: id, skillGroupLevels: { [id]: { normal: 1, burst: 1 } },
+}]));
+
+function profile(version = 1) {
+  return {
+    schemaVersion: 3, version, accountId: "account-1", identitySeed: "test", namePoolVersion: 1,
+    students: structuredClone(students), formation: { A1: "planner", A2: "graphist", A3: "structurer" },
+    inventory: { "specialist-book-dynamicProgramming": 1 }, currencies: { trainingCoins: 1000, recruitmentTickets: 1 }, unlockedLevelIds: ["chapter-1-1"],
+  };
+}
+
+async function mockApi(page) {
+  let current = profile();
+  let authenticated = false;
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace("/api/v1", "");
+    const json = (payload, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(payload) });
+    if (path === "/auth/session") return authenticated ? json({ account: { id: "account-1", username: "alice01" } }) : json({ code: "UNAUTHENTICATED", message: "Authentication required" }, 401);
+    if (path === "/auth/register" || path === "/auth/login") { authenticated = true; return json({ account: { id: "account-1", username: "alice01" } }, path === "/auth/register" ? 201 : 200); }
+    if (path === "/auth/logout") { authenticated = false; return route.fulfill({ status: 204 }); }
+    if (path === "/account/export") return json({ exportedAt: "2026-08-19T12:00:00.000Z", account: { id: "account-1", username: "alice01" }, data: { profile: current, audit: [] } });
+    if (path === "/account/password" && route.request().method() === "POST") { authenticated = false; return route.fulfill({ status: 204 }); }
+    if (path === "/account" && route.request().method() === "DELETE") { authenticated = false; return json({ status: "queued", deleteAfter: "2026-09-18T12:00:00.000Z" }); }
+    if (path === "/profile" && route.request().method() === "GET") return json(current);
+    if (path === "/profile" && route.request().method() === "PUT") {
+      const update = route.request().postDataJSON();
+      current = { ...current, version: current.version + 1, ...("formation" in update ? { formation: update.formation } : {}), students: { ...current.students, ...Object.fromEntries(Object.entries(update.students ?? {}).map(([id, change]) => [id, { ...current.students[id], ...change }])) } };
+      return json(current);
+    }
+    if (path === "/progression/training/specialist") return json({ profile: current });
+    if (path === "/progression/recruitment" || path === "/progression/shop/purchases") return json({ profile: current });
+    if (path === "/campaign/battles") return json({ id: "7e11b4e1-0fc6-4af3-8a09-2c0591cebc22", snapshot: { level: { name: "清晨训练场" }, seed: "A7C4-19", team: Object.values(current.students).slice(0, 3) } }, 201);
+    if (path.endsWith("/settle")) return json({ result: { result: "win", completedCount: 3, round: 8, remainingEnergy: 9200, events: [{ round: 1, type: "battle_started" }, { round: 8, type: "battle_ended" }] }, reward: { trainingCoins: 100 }, profile: current });
+    return json({ code: "NOT_FOUND", message: path }, 404);
+  });
+}
+
+test("single-player campaign is server-driven", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/");
+  await page.getByLabel("用户名").fill("alice01");
+  await page.getByLabel("密码").fill("correct horse battery");
+  await page.getByRole("button", { name: "注册并登录" }).click();
+  await page.getByRole("link", { name: "主线关卡" }).click();
+  await expect(page.getByText("第 1 章")).toBeVisible();
+  await page.getByRole("button", { name: "保存编队" }).click();
+  await page.getByRole("button", { name: "开始挑战" }).click();
+  await expect(page.getByText("快照已锁定")).toBeVisible();
+  await page.getByRole("button", { name: "开始回放并结算" }).click();
+  await expect(page.getByText("挑战胜利")).toBeVisible();
+  await page.getByRole("link", { name: "训练与补给" }).click();
+  await page.getByRole("button", { name: "消耗训练册训练" }).click();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "进度管理" })).toBeVisible();
+  await page.getByRole("link", { name: "账户与数据" }).click();
+  await expect(page.getByRole("heading", { name: "账户管理" })).toBeVisible();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "下载 JSON" }).click();
+  expect((await download).suggestedFilename()).toBe("super-oi-account-1.json");
+  await page.getByLabel("当前密码").fill("correct horse battery");
+  await page.getByRole("textbox", { name: "新密码", exact: true }).fill("new correct horse battery");
+  await page.getByRole("button", { name: "更新密码" }).click();
+  await expect(page.getByText("训练档案")).toBeVisible();
+  await page.getByLabel("用户名").fill("alice01");
+  await page.getByLabel("密码").fill("new correct horse battery");
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await page.getByRole("button", { name: "退出登录" }).click();
+  await expect(page.getByText("训练档案")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
+test("account deletion revokes the browser session", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/");
+  await page.getByLabel("用户名").fill("alice01");
+  await page.getByLabel("密码").fill("correct horse battery");
+  await page.getByRole("button", { name: "注册并登录" }).click();
+  await page.getByRole("link", { name: "账户与数据" }).click();
+  await page.getByLabel("账户密码").fill("correct horse battery");
+  await page.getByLabel("我理解此操作会请求删除我的账户").check();
+  await page.getByRole("button", { name: "请求删除账户" }).click();
+  await expect(page.getByText("训练档案")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});

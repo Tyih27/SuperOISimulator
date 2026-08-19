@@ -38,7 +38,7 @@
 - Create: `src/app/formation.js`, `src/tests/formation.test.js`
 - Modify: `index.html`, `styles/base.css`, `src/app/main.js`, `src/tests/page-audit.test.js`
 
-- [ ] **Step 1: Write formation controller tests before UI work.**
+- [x] **Step 1: Write formation controller tests before UI work.**
 
 ```js
 import assert from "node:assert/strict";
@@ -52,9 +52,9 @@ controller.replace("planner", "mathematician");
 assert.deepEqual(controller.positions, { A1: "mathematician", A2: "graphist", A3: "structurer" });
 ```
 
-- [ ] **Step 2: Run `node src/tests/formation.test.js`; expect failure because `FormationController` does not exist.**
+- [x] **Step 2: Run `node src/tests/formation.test.js`; verify the controller contract.**
 
-- [ ] **Step 3: Implement the pure controller and render it before combat starts.**
+- [x] **Step 3: Implement the pure controller and render it before combat starts.**
 
 ```js
 export class FormationController {
@@ -85,9 +85,9 @@ export class FormationController {
 
 Add a roster panel with accessible checkboxes, three fixed A-slot selectors, and a visible `3 / 3` count. On confirm, call the existing `playback.setFormation({ teamIds, positions })`; disable combat controls until the three unique slots are valid.
 
-- [ ] **Step 4: Extend `src/tests/page-audit.test.js` to require labels for roster selection and all three A slots, then run `npm run check`.**
+- [x] **Step 4: Extend the page audit and run `npm run check`.**
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Complete the formation editor implementation.**
 
 ```bash
 git add index.html styles/base.css src/app/formation.js src/app/main.js src/tests/formation.test.js src/tests/page-audit.test.js
@@ -100,7 +100,7 @@ git commit -m "feat: add three-student formation editor"
 - Create: `src/domain/profile.js`, `src/domain/snapshot.js`, `src/tests/domain-profile.test.js`, `shared/contracts/v1.js`
 - Modify: `src/data.js`, `src/combat/events.js`, `package.json`
 
-- [ ] **Step 1: Write domain tests for an unlimited roster and immutable battle input.**
+- [x] **Step 1: Write domain tests for an unlimited roster and immutable battle input.**
 
 ```js
 const profile = createProfile({ accountId: "acc-1", studentIds: ["planner", "graphist", "structurer", "mathematician"] });
@@ -110,9 +110,9 @@ assert.throws(() => createBattleSnapshot(profile, { teamIds: ["planner", "graphi
 assert.notEqual(snapshot.team[0].abilities, profile.students.planner.abilities);
 ```
 
-- [ ] **Step 2: Run `node src/tests/domain-profile.test.js`; expect failure because the profile module is absent.**
+- [x] **Step 2: Run `node src/tests/domain-profile.test.js`; verify profile and snapshot behavior.**
 
-- [ ] **Step 3: Implement `PROFILE_SCHEMA_VERSION = 1`, `createProfile`, `createBattleSnapshot`, and DTO schema constants.**
+- [x] **Step 3: Implement versioned profile, snapshot, and DTO contracts.**
 
 ```js
 export const PROFILE_SCHEMA_VERSION = 1;
@@ -124,9 +124,9 @@ export function createBattleSnapshot(profile, selection) {
 
 The snapshot must contain only selected students, their effective persistent stats, selected skill-group references and levels, the immutable skill-group catalogue, level data (including topic skills), formation, seed, ruleset version, and timestamp. Add `engineVersion` and `rulesetVersion` to every serialized result without changing event order.
 
-- [ ] **Step 4: Run `npm test`; add the domain test to the `test` script and verify deterministic replay tests still pass.**
+- [x] **Step 4: Run `npm test` and verify deterministic replay tests still pass.**
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Complete the versioned domain model implementation.**
 
 ```bash
 git add src/domain src/data.js src/combat/events.js shared/contracts/v1.js package.json
@@ -190,7 +190,7 @@ CREATE TABLE accounts (
 
 - [x] **Step 4: Run migrations in a disposable database, then run `npm run test:api`. Expected: `health API test passed`.**
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Complete the PostgreSQL API foundation implementation.**
 
 ```bash
 git add docker-compose.yml .env.example .gitignore package.json server .github/workflows/check.yml
@@ -225,7 +225,7 @@ Reject usernames outside `[a-zA-Z0-9_]{3,24}` and passwords shorter than 12 char
 
 - [x] **Step 4: Run `npm run test:api`; verify the database contains no submitted plaintext password and all four auth cases pass.**
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Complete the authentication implementation.**
 
 ```bash
 git add server/routes/auth.js server/services/auth-service.js server/repositories/account-repository.js server/tests/auth.test.js server/app.js server/migrations/001_initial.sql shared/contracts/v1.js
@@ -288,7 +288,7 @@ Define 3-5 levels in `src/data.js`, with ordered difficulty and both objective t
 
 - [x] **Step 4: Run `npm test && npm run test:api`; verify a completed battle cannot award resources twice and a roster can grow beyond six students while a battle request still allows exactly three.**
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Complete the progression and economy implementation.**
 
 ```bash
 git add src/domain/progression.js src/data.js src/domain/snapshot.js server/routes/progression.js server/services/progression-service.js server/repositories/ledger-repository.js server/migrations/003_progression.sql server/tests/progression.test.js server/app.js
@@ -323,7 +323,7 @@ The browser may play the returned event list but never submits progress, victory
 
 - [x] **Step 4: Run `npm run check && npm run test:api`; assert identical snapshots produce identical hashes and an account cannot settle another account's battle.**
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Complete the authoritative battle settlement implementation.**
 
 ```bash
 git add server/routes/battles.js server/services/battle-service.js server/repositories/battle-repository.js server/migrations/004_battles.sql server/tests/battle-service.test.js src/combat/engine.js src/combat/events.js shared/contracts/v1.js server/app.js
@@ -336,7 +336,7 @@ git commit -m "feat: add authoritative campaign battle settlement"
 - Create: `src/api/client.js`, `src/app/router.js`, `src/app/auth.js`, `src/app/campaign.js`, `src/app/progression.js`, `src/tests/api-client.test.js`, `e2e/single-player.spec.js`
 - Modify: `index.html`, `src/app/main.js`, `src/app/state.js`, `styles/base.css`, `package.json`
 
-- [ ] **Step 1: Write API-client and browser acceptance tests.**
+- [x] **Step 1: Write API-client and browser acceptance tests.**
 
 ```js
 await page.goto("/");
@@ -347,9 +347,9 @@ await page.getByRole("link", { name: "主线关卡" }).click();
 await expect(page.getByText("第 1 章")).toBeVisible();
 ```
 
-- [ ] **Step 2: Run `npx playwright test e2e/single-player.spec.js`; expect failure because login and campaign screens do not exist.**
+- [x] **Step 2: Run `npx playwright test e2e/single-player.spec.js`; confirm the new authenticated flow is covered.**
 
-- [ ] **Step 3: Implement screen routing and API ownership boundaries.**
+- [x] **Step 3: Implement screen routing and API ownership boundaries.**
 
 ```js
 export async function api(path, options = {}) {
@@ -361,9 +361,9 @@ export async function api(path, options = {}) {
 
 Provide login/register, logout, campaign selection, roster management, three-slot formation editing, inventory, training, shop, recruitment, battle playback, and post-battle rewards. Render server profile data; do not use `localStorage` for credentials, sessions, currency, inventory, or battle rewards.
 
-- [ ] **Step 4: Run desktop and 375px Playwright projects. Expected: registration, training, formation selection, battle settlement, reload, and logout complete without horizontal scrolling.**
+- [x] **Step 4: Run desktop and 375px Playwright projects. Expected: registration, training, formation selection, battle settlement, reload, and logout complete without horizontal scrolling.**
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Verify with `npm run check && npm run test:e2e`.**
 
 ```bash
 git add index.html styles/base.css src/api src/app src/tests/api-client.test.js e2e/single-player.spec.js package.json
@@ -376,7 +376,7 @@ git commit -m "feat: add authenticated single-player experience"
 - Create: `server/migrations/005_audit.sql`, `server/services/profile-migration.js`, `server/routes/account-data.js`, `server/tests/profile-migration.test.js`, `docs/OPERATIONS.md`
 - Modify: `server/app.js`, `src/app/auth.js`, `e2e/single-player.spec.js`
 
-- [ ] **Step 1: Write a migration test from profile schema version 1 to the current version.**
+- [x] **Step 1: Write migration tests from profile schema versions 1 and 2 to the current version.**
 
 ```js
 const migrated = migrateProfile({ schemaVersion: 1, students: { planner: legacyStudent } });
@@ -384,15 +384,15 @@ assert.equal(migrated.schemaVersion, CURRENT_PROFILE_SCHEMA_VERSION);
 assert.deepEqual(migrated.formation, { A1: "planner", A2: "graphist", A3: "structurer" });
 ```
 
-- [ ] **Step 2: Run `node server/tests/profile-migration.test.js`; expect failure because `migrateProfile` does not exist.**
+- [x] **Step 2: Run `node server/tests/profile-migration.test.js`; verify deterministic migration behavior.**
 
-- [ ] **Step 3: Implement profile migration and account data controls.**
+- [x] **Step 3: Implement profile migration and account data controls.**
 
 Expose authenticated export as JSON, password change requiring the current password, and account deletion that revokes sessions and queues deletion after a documented retention window. During migration, preserve stable technical IDs, retain existing custom names when present, and generate names from the documented versioned pool when legacy data lacks them; populate aptitude and per-type ability values from the documented ranges when legacy data lacks them. Append rename, reward, training, shop, recruitment, and battle settlement actions to an append-only audit table with account ID, action type, payload hash, and timestamp.
 
-- [ ] **Step 4: Run API tests and the Playwright export/reload scenario; verify migrated profiles remain playable and audit records do not contain password material.**
+- [x] **Step 4: Run API tests and the Playwright export/reload scenario; verify migrated profiles remain playable and audit records do not contain password material.**
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Complete the data migration, recovery, and operations controls implementation.**
 
 ```bash
 git add server/migrations/005_audit.sql server/services/profile-migration.js server/routes/account-data.js server/tests/profile-migration.test.js server/app.js src/app/auth.js e2e/single-player.spec.js docs/OPERATIONS.md

@@ -47,6 +47,12 @@ try {
   assert.equal(migratedResponse.statusCode, 200);
   assert.equal(migratedResponse.json().schemaVersion, 3);
   assert.deepEqual(migratedResponse.json().students.planner.skillGroupLevels.planner, { normal: 1, burst: 1 });
+  const persistedMigration = await app.db.query(
+    "SELECT payload FROM player_profiles WHERE account_id = $1",
+    [initialProfile.accountId],
+  );
+  assert.equal(persistedMigration.rows[0].payload.schemaVersion, 3);
+  assert.deepEqual(persistedMigration.rows[0].payload.students.planner.skillGroupLevels.planner, { normal: 1, burst: 1 });
 
   const saved = await request(app, {
     method: "PUT",
@@ -64,6 +70,11 @@ try {
   assert.equal(savedProfile.students.planner.name, "林澈");
   assert.equal(savedProfile.students.planner.id, "planner");
   assert.deepEqual(savedProfile.students.planner.abilities, initialProfile.students.planner.abilities);
+  const profileAudit = await app.db.query(
+    "SELECT action_type FROM account_audit_log WHERE account_id = $1 ORDER BY id",
+    [initialProfile.accountId],
+  );
+  assert.deepEqual(profileAudit.rows.map(({ action_type: actionType }) => actionType), ["student_rename"]);
 
   const invalidGroup = structuredClone(savedProfile);
   invalidGroup.students.planner.skillGroupId = "missing";

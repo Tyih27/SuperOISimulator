@@ -113,6 +113,14 @@ try {
   });
   assert.equal(invalidId.statusCode, 400);
 
+  const auditEntries = await app.db.query(
+    "SELECT action_type FROM account_audit_log WHERE account_id = $1 ORDER BY id",
+    [profile.accountId],
+  );
+  assert.deepEqual(auditEntries.rows.map(({ action_type: actionType }) => actionType), [
+    "battle_started", "battle_started", "battle_settlement", "battle_settlement",
+  ]);
+
   const legacySettlement = await request(app, {
     method: "POST", url: "/api/v1/progression/campaign/settlements", cookies: auth,
     payload: { settlementId: "forged", levelId: "chapter-1-1", result: "win" },

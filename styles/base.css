@@ -61,6 +61,68 @@ svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width:
 
 .skip-link:focus { transform: translateY(0.75rem); }
 
+.account-shell { min-height: 100vh; }
+.account-topbar { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; min-height: 68px; padding: 0.9rem clamp(1rem, 3vw, 3.75rem); background: var(--surface); border-bottom: 1px solid var(--line); }
+.app-brand { color: var(--ink); font-size: 0.86rem; font-weight: 800; letter-spacing: 0.08em; text-decoration: none; white-space: nowrap; }
+.app-brand span { color: var(--gold-deep); }
+.account-topbar nav { display: flex; align-items: center; gap: 0.3rem; }
+.account-topbar nav a { padding: 0.4rem 0.6rem; color: var(--muted); border-bottom: 2px solid transparent; font-size: 0.75rem; text-decoration: none; }
+.account-topbar nav a:hover, .account-topbar nav a[aria-current="page"] { color: var(--ink); border-color: var(--gold); }
+.account-actions { display: flex; align-items: center; gap: 0.6rem; color: var(--muted); font-size: 0.74rem; }
+.account-actions .icon-button { width: auto; padding: 0 0.55rem; font-size: 0.7rem; }
+.account-main { width: min(1180px, 100%); margin: 0 auto; padding: 1.8rem clamp(1rem, 3vw, 3.75rem) 3.75rem; }
+.auth-page { display: grid; min-height: 100vh; place-items: center; padding: 1rem; }
+.auth-panel { width: min(100%, 29rem); padding: 1.6rem; background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow); }
+.auth-panel h1 { font-size: 1.45rem; }
+.auth-intro { margin: 0.55rem 0 1rem; color: var(--muted); font-size: 0.82rem; }
+.auth-form { display: grid; gap: 0.85rem; }
+.auth-form label, .panel > label, .roster-card label { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.72rem; }
+input, select { min-width: 0; min-height: 2.35rem; padding: 0.45rem 0.55rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 4px; font: inherit; }
+input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 0.34); outline-offset: 2px; }
+.auth-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.25rem; }
+.app-message { min-height: 1.2rem; margin: 0; color: var(--gold-deep); font-size: 0.74rem; }
+.account-control-grid { display: grid; gap: 1rem; }
+.account-control-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.85fr); gap: 1.25rem; padding: 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.account-control-section h2 { font-size: 0.95rem; }.account-control-section p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.74rem; }.account-control-section > .secondary-button { align-self: end; justify-self: start; }
+.account-form { display: grid; gap: 0.7rem; }.account-form label { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.72rem; }.account-form .confirmation-label { display: flex; align-items: center; gap: 0.5rem; color: var(--ink); }.confirmation-label input { min-height: auto; }
+.danger-section { border-color: #efc8c3; }.danger-section h2 { color: var(--red); }.danger-button { justify-self: start; min-height: 2.4rem; padding: 0.55rem 0.85rem; color: var(--red); background: var(--red-wash); border: 1px solid #e5aaa2; border-radius: 5px; font: inherit; font-size: 0.76rem; font-weight: 720; }
+.view-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.view-heading h1 { font-size: 1.35rem; }
+.view-heading .app-message { max-width: 24rem; text-align: right; }
+.level-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.7rem; }
+.level-card { display: grid; min-height: 7rem; gap: 0.3rem; align-content: start; padding: 0.85rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; text-align: left; }
+.level-card:hover:not(:disabled), .level-card.is-selected { border-color: var(--gold); box-shadow: inset 0 2px 0 var(--gold); }
+.level-card:disabled { color: var(--subtle); background: var(--surface-soft); }
+.level-card span, .level-card small { color: var(--subtle); font-size: 0.67rem; }
+.level-card strong { font-size: 0.85rem; }
+.campaign-detail, .resource-strip, .battle-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.15rem; padding: 1rem 1.1rem; background: var(--ink); color: var(--surface); border-radius: var(--radius); }
+.campaign-detail .eyebrow, .campaign-detail p { color: #d1d1d1; }
+.campaign-detail h2 { color: var(--surface); }
+.campaign-detail p { margin: 0.35rem 0 0; font-size: 0.76rem; }
+.reward-summary { min-width: 7.5rem; padding-left: 1rem; border-left: 1px solid #3c3c3c; color: #c6c6c6; font-size: 0.68rem; }
+.reward-summary strong { display: block; margin-top: 0.2rem; color: #f6cf71; font-size: 0.85rem; }
+.formation-workbench, .shop-section { margin-top: 1.15rem; padding: 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.campaign-formation-grid, .progression-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(250px, 0.8fr); gap: 1rem; }
+.campaign-formation-grid fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.campaign-formation-grid legend { margin-bottom: 0.55rem; color: var(--muted); font-size: 0.7rem; font-weight: 720; }
+.student-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.student-choice { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.5rem; align-items: center; min-height: 3.25rem; padding: 0.5rem 0.6rem; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 5px; }
+.student-choice input { min-height: auto; padding: 0; }
+.student-choice span { display: grid; min-width: 0; }
+.student-choice strong, .student-choice small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.student-choice strong { font-size: 0.74rem; }.student-choice small { color: var(--muted); font-size: 0.65rem; }
+.formation-workbench .formation-actions { justify-content: flex-end; }
+.roster-grid, .shop-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
+.roster-card, .shop-offer { display: grid; gap: 0.7rem; align-content: start; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.roster-card > div:first-child { display: grid; gap: 0.15rem; }.roster-card > div:first-child span { color: var(--muted); font-size: 0.67rem; }
+.roster-card dl { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.6rem; margin: 0; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+.roster-card dl div { display: flex; justify-content: space-between; gap: 0.4rem; color: var(--muted); font-size: 0.63rem; }.roster-card dt, .roster-card dd { margin: 0; }.roster-card dd { color: var(--ink); font-weight: 700; }
+.resource-strip { justify-content: flex-start; background: var(--surface); color: var(--ink); border: 1px solid var(--line); }.resource-strip div { display: grid; gap: 0.1rem; min-width: 8rem; padding-right: 1.5rem; border-right: 1px solid var(--line); }.resource-strip span { color: var(--muted); font-size: 0.68rem; }.resource-strip strong { font-size: 1rem; }
+.progression-grid { margin-top: 1rem; }.progression-grid .panel { display: grid; gap: 0.75rem; }.inventory-list { display: grid; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }.inventory-list li { display: flex; justify-content: space-between; gap: 0.5rem; padding-bottom: 0.45rem; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 0.7rem; }.inventory-list strong { color: var(--ink); }
+.shop-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }.shop-offer { min-height: 8rem; }.shop-offer span { color: var(--gold-deep); font-size: 0.7rem; }.shop-offer .secondary-button { margin-top: auto; }
+.battle-summary { flex-wrap: wrap; background: var(--surface); color: var(--ink); border: 1px solid var(--line); }.battle-summary div { display: grid; gap: 0.12rem; }.battle-summary span { color: var(--muted); font-size: 0.65rem; }.battle-summary strong { font-size: 0.74rem; }
+.battle-ready, .settled-result, .event-replay { margin-top: 1rem; padding: 1.15rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }.battle-ready p, .settled-result p { color: var(--muted); font-size: 0.76rem; }.battle-ready .primary-button { margin-top: 0.5rem; }.settled-result.is-win { border-left: 3px solid var(--green); }.settled-result.is-lose { border-left: 3px solid var(--red); }.settled-result dl { display: flex; gap: 1.5rem; margin: 1rem 0 0; }.settled-result dt { color: var(--muted); font-size: 0.65rem; }.settled-result dd { margin: 0.1rem 0 0; font-weight: 750; }.event-replay ol { display: grid; gap: 0.4rem; max-height: 24rem; overflow: auto; margin: 0.8rem 0 0; padding: 0; list-style: none; }.event-replay li { display: flex; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--line); color: var(--muted); font-family: "SFMono-Regular", Consolas, monospace; font-size: 0.68rem; }.event-replay li span { width: 2rem; color: var(--gold-deep); }
+
 .app-shell { min-height: 100vh; }
 
 .topbar {
@@ -267,6 +329,7 @@ h2 { margin-bottom: 0; font-size: 1.05rem; letter-spacing: -0.02em; line-height:
 }
 
 @media (max-width: 760px) {
+  .account-topbar { display: grid; gap: 0.65rem; }.account-topbar nav { order: 3; overflow-x: auto; }.account-actions { position: absolute; top: 1rem; right: 1rem; }.account-actions > span { display: none; }.account-main { padding-top: 1.15rem; }.view-heading { display: grid; gap: 0.45rem; }.view-heading .app-message { text-align: left; }.level-list, .roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.campaign-formation-grid, .progression-grid, .account-control-section { grid-template-columns: 1fr; }.shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .topbar { display: grid; gap: 0.8rem; padding-top: 0.85rem; padding-bottom: 0.85rem; }
   .topbar-status { justify-content: flex-start; gap: 0.7rem; }
   .status-divider { height: 1.5rem; }
@@ -295,6 +358,7 @@ h2 { margin-bottom: 0; font-size: 1.05rem; letter-spacing: -0.02em; line-height:
 }
 
 @media (max-width: 420px) {
+  .auth-panel { padding: 1.15rem; }.auth-actions, .level-list, .roster-grid, .student-choices, .shop-grid { grid-template-columns: 1fr; }.campaign-detail, .battle-summary { display: grid; }.reward-summary { padding: 0.7rem 0 0; border-top: 1px solid #3c3c3c; border-left: 0; }.resource-strip { gap: 0.6rem; }.resource-strip div { min-width: 0; padding-right: 0.7rem; }.settled-result dl { gap: 0.8rem; }
   .page-content { padding-right: 0.75rem; padding-left: 0.75rem; }
   .briefing-metrics > div { padding: 0 0.45rem; }
   .briefing-metrics span { font-size: 0.62rem; }

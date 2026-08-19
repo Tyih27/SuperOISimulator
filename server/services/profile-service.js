@@ -9,12 +9,13 @@ import {
   createProfile,
   DEFAULT_CURRENCIES,
   DEFAULT_UNLOCKED_LEVEL_IDS,
-  migrateProfile,
   PROFILE_SCHEMA_VERSION,
   STARTER_STUDENT_IDS,
 } from "../../src/domain/profile.js";
 import { normalizeStudentName } from "../../src/domain/student-identity.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
+import { AuditRepository } from "../repositories/audit-repository.js";
+import { migrateProfile } from "./profile-migration.js";
 
 const FORMATION_SLOTS = ["A1", "A2", "A3"];
 const knownLevelIds = new Set(LEVELS.map(({ id }) => id));
@@ -129,7 +130,7 @@ function validateProfile(profile, accountId) {
 }
 
 export function profileFromRow(row, accountId) {
-  const profile = migrateProfile(structuredClone(row.payload));
+  const profile = migrateProfile(structuredClone(row.payload), { accountId });
   if (profile.version !== row.version) {
     throw new Error(`Stored profile version mismatch for account ${accountId}`);
   }
@@ -171,6 +172,7 @@ export class ProfileService {
   constructor(pool) {
     this.pool = pool;
     this.repository = new ProfileRepository(pool);
+    this.audit = new AuditRepository();
   }
 
   defaultProfile(accountId) {
@@ -194,7 +196,7 @@ export class ProfileService {
         profile: this.defaultProfile(accountId),
       });
       const profile = profileFromRow(row, accountId);
-      if (profile.schemaVersion !== row.payload.schemaVersion) {
+      if (JSON.stringify(profile) !== JSON.stringify(row.payload)) {
         await this.repository.update(client, { accountId, version: profile.version, profile });
       }
       await client.query("COMMIT");
@@ -229,6 +231,13 @@ export class ProfileService {
         accountId,
         version: next.version,
         profile: next,
+      });
+      const renamed = Object.entries(update.students ?? {}).some(([studentId, student]) =>
+        student.name !== undefined && student.name !== current.students[studentId]?.name);
+      await this.audit.append(client, {
+        accountId,
+        actionType: renamed ? "student_rename" : "profile_update",
+        payload: renamed ? { studentIds: Object.keys(update.students ?? {}).filter((id) => update.students[id]?.name !== undefined) } : { fields: Object.keys(update).filter((key) => key !== "version") },
       });
       await client.query("COMMIT");
       return profileFromRow(saved, accountId);
