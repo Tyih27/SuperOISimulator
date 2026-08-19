@@ -13,11 +13,12 @@ Super OI Simulator 是一个以信息学竞赛训练为主题的自动战斗模�
 - 服务端事件日志回放与桌面端/375px 移动端布局覆盖
 - 账户 JSON 导出、密码变更和保留期删除请求
 
-账号、云存档、主线奖励、专项训练、基础商店、招募、服务端权威单人战斗结算和异步竞技场均已实现；异步竞技场提供防守快照、对手发现、服务端结算、积分变化和只读历史回放，详见[项目完成计划](docs/superpowers/plans/2026-08-19-project-completion.md)。
+账号、云存档、主线奖励、专项训练、基础商店、招募、服务端权威单人战斗结算和异步竞技场均已实现；异步竞技场提供防守快照、对手发现、服务端结算、积分变化和只读历史回放。生产镜像、迁移启动、健康检查、聚合监控和发布 CI 也已纳入，详见[部署文档](docs/DEPLOYMENT.md)、[安全文档](docs/SECURITY.md)和[项目完成计划](docs/superpowers/plans/2026-08-19-project-completion.md)。
 
 ## 环境要求
 
 - Node.js 22 或更高版本，用于运行测试
+- Docker Engine 和 Docker Compose v2，用于生产镜像和容器 smoke 测试
 - 任意支持 ES Modules 的现代浏览器
 - 一个静态文件服务器
 
@@ -89,6 +90,7 @@ npm run test:client
 npm run test:migration
 npm run test:api
 npm run test:e2e
+npm run test:container
 ```
 
 测试覆盖确定性战斗、回合顺序、编队规则、播放状态、领域模型、批量平衡性门槛、API 客户端、页面可访问性审计，以及桌面和 375px 移动端浏览器流程。运行 `npm run simulate:balance` 可生成各关卡的 JSON/CSV 编队报告；已批准的基线见 [BALANCE_BASELINE.md](docs/BALANCE_BASELINE.md)。
@@ -142,4 +144,4 @@ npm run test:e2e
 
 ## 开发状态
 
-当前已完成项目计划中的 Task 1 至 Task 11：战斗契约与三人编队、版本化领域模型、PostgreSQL API 基础、账号认证、版本化玩家档案和云存档、主线奖励、专项训练、商店与招募、服务端权威的单人战斗结算、账号界面、数据迁移、恢复与运维控制、批量模拟与平衡性门槛，以及异步竞技场。下一项工作是 Task 12：发布门槛、部署与监控。
+项目计划中的 Task 1 至 Task 12 已完成：战斗契约与三人编队、版本化领域模型、PostgreSQL API 基础、账号认证、版本化玩家档案和云存档、主线奖励、专项训练、商店与招募、服务端权威的单人战斗结算、账号界面、数据迁移、恢复与运维控制、批量模拟与平衡性门槛、异步竞技场，以及生产发布门槛、部署与监控。

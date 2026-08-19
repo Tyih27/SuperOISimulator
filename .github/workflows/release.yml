@@ -1,11 +1,12 @@
-name: Check
+name: Release Gate
 
 on:
   push:
-  pull_request:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
 
 jobs:
-  test:
+  release:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -35,3 +36,4 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: npm run simulate:balance
+      - run: npm run test:container

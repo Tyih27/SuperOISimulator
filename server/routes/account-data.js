@@ -34,7 +34,7 @@ function sendError(reply, error) {
 
 function clearCookie(reply, config) {
   reply.setCookie("sid", "", {
-    path: "/", httpOnly: true, secure: config.isProduction === true, sameSite: "lax", signed: true, maxAge: 0,
+    path: "/", httpOnly: true, secure: config.secureCookies ?? config.isProduction === true, sameSite: "lax", signed: true, maxAge: 0,
   });
 }
 

@@ -476,7 +476,7 @@ git commit -m "feat: add asynchronous arena and replay"
 - Create: `Dockerfile`, `docker-compose.production.yml`, `.github/workflows/release.yml`, `server/routes/metrics.js`, `docs/DEPLOYMENT.md`, `docs/SECURITY.md`
 - Modify: `package.json`, `.github/workflows/check.yml`, `README.md`
 
-- [ ] **Step 1: Write a smoke test that runs against the built container.**
+- [x] **Step 1: Write a smoke test that runs against the built container.**
 
 ```bash
 docker compose -f docker-compose.production.yml up -d --build
@@ -484,13 +484,13 @@ curl --fail http://localhost:3000/health
 docker compose -f docker-compose.production.yml down -v
 ```
 
-- [ ] **Step 2: Run the smoke script before implementation; expect failure because no production compose file exists.**
+- [x] **Step 2: Run the smoke script before implementation; expect failure because no production compose file exists.**
 
-- [ ] **Step 3: Build the release pipeline.**
+- [x] **Step 3: Build the release pipeline.**
 
 The production image must run migrations before accepting traffic, serve static browser assets and API from one origin, require `DATABASE_URL`, `SESSION_SECRET`, and secure-cookie configuration, and expose only aggregate health/metrics without account identifiers. CI must run unit tests, API tests with PostgreSQL, Playwright desktop/mobile tests, replay determinism tests, `npm run check`, migration-upgrade tests, and the container smoke test.
 
-- [ ] **Step 4: Run the full release command.**
+- [x] **Step 4: Run the full release command.**
 
 ```bash
 npm run check && npm run test:api && npx playwright test && npm run simulate:balance && docker compose -f docker-compose.production.yml up --build --abort-on-container-exit
@@ -498,7 +498,7 @@ npm run check && npm run test:api && npx playwright test && npm run simulate:bal
 
 Expected: every test suite passes, the health check is HTTP 200, and the generated balance reports match their committed baselines.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
 ```bash
 git add Dockerfile docker-compose.production.yml .github/workflows/release.yml server/routes/metrics.js docs/DEPLOYMENT.md docs/SECURITY.md package.json .github/workflows/check.yml README.md

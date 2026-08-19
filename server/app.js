@@ -9,6 +9,7 @@ import { progressionRoutes } from "./routes/progression.js";
 import { battleRoutes } from "./routes/battles.js";
 import { accountDataRoutes } from "./routes/account-data.js";
 import { arenaRoutes } from "./routes/arena.js";
+import { metricsRoutes } from "./routes/metrics.js";
 
 function requirePool(pool) {
   if (!pool || typeof pool.query !== "function") {
@@ -89,7 +90,11 @@ export function buildApp({ pool, config = {} } = {}) {
     isProduction: config.isProduction ?? config.environment === "production",
   }));
 
-  app.get("/health", async () => ({ status: "ok" }));
+  app.get("/health", async () => {
+    await app.db.query("SELECT 1");
+    return { status: "ok" };
+  });
+  app.register(metricsRoutes);
 
   app.register(async (api) => {
     await api.register(cookie, {

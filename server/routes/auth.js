@@ -29,7 +29,7 @@ function cookieOptions(config) {
   return {
     path: "/",
     httpOnly: true,
-    secure: config.isProduction === true,
+    secure: config.secureCookies ?? config.isProduction === true,
     sameSite: "lax",
     signed: true,
     maxAge: Math.floor((config.sessionTtlMs ?? DEFAULT_SESSION_TTL_MS) / 1000),

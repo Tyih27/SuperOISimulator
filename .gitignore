@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 reports/
+test-results/
 .DS_Store
 Thumbs.db
 *.log

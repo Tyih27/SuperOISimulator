@@ -29,6 +29,10 @@ function retentionDays(value) {
 
 const databaseUrl = required("DATABASE_URL");
 const sessionSecret = required("SESSION_SECRET");
+const secureCookies = process.env.SECURE_COOKIES;
+if (secureCookies !== "true" && secureCookies !== "false") {
+  throw new Error("SECURE_COOKIES is required and must be true or false");
+}
 const port = Number.parseInt(process.env.PORT ?? "3000", 10);
 const host = process.env.HOST ?? "127.0.0.1";
 const appOrigin = process.env.APP_ORIGIN ?? `http://localhost:${port}`;
@@ -42,6 +46,7 @@ const app = buildApp({
   config: {
     environment: process.env.NODE_ENV ?? "development",
     sessionSecret,
+    secureCookies: secureCookies === "true",
     allowedOrigins: [appOrigin],
     accountDeletionRetentionDays: retentionDays(process.env.ACCOUNT_DELETION_RETENTION_DAYS),
     staticDir: projectRoot,
