@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Super OI Simulator 单机战斗原型">
+    <title>Super OI Simulator · 战术演练</title>
+    <link rel="stylesheet" href="styles/base.css">
+    <script src="src/app/main.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+    <div class="app-shell">
+      <header class="topbar" aria-label="战斗概览">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">SO</span>
+          <div>
+            <p class="eyebrow">SUPER OI SIMULATOR</p>
+            <h1>清晨训练场</h1>
+          </div>
+        </div>
+        <div class="topbar-status" aria-label="战斗状态">
+          <div class="status-item">
+            <span class="status-label">回合</span>
+            <strong>01 <span class="muted">/ 12</span></strong>
+          </div>
+          <div class="status-divider" aria-hidden="true"></div>
+          <div class="status-item">
+            <span class="status-label">种子</span>
+            <strong class="mono">A7C4-19</strong>
+          </div>
+          <div class="speed-control" aria-label="播放速度">
+            <span class="status-label">速度</span>
+            <button class="speed-button is-active" type="button" aria-pressed="true">1×</button>
+            <button class="speed-button" type="button" aria-pressed="false">2×</button>
+          </div>
+          <button class="icon-button" type="button" aria-label="重新开始战斗" title="重新开始">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3M20 5v6h-6"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <main id="main-content" class="page-content">
+        <section class="briefing-band" aria-labelledby="briefing-title">
+          <div>
+            <p class="eyebrow">关卡目标</p>
+            <h2 id="briefing-title">在 12 回合内通过至少 3 道题目</h2>
+          </div>
+          <div class="briefing-metrics" aria-label="关卡进度">
+            <div><span>已通过</span><strong>0 / 6</strong></div>
+            <div><span>队伍精力</span><strong>8,640</strong></div>
+            <div><span>状态</span><strong class="status-ready">准备中</strong></div>
+          </div>
+        </section>
+
+        <div class="workspace-grid">
+          <section class="battlefield" aria-labelledby="battlefield-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">战斗编队</p>
+                <h2 id="battlefield-title">A 位学生 <span class="heading-note">自动行动</span></h2>
+              </div>
+              <button class="text-button" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h11M8 12h11M8 17h11M4 7h.01M4 12h.01M4 17h.01"/></svg>
+                编队说明
+              </button>
+            </div>
+            <div id="student-list" class="student-list"></div>
+
+            <div class="battle-divider" aria-hidden="true"><span>对战题目</span></div>
+
+            <div class="section-heading topic-heading">
+              <div>
+                <p class="eyebrow">活动题目 · 3 / 6</p>
+                <h2>B 位题目 <span class="heading-note">完成后下回合补位</span></h2>
+              </div>
+              <span class="queue-count">候补 3 道</span>
+            </div>
+            <div id="topic-list" class="topic-list"></div>
+          </section>
+
+          <aside class="side-column" aria-label="战斗辅助信息">
+            <section class="panel action-panel" aria-labelledby="action-title">
+              <div class="panel-kicker"><span class="live-dot" aria-hidden="true"></span> 当前行动</div>
+              <h2 id="action-title">A2 · 图论手</h2>
+              <p class="action-description">正在选择与自身能力匹配度最高的题目。</p>
+              <div class="action-target">
+                <span class="target-label">预计目标</span>
+                <strong>B2 · 网络流</strong>
+                <span class="target-effect">+ 620 完成度</span>
+              </div>
+            </section>
+
+            <section class="panel" aria-labelledby="skills-title">
+              <div class="panel-header">
+                <h2 id="skills-title">技能预览</h2>
+                <span class="panel-meta">A1 — A3</span>
+              </div>
+              <div id="skill-list" class="skill-list"></div>
+            </section>
+
+            <section class="panel log-panel" aria-labelledby="log-title">
+              <div class="panel-header">
+                <h2 id="log-title">事件日志</h2>
+                <button class="icon-button small" type="button" aria-label="折叠事件日志" title="折叠日志">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+              </div>
+              <div id="event-log" class="event-log"></div>
+            </section>
+          </aside>
+        </div>
+      </main>
+
+      <footer class="control-dock" aria-label="播放控制">
+        <div class="control-group primary-controls">
+          <button class="primary-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z"/></svg>
+            开始战斗
+          </button>
+          <button class="secondary-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6v12M16 6v12"/></svg>
+            暂停
+          </button>
+          <button class="secondary-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Zm11 7H5"/></svg>
+            单步
+          </button>
+        </div>
+        <div class="objective-progress">
+          <div class="progress-label"><span>目标进度</span><strong>0 / 3 道题目</strong></div>
+          <div class="progress-track"><span style="width: 8%"></span></div>
+        </div>
+        <button class="settlement-button" type="button" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M7 7h7.5a3 3 0 0 1 0 6H9.5a3 3 0 0 0 0 6H17"/></svg>
+          战斗结算
+        </button>
+      </footer>
+    </div>
+  </body>
+</html>
