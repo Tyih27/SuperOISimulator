@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Super OI Simulator 单机战斗原型">
-    <title>Super OI Simulator · 战术演练</title>
+    <title>Super OI Simulator · 战斗演练</title>
     <link rel="stylesheet" href="styles/base.css">
-    <script src="src/app/main.js" defer></script>
+    <script type="module" src="src/app/main.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#main-content">跳到主要内容</a>
@@ -19,22 +19,18 @@
             <h1>清晨训练场</h1>
           </div>
         </div>
-        <div class="topbar-status" aria-label="战斗状态">
-          <div class="status-item">
-            <span class="status-label">回合</span>
-            <strong>01 <span class="muted">/ 12</span></strong>
-          </div>
+        <div class="topbar-status">
+          <div class="status-item"><span class="status-label">回合</span><strong id="round-status">准备 / 12</strong></div>
           <div class="status-divider" aria-hidden="true"></div>
-          <div class="status-item">
-            <span class="status-label">种子</span>
-            <strong class="mono">A7C4-19</strong>
-          </div>
+          <div class="status-item"><span class="status-label">种子</span><strong id="seed-status" class="mono">A7C4-19</strong></div>
           <div class="speed-control" aria-label="播放速度">
             <span class="status-label">速度</span>
-            <button class="speed-button is-active" type="button" aria-pressed="true">1×</button>
-            <button class="speed-button" type="button" aria-pressed="false">2×</button>
+            <button class="speed-button" type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+            <button class="speed-button is-active" type="button" data-speed="1" aria-pressed="true">1×</button>
+            <button class="speed-button" type="button" data-speed="2" aria-pressed="false">2×</button>
+            <button class="speed-button" type="button" data-speed="4" aria-pressed="false">4×</button>
           </div>
-          <button class="icon-button" type="button" aria-label="重新开始战斗" title="重新开始">
+          <button id="restart-top" class="icon-button" type="button" aria-label="重新开始" title="重新开始">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3M20 5v6h-6"/></svg>
           </button>
         </div>
@@ -44,37 +40,64 @@
         <section class="briefing-band" aria-labelledby="briefing-title">
           <div>
             <p class="eyebrow">关卡目标</p>
-            <h2 id="briefing-title">在 12 回合内通过至少 3 道题目</h2>
+            <h2 id="briefing-title">12 回合内通过至少 3 道题目</h2>
+            <p id="live-status" class="live-status" aria-live="polite">队伍已就绪，点击“开始战斗”。</p>
           </div>
           <div class="briefing-metrics" aria-label="关卡进度">
-            <div><span>已通过</span><strong>0 / 6</strong></div>
-            <div><span>队伍精力</span><strong>8,640</strong></div>
-            <div><span>状态</span><strong class="status-ready">准备中</strong></div>
+            <div><span>已通过</span><strong id="completed-metric">0 / 3</strong></div>
+            <div><span>队伍精力</span><strong id="energy-metric">0</strong></div>
+            <div><span>状态</span><strong id="phase-metric" class="status-ready">准备中</strong></div>
+          </div>
+        </section>
+
+        <section id="formation-panel" class="formation-panel" aria-labelledby="formation-title">
+          <div class="formation-heading">
+            <div>
+              <p class="eyebrow">出战准备</p>
+              <h2 id="formation-title">选择学生并安排站位</h2>
+            </div>
+            <strong id="formation-count" class="formation-count" aria-live="polite">3 / 3</strong>
+          </div>
+          <div class="formation-editor">
+            <fieldset class="roster-fieldset">
+              <legend>选择参战学生</legend>
+              <div class="roster-options">
+                <label class="roster-option" for="roster-planner"><input id="roster-planner" name="roster" type="checkbox" value="planner"><span><strong>加载学生</strong><small>身份生成中</small></span></label>
+                <label class="roster-option" for="roster-graphist"><input id="roster-graphist" name="roster" type="checkbox" value="graphist"><span><strong>加载学生</strong><small>身份生成中</small></span></label>
+                <label class="roster-option" for="roster-structurer"><input id="roster-structurer" name="roster" type="checkbox" value="structurer"><span><strong>加载学生</strong><small>身份生成中</small></span></label>
+                <label class="roster-option" for="roster-mathematician"><input id="roster-mathematician" name="roster" type="checkbox" value="mathematician"><span><strong>加载学生</strong><small>身份生成中</small></span></label>
+                <label class="roster-option" for="roster-implementer"><input id="roster-implementer" name="roster" type="checkbox" value="implementer"><span><strong>加载学生</strong><small>身份生成中</small></span></label>
+                <label class="roster-option" for="roster-supporter"><input id="roster-supporter" name="roster" type="checkbox" value="supporter"><span><strong>加载学生</strong><small>身份生成中</small></span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="position-fieldset">
+              <legend>安排 A 位站位</legend>
+              <div class="position-selectors">
+                <label for="formation-a1"><span>A1 站位</span><select id="formation-a1" data-formation-slot="A1"><option value="">未安排</option></select></label>
+                <label for="formation-a2"><span>A2 站位</span><select id="formation-a2" data-formation-slot="A2"><option value="">未安排</option></select></label>
+                <label for="formation-a3"><span>A3 站位</span><select id="formation-a3" data-formation-slot="A3"><option value="">未安排</option></select></label>
+              </div>
+            </fieldset>
+          </div>
+          <div class="formation-actions">
+            <p id="formation-error" class="formation-error" aria-live="polite"></p>
+            <button id="confirm-formation" class="primary-button" type="button">确认编队</button>
           </div>
         </section>
 
         <div class="workspace-grid">
           <section class="battlefield" aria-labelledby="battlefield-title">
             <div class="section-heading">
-              <div>
-                <p class="eyebrow">战斗编队</p>
-                <h2 id="battlefield-title">A 位学生 <span class="heading-note">自动行动</span></h2>
-              </div>
-              <button class="text-button" type="button">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h11M8 12h11M8 17h11M4 7h.01M4 12h.01M4 17h.01"/></svg>
-                编队说明
-              </button>
+              <div><p class="eyebrow">战斗编队</p><h2 id="battlefield-title">A 位学生 <span class="heading-note">自动行动</span></h2></div>
+              <span id="step-status" class="panel-meta">尚未行动</span>
             </div>
             <div id="student-list" class="student-list"></div>
 
             <div class="battle-divider" aria-hidden="true"><span>对战题目</span></div>
-
             <div class="section-heading topic-heading">
-              <div>
-                <p class="eyebrow">活动题目 · 3 / 6</p>
-                <h2>B 位题目 <span class="heading-note">完成后下回合补位</span></h2>
-              </div>
-              <span class="queue-count">候补 3 道</span>
+              <div><p class="eyebrow">活动题目 · B1–B3</p><h2>B 位题目 <span class="heading-note">完成后下一回合补位</span></h2></div>
+              <span id="queue-count" class="queue-count">候补 0 道</span>
             </div>
             <div id="topic-list" class="topic-list"></div>
           </section>
@@ -82,59 +105,38 @@
           <aside class="side-column" aria-label="战斗辅助信息">
             <section class="panel action-panel" aria-labelledby="action-title">
               <div class="panel-kicker"><span class="live-dot" aria-hidden="true"></span> 当前行动</div>
-              <h2 id="action-title">A2 · 图论手</h2>
-              <p class="action-description">正在选择与自身能力匹配度最高的题目。</p>
-              <div class="action-target">
-                <span class="target-label">预计目标</span>
-                <strong>B2 · 网络流</strong>
-                <span class="target-effect">+ 620 完成度</span>
-              </div>
+              <h2 id="action-title">等待开始</h2>
+              <p id="action-description" class="action-description">战斗开始后，这里会说明行动者、技能和目标。</p>
+              <div class="action-target"><span class="target-label">最近结算</span><strong id="action-target">暂无事件</strong><span id="action-effect" class="target-effect">—</span></div>
             </section>
 
             <section class="panel" aria-labelledby="skills-title">
-              <div class="panel-header">
-                <h2 id="skills-title">技能预览</h2>
-                <span class="panel-meta">A1 — A3</span>
-              </div>
+              <div class="panel-header"><h2 id="skills-title">技能状态</h2><span class="panel-meta">常规 / 爆发</span></div>
               <div id="skill-list" class="skill-list"></div>
             </section>
 
             <section class="panel log-panel" aria-labelledby="log-title">
-              <div class="panel-header">
-                <h2 id="log-title">事件日志</h2>
-                <button class="icon-button small" type="button" aria-label="折叠事件日志" title="折叠日志">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                </button>
-              </div>
-              <div id="event-log" class="event-log"></div>
+              <div class="panel-header"><h2 id="log-title">事件日志</h2><button id="log-toggle" class="icon-button small" type="button" aria-label="折叠事件日志" title="折叠事件日志"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>
+              <div id="event-log" class="event-log" aria-live="polite"></div>
             </section>
           </aside>
         </div>
+
+        <section id="result-panel" class="result-panel" hidden aria-labelledby="result-title">
+          <div><p class="eyebrow">战斗结算</p><h2 id="result-title">—</h2><p id="result-reason" class="result-reason">—</p></div>
+          <div class="result-metrics"><span>通过题目 <strong id="result-completed">0</strong></span><span>剩余精力 <strong id="result-energy">0</strong></span><span>结束回合 <strong id="result-round">0</strong></span></div>
+          <button id="restart-result" class="primary-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3M20 5v6h-6"/></svg>重新挑战</button>
+        </section>
       </main>
 
       <footer class="control-dock" aria-label="播放控制">
         <div class="control-group primary-controls">
-          <button class="primary-button" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z"/></svg>
-            开始战斗
-          </button>
-          <button class="secondary-button" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6v12M16 6v12"/></svg>
-            暂停
-          </button>
-          <button class="secondary-button" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Zm11 7H5"/></svg>
-            单步
-          </button>
+          <button id="start-button" class="primary-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z"/></svg><span>开始战斗</span></button>
+          <button id="pause-button" class="secondary-button" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6v12M16 6v12"/></svg><span>暂停</span></button>
+          <button id="step-button" class="secondary-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Zm11 7H5"/></svg><span>单步</span></button>
         </div>
-        <div class="objective-progress">
-          <div class="progress-label"><span>目标进度</span><strong>0 / 3 道题目</strong></div>
-          <div class="progress-track"><span style="width: 8%"></span></div>
-        </div>
-        <button class="settlement-button" type="button" disabled>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M7 7h7.5a3 3 0 0 1 0 6H9.5a3 3 0 0 0 0 6H17"/></svg>
-          战斗结算
-        </button>
+        <div class="objective-progress"><div class="progress-label"><span>目标进度</span><strong id="objective-label">0 / 3 道题目</strong></div><div class="progress-track"><span id="objective-bar" style="width: 0%"></span></div></div>
+        <span id="settlement-label" class="settlement-button is-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M7 7h7.5a3 3 0 0 1 0 6H9.5a3 3 0 0 0 0 6H17"/></svg><span>战斗进行中</span></span>
       </footer>
     </div>
   </body>

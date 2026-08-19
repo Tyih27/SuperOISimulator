@@ -6,6 +6,9 @@
  * current energy, focus, and topic progress belong to a battle snapshot.
  */
 
+export const ENGINE_VERSION = "1";
+export const RULESET_VERSION = "1";
+
 export const ABILITY_KEYS = Object.freeze([
   "dynamicProgramming",
   "graphTheory",
@@ -20,6 +23,33 @@ export const ABILITY_LABELS = Object.freeze({
   dataStructures: "数据结构",
   mathematics: "数学",
   implementation: "代码实现"
+});
+
+export const NAME_POOL_VERSION = 1;
+
+export const STUDENT_NAME_POOLS = Object.freeze({
+  [NAME_POOL_VERSION]: Object.freeze({
+    surnames: Object.freeze(["林", "周", "苏", "顾", "陈", "许", "沈", "陆", "程", "唐", "叶", "方"]),
+    givenNames: Object.freeze(["澈", "岚", "砚", "言", "默", "宁", "遥", "川", "禾", "知", "予", "衡", "然", "清", "朗", "思"]),
+  }),
+});
+
+export const APTITUDE_ABILITY_RANGES = Object.freeze({
+  "普通": Object.freeze({
+    dynamicProgramming: Object.freeze([450, 650]), graphTheory: Object.freeze([450, 650]), dataStructures: Object.freeze([500, 700]), mathematics: Object.freeze([350, 550]), implementation: Object.freeze([800, 1000]),
+  }),
+  "优秀": Object.freeze({
+    dynamicProgramming: Object.freeze([450, 900]), graphTheory: Object.freeze([450, 900]), dataStructures: Object.freeze([450, 900]), mathematics: Object.freeze([400, 900]), implementation: Object.freeze([600, 900]),
+  }),
+  "稀有": Object.freeze({
+    dynamicProgramming: Object.freeze([500, 950]), graphTheory: Object.freeze([500, 950]), dataStructures: Object.freeze([500, 950]), mathematics: Object.freeze([450, 950]), implementation: Object.freeze([550, 950]),
+  }),
+  "天才": Object.freeze({
+    dynamicProgramming: Object.freeze([500, 1000]), graphTheory: Object.freeze([500, 1000]), dataStructures: Object.freeze([500, 1000]), mathematics: Object.freeze([500, 1000]), implementation: Object.freeze([500, 1000]),
+  }),
+  "顶尖": Object.freeze({
+    dynamicProgramming: Object.freeze([800, 1000]), graphTheory: Object.freeze([800, 1000]), dataStructures: Object.freeze([800, 1000]), mathematics: Object.freeze([800, 1000]), implementation: Object.freeze([800, 1000]),
+  }),
 });
 
 const freeze = (value) => {
@@ -50,9 +80,7 @@ const supportSkill = (skill) => ({
 export const STUDENTS = freeze([
   {
     id: "planner",
-    name: "规划手",
-    aptitude: "优秀",
-    role: "单体解题",
+    defaultAptitude: "普通",
     abilities: { dynamicProgramming: 820, graphTheory: 540, dataStructures: 610, mathematics: 420, implementation: 760 },
     maxEnergy: 5200,
     skills: {
@@ -62,9 +90,7 @@ export const STUDENTS = freeze([
   },
   {
     id: "graphist",
-    name: "图论手",
-    aptitude: "优秀",
-    role: "单体解题",
+    defaultAptitude: "普通",
     abilities: { dynamicProgramming: 520, graphTheory: 860, dataStructures: 640, mathematics: 580, implementation: 700 },
     maxEnergy: 5000,
     skills: {
@@ -74,9 +100,7 @@ export const STUDENTS = freeze([
   },
   {
     id: "structurer",
-    name: "结构手",
-    aptitude: "稀有",
-    role: "防守辅助",
+    defaultAptitude: "普通",
     abilities: { dynamicProgramming: 580, graphTheory: 610, dataStructures: 900, mathematics: 500, implementation: 650 },
     maxEnergy: 5600,
     skills: {
@@ -86,9 +110,7 @@ export const STUDENTS = freeze([
   },
   {
     id: "mathematician",
-    name: "数学手",
-    aptitude: "天才",
-    role: "难题解答",
+    defaultAptitude: "普通",
     abilities: { dynamicProgramming: 600, graphTheory: 570, dataStructures: 560, mathematics: 920, implementation: 620 },
     maxEnergy: 4700,
     skills: {
@@ -98,9 +120,7 @@ export const STUDENTS = freeze([
   },
   {
     id: "implementer",
-    name: "实现手",
-    aptitude: "普通",
-    role: "稳定输出",
+    defaultAptitude: "普通",
     abilities: { dynamicProgramming: 570, graphTheory: 600, dataStructures: 620, mathematics: 480, implementation: 900 },
     maxEnergy: 5100,
     skills: {
@@ -110,9 +130,7 @@ export const STUDENTS = freeze([
   },
   {
     id: "supporter",
-    name: "支援手",
-    aptitude: "稀有",
-    role: "增益辅助",
+    defaultAptitude: "普通",
     abilities: { dynamicProgramming: 640, graphTheory: 650, dataStructures: 620, mathematics: 610, implementation: 680 },
     maxEnergy: 5400,
     skills: {
@@ -135,7 +153,7 @@ export const TOPICS = freeze([
 
 export const LEVELS = freeze([
   {
-    id: "morningTraining",
+    id: "chapter-1-1",
     name: "清晨训练场",
     seed: "A7C4-19",
     maxRounds: 12,
@@ -172,4 +190,3 @@ export function createInitialBattleConfig({ levelId = LEVELS[0].id, seed } = {})
     }))
   };
 }
-

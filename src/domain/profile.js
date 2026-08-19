@@ -1,0 +1,122 @@
+import { NAME_POOL_VERSION, STUDENTS } from "../data.js";
+import {
+  aptitudeForAbilities,
+  createStudentIdentity,
+  generateStudentName,
+  normalizeStudentName,
+} from "./student-identity.js";
+
+export { renameStudent } from "./student-identity.js";
+
+export const LEGACY_PROFILE_SCHEMA_VERSION = 1;
+export const PROFILE_SCHEMA_VERSION = 2;
+
+const studentById = new Map(STUDENTS.map((student) => [student.id, student]));
+
+function requireAccountId(accountId) {
+  if (typeof accountId !== "string" || accountId.trim() === "") {
+    throw new Error("Profile accountId must be a non-empty string");
+  }
+  return accountId;
+}
+
+function requireVersion(version) {
+  if (!Number.isInteger(version) || version < 1) {
+    throw new Error("Profile version must be a positive integer");
+  }
+  return version;
+}
+
+function requireStudentIds(studentIds) {
+  if (!Array.isArray(studentIds)) throw new Error("Profile studentIds must be an array");
+  if (new Set(studentIds).size !== studentIds.length) {
+    throw new Error("A profile must contain different students");
+  }
+  for (const studentId of studentIds) {
+    if (!studentById.has(studentId)) throw new Error(`Unknown student: ${studentId}`);
+  }
+  return studentIds;
+}
+
+function createOwnedStudent(studentId, identitySeed, namePoolVersion) {
+  const content = studentById.get(studentId);
+  const identity = createStudentIdentity({
+    studentId,
+    seed: identitySeed,
+    namePoolVersion,
+    aptitude: content.defaultAptitude,
+  });
+  return {
+    ...identity,
+    maxEnergy: content.maxEnergy,
+    skillLevels: { normal: 1, burst: 1 },
+    skills: structuredClone(content.skills),
+  };
+}
+
+export function createProfile({
+  accountId,
+  studentIds = [],
+  version = 1,
+  identitySeed = accountId,
+  namePoolVersion = NAME_POOL_VERSION,
+  formation,
+} = {}) {
+  requireAccountId(accountId);
+  requireVersion(version);
+  requireStudentIds(studentIds);
+  if (typeof identitySeed !== "string" && typeof identitySeed !== "number") {
+    throw new Error("Profile identitySeed must be a string or number");
+  }
+  const students = Object.fromEntries(studentIds.map((studentId) => [
+    studentId,
+    createOwnedStudent(studentId, identitySeed, namePoolVersion),
+  ]));
+  return {
+    schemaVersion: PROFILE_SCHEMA_VERSION,
+    version,
+    accountId,
+    identitySeed,
+    namePoolVersion,
+    students,
+    ...(formation === undefined ? {} : { formation: structuredClone(formation) }),
+  };
+}
+
+export function migrateProfile(profile, { seed = profile?.identitySeed ?? profile?.accountId, namePoolVersion = NAME_POOL_VERSION } = {}) {
+  if (!profile || typeof profile !== "object") throw new Error("A profile is required for migration");
+  requireAccountId(profile.accountId);
+  requireVersion(profile.version);
+  if (profile.schemaVersion === PROFILE_SCHEMA_VERSION) return structuredClone(profile);
+  if (profile.schemaVersion !== LEGACY_PROFILE_SCHEMA_VERSION) {
+    throw new Error(`Unsupported profile schema version: ${profile.schemaVersion}`);
+  }
+  if (typeof seed !== "string" && typeof seed !== "number") {
+    throw new Error("Profile migration seed must be a string or number");
+  }
+  const students = Object.fromEntries(Object.entries(profile.students ?? {}).map(([studentId, legacyStudent]) => {
+    const content = studentById.get(studentId);
+    if (!content) throw new Error(`Unknown student: ${studentId}`);
+    const abilities = structuredClone(legacyStudent.abilities);
+    const aptitude = aptitudeForAbilities(abilities, legacyStudent.aptitude ?? content.defaultAptitude);
+    const name = legacyStudent.name === undefined
+      ? generateStudentName({ studentId, seed, namePoolVersion })
+      : normalizeStudentName(legacyStudent.name);
+    return [studentId, {
+      id: legacyStudent.id ?? studentId,
+      name,
+      aptitude,
+      abilities,
+      maxEnergy: legacyStudent.maxEnergy,
+      skillLevels: structuredClone(legacyStudent.skillLevels),
+      skills: structuredClone(legacyStudent.skills ?? content.skills),
+    }];
+  }));
+  return {
+    ...structuredClone(profile),
+    schemaVersion: PROFILE_SCHEMA_VERSION,
+    identitySeed: seed,
+    namePoolVersion,
+    students,
+  };
+}
