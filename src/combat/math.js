@@ -54,6 +54,11 @@ export function calculateEnergyDamage(student, topic, { min = 100, max = 2000 } 
   return clamp(raw, min, max);
 }
 
+export function calculateTopicSkillDamage(student, topic, skill = {}) {
+  const base = calculateEnergyDamage(student, topic);
+  return clamp(roundHalfUp(base * (skill.damageMultiplier ?? 1) + (skill.flatBonus ?? 0)), 0, skill.maxDamage ?? 2000);
+}
+
 export function relatedAbilityValue(student, relatedAbility = "overall") {
   return relatedAbility === "overall" ? calculateOverallPower(student) : (student.abilities?.[relatedAbility] ?? 0);
 }
@@ -68,5 +73,5 @@ export const abilityGap = calculateAbilityGap;
 export const baselineProgress = calculateBaselineProgress;
 export const skillProgress = calculateSkillProgress;
 export const energyDamage = calculateEnergyDamage;
+export const topicSkillDamage = calculateTopicSkillDamage;
 export const supportEffect = calculateSupportEffect;
-

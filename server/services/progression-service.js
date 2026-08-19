@@ -8,7 +8,7 @@ import {
 } from "../../src/domain/progression.js";
 import { LedgerRepository } from "../repositories/ledger-repository.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
-import { ProfileService } from "./profile-service.js";
+import { ProfileService, profileFromRow } from "./profile-service.js";
 
 const levelById = new Map(LEVELS.map((level) => [level.id, level]));
 const offerById = new Map(SHOP_OFFERS.map((offer) => [offer.id, offer]));
@@ -70,7 +70,7 @@ export class ProgressionService {
         accountId,
         profile: this.profileDefaults.defaultProfile(accountId),
       });
-      const profile = structuredClone(row.payload);
+      const profile = profileFromRow(row, accountId);
       const outcome = await mutate({ client, profile, currentVersion: row.version });
       profile.version = row.version + 1;
       const saved = await this.repository.update(client, { accountId, version: profile.version, profile });

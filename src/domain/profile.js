@@ -1,4 +1,4 @@
-import { NAME_POOL_VERSION, STUDENTS } from "../data.js";
+import { NAME_POOL_VERSION, SKILL_GROUPS, STUDENTS } from "../data.js";
 import {
   aptitudeForAbilities,
   createStudentIdentity,
@@ -9,7 +9,7 @@ import {
 export { renameStudent } from "./student-identity.js";
 
 export const LEGACY_PROFILE_SCHEMA_VERSION = 1;
-export const PROFILE_SCHEMA_VERSION = 2;
+export const PROFILE_SCHEMA_VERSION = 3;
 export const STARTER_STUDENT_IDS = Object.freeze(STUDENTS.map(({ id }) => id));
 export const DEFAULT_CURRENCIES = Object.freeze({
   trainingCoins: 1_000,
@@ -46,6 +46,9 @@ function requireStudentIds(studentIds) {
 
 function createOwnedStudent(studentId, identitySeed, namePoolVersion) {
   const content = studentById.get(studentId);
+  if (!SKILL_GROUPS[content.skillGroupId]) {
+    throw new Error(`Unknown skill group: ${content.skillGroupId}`);
+  }
   const identity = createStudentIdentity({
     studentId,
     seed: identitySeed,
@@ -55,9 +58,15 @@ function createOwnedStudent(studentId, identitySeed, namePoolVersion) {
   return {
     ...identity,
     maxEnergy: content.maxEnergy,
-    skillLevels: { normal: 1, burst: 1 },
-    skills: structuredClone(content.skills),
+    skillGroupId: content.skillGroupId,
+    skillGroupLevels: { [content.skillGroupId]: { normal: 1, burst: 1 } },
   };
+}
+
+function requireSkillGroup(student, studentId) {
+  if (typeof student?.skillGroupId !== "string" || !SKILL_GROUPS[student.skillGroupId]) {
+    throw new Error(`Unknown skill group for student ${studentId}: ${student?.skillGroupId}`);
+  }
 }
 
 export function createProfile({
@@ -100,6 +109,9 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
   requireAccountId(profile.accountId);
   requireVersion(profile.version);
   if (profile.schemaVersion === PROFILE_SCHEMA_VERSION) {
+    for (const [studentId, student] of Object.entries(profile.students ?? {})) {
+      requireSkillGroup(student, studentId);
+    }
     return {
       ...structuredClone(profile),
       inventory: structuredClone(profile.inventory ?? {}),
@@ -107,7 +119,7 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
       unlockedLevelIds: structuredClone(profile.unlockedLevelIds ?? DEFAULT_UNLOCKED_LEVEL_IDS),
     };
   }
-  if (profile.schemaVersion !== LEGACY_PROFILE_SCHEMA_VERSION) {
+  if (profile.schemaVersion !== LEGACY_PROFILE_SCHEMA_VERSION && profile.schemaVersion !== 2) {
     throw new Error(`Unsupported profile schema version: ${profile.schemaVersion}`);
   }
   if (typeof seed !== "string" && typeof seed !== "number") {
@@ -116,6 +128,9 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
   const students = Object.fromEntries(Object.entries(profile.students ?? {}).map(([studentId, legacyStudent]) => {
     const content = studentById.get(studentId);
     if (!content) throw new Error(`Unknown student: ${studentId}`);
+    if (!SKILL_GROUPS[content.skillGroupId]) {
+      throw new Error(`Unknown skill group: ${content.skillGroupId}`);
+    }
     const abilities = structuredClone(legacyStudent.abilities);
     const aptitude = aptitudeForAbilities(abilities, legacyStudent.aptitude ?? content.defaultAptitude);
     const name = legacyStudent.name === undefined
@@ -127,8 +142,13 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
       aptitude,
       abilities,
       maxEnergy: legacyStudent.maxEnergy,
-      skillLevels: structuredClone(legacyStudent.skillLevels),
-      skills: structuredClone(legacyStudent.skills ?? content.skills),
+      skillGroupId: content.skillGroupId,
+      skillGroupLevels: {
+        [content.skillGroupId]: {
+          normal: legacyStudent.skillLevels?.normal ?? 1,
+          burst: legacyStudent.skillLevels?.burst ?? 1,
+        },
+      },
     }];
   }));
   return {

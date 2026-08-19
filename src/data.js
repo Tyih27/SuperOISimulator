@@ -77,78 +77,131 @@ const supportSkill = (skill) => ({
   ...skill
 });
 
+const topicSkill = (skill) => ({
+  category: "problem",
+  effectType: "energyDamage",
+  targetRule: "matchingPosition",
+  damageMultiplier: 1,
+  flatBonus: 0,
+  maxDamage: 2000,
+  ...skill
+});
+
+/**
+ * Skill content is a catalogue, separate from a student's identity and
+ * progression. A student selects one group through `skillGroupId`.
+ */
+export const SKILL_GROUPS = freeze({
+  planner: {
+    id: "planner",
+    name: "拆解思路",
+    skills: {
+      normal: problemSkill({ id: "planner-normal", name: "逐个击破", targetRule: "lowestRemaining", relatedAbility: "dynamicProgramming" }),
+      burst: problemSkill({ id: "planner-burst", name: "关键路径", targetRule: "highestDifficulty", relatedAbility: "dynamicProgramming", skillMultiplier: 1.5 })
+    }
+  },
+  graphist: {
+    id: "graphist",
+    name: "图论直觉",
+    skills: {
+      normal: problemSkill({ id: "graphist-normal", name: "匹配攻击", targetRule: "bestMatch", relatedAbility: "graphTheory" }),
+      burst: problemSkill({ id: "graphist-burst", name: "割点突破", targetRule: "highestDifficulty", relatedAbility: "graphTheory", skillMultiplier: 1.35, flatBonus: 120 })
+    }
+  },
+  structurer: {
+    id: "structurer",
+    name: "结构维护",
+    skills: {
+      normal: supportSkill({ id: "structurer-normal", name: "稳态修复", targetRule: "lowestEnergy", effectType: "energyRestore", effect: { base: 650, multiplier: 0.25, min: 300, max: 1800 } }),
+      burst: supportSkill({ id: "structurer-burst", name: "全队整备", targetRule: "allStudents", effectType: "energyRestore", effect: { base: 420, multiplier: 0.12, min: 180, max: 1000 } })
+    }
+  },
+  mathematician: {
+    id: "mathematician",
+    name: "严密推导",
+    skills: {
+      normal: problemSkill({ id: "mathematician-normal", name: "精确推导", targetRule: "bestMatch", relatedAbility: "mathematics", skillMultiplier: 1.1 }),
+      burst: problemSkill({ id: "mathematician-burst", name: "极限证明", targetRule: "highestDifficulty", relatedAbility: "mathematics", skillMultiplier: 1.6 })
+    }
+  },
+  implementer: {
+    id: "implementer",
+    name: "工程执行",
+    skills: {
+      normal: problemSkill({ id: "implementer-normal", name: "稳定输出", targetRule: "alignedFirst", relatedAbility: "implementation" }),
+      burst: problemSkill({ id: "implementer-burst", name: "连续提交", targetRule: "lowestRemaining", relatedAbility: "implementation", skillMultiplier: 1.25, targetMultiplier: 0.8, flatBonus: 240 })
+    }
+  },
+  supporter: {
+    id: "supporter",
+    name: "团队协作",
+    skills: {
+      normal: supportSkill({ id: "supporter-normal", name: "专注鼓舞", targetRule: "lowestFocus", effectType: "focusGain", effect: { base: 120, multiplier: 0.1, min: 80, max: 300 } }),
+      burst: supportSkill({ id: "supporter-burst", name: "集体增益", targetRule: "allStudents", effectType: "focusGain", effect: { base: 180, multiplier: 0.16, min: 120, max: 500 } })
+    }
+  }
+});
+
 export const STUDENTS = freeze([
   {
     id: "planner",
     defaultAptitude: "普通",
     abilities: { dynamicProgramming: 820, graphTheory: 540, dataStructures: 610, mathematics: 420, implementation: 760 },
     maxEnergy: 5200,
-    skills: {
-      normal: problemSkill({ id: "planner-normal", name: "逐个击破", targetRule: "lowestRemaining", relatedAbility: "dynamicProgramming" }),
-      burst: problemSkill({ id: "planner-burst", name: "关键路径", targetRule: "highestDifficulty", relatedAbility: "dynamicProgramming", skillMultiplier: 1.5 })
-    }
+    skillGroupId: "planner",
+    skillGroupLevels: { planner: { normal: 1, burst: 1 } }
   },
   {
     id: "graphist",
     defaultAptitude: "普通",
     abilities: { dynamicProgramming: 520, graphTheory: 860, dataStructures: 640, mathematics: 580, implementation: 700 },
     maxEnergy: 5000,
-    skills: {
-      normal: problemSkill({ id: "graphist-normal", name: "匹配攻击", targetRule: "bestMatch", relatedAbility: "graphTheory" }),
-      burst: problemSkill({ id: "graphist-burst", name: "割点突破", targetRule: "highestDifficulty", relatedAbility: "graphTheory", skillMultiplier: 1.35, flatBonus: 120 })
-    }
+    skillGroupId: "graphist",
+    skillGroupLevels: { graphist: { normal: 1, burst: 1 } }
   },
   {
     id: "structurer",
     defaultAptitude: "普通",
     abilities: { dynamicProgramming: 580, graphTheory: 610, dataStructures: 900, mathematics: 500, implementation: 650 },
     maxEnergy: 5600,
-    skills: {
-      normal: supportSkill({ id: "structurer-normal", name: "稳态修复", targetRule: "lowestEnergy", effect: { base: 650, multiplier: 0.25, min: 300, max: 1800 } }),
-      burst: supportSkill({ id: "structurer-burst", name: "全队整备", targetRule: "allStudents", effect: { base: 420, multiplier: 0.12, min: 180, max: 1000 } })
-    }
+    skillGroupId: "structurer",
+    skillGroupLevels: { structurer: { normal: 1, burst: 1 } }
   },
   {
     id: "mathematician",
     defaultAptitude: "普通",
     abilities: { dynamicProgramming: 600, graphTheory: 570, dataStructures: 560, mathematics: 920, implementation: 620 },
     maxEnergy: 4700,
-    skills: {
-      normal: problemSkill({ id: "mathematician-normal", name: "精确推导", targetRule: "bestMatch", relatedAbility: "mathematics", skillMultiplier: 1.1 }),
-      burst: problemSkill({ id: "mathematician-burst", name: "极限证明", targetRule: "highestDifficulty", relatedAbility: "mathematics", skillMultiplier: 1.6 })
-    }
+    skillGroupId: "mathematician",
+    skillGroupLevels: { mathematician: { normal: 1, burst: 1 } }
   },
   {
     id: "implementer",
     defaultAptitude: "普通",
     abilities: { dynamicProgramming: 570, graphTheory: 600, dataStructures: 620, mathematics: 480, implementation: 900 },
     maxEnergy: 5100,
-    skills: {
-      normal: problemSkill({ id: "implementer-normal", name: "稳定输出", targetRule: "alignedFirst", relatedAbility: "implementation" }),
-      burst: problemSkill({ id: "implementer-burst", name: "连续提交", targetRule: "lowestRemaining", relatedAbility: "implementation", skillMultiplier: 1.25, targetMultiplier: 0.8, flatBonus: 240 })
-    }
+    skillGroupId: "implementer",
+    skillGroupLevels: { implementer: { normal: 1, burst: 1 } }
   },
   {
     id: "supporter",
     defaultAptitude: "普通",
     abilities: { dynamicProgramming: 640, graphTheory: 650, dataStructures: 620, mathematics: 610, implementation: 680 },
     maxEnergy: 5400,
-    skills: {
-      normal: supportSkill({ id: "supporter-normal", name: "专注鼓舞", targetRule: "lowestFocus", effect: { base: 120, multiplier: 0.1, min: 80, max: 300 } }),
-      burst: supportSkill({ id: "supporter-burst", name: "集体增益", targetRule: "allStudents", effect: { base: 180, multiplier: 0.16, min: 120, max: 500 } })
-    }
+    skillGroupId: "supporter",
+    skillGroupLevels: { supporter: { normal: 1, burst: 1 } }
   }
 ]);
 
 export const TOPICS = freeze([
-  { id: "treeKnapsack", name: "树上背包", difficulties: { dynamicProgramming: 800, graphTheory: 0, dataStructures: 300, mathematics: 0, implementation: 600 }, maxProgress: 10000 },
-  { id: "maxFlow", name: "网络流", difficulties: { dynamicProgramming: 0, graphTheory: 920, dataStructures: 420, mathematics: 0, implementation: 600 }, maxProgress: 10000 },
-  { id: "persistentSegmentTree", name: "可持久化线段树", difficulties: { dynamicProgramming: 0, graphTheory: 0, dataStructures: 880, mathematics: 0, implementation: 720 }, maxProgress: 10000 },
-  { id: "combinatorics", name: "组合计数", difficulties: { dynamicProgramming: 420, graphTheory: 0, dataStructures: 0, mathematics: 860, implementation: 520 }, maxProgress: 10000 },
-  { id: "computationalGeometry", name: "计算几何", difficulties: { dynamicProgramming: 0, graphTheory: 360, dataStructures: 0, mathematics: 900, implementation: 680 }, maxProgress: 10000 },
-  { id: "compilerOptimization", name: "编译优化", difficulties: { dynamicProgramming: 640, graphTheory: 0, dataStructures: 520, mathematics: 0, implementation: 940 }, maxProgress: 10000 },
-  { id: "dynamicConnectivity", name: "动态连通性", difficulties: { dynamicProgramming: 0, graphTheory: 780, dataStructures: 840, mathematics: 0, implementation: 620 }, maxProgress: 10000 },
-  { id: "matrixPower", name: "矩阵快速幂", difficulties: { dynamicProgramming: 500, graphTheory: 0, dataStructures: 0, mathematics: 820, implementation: 560 }, maxProgress: 10000 }
+  { id: "treeKnapsack", name: "树上背包", difficulties: { dynamicProgramming: 800, graphTheory: 0, dataStructures: 300, mathematics: 0, implementation: 600 }, maxProgress: 10000, skill: topicSkill({ id: "treeKnapsack-attack", name: "递归压力" }) },
+  { id: "maxFlow", name: "网络流", difficulties: { dynamicProgramming: 0, graphTheory: 920, dataStructures: 420, mathematics: 0, implementation: 600 }, maxProgress: 10000, skill: topicSkill({ id: "maxFlow-attack", name: "残量冲击" }) },
+  { id: "persistentSegmentTree", name: "可持久化线段树", difficulties: { dynamicProgramming: 0, graphTheory: 0, dataStructures: 880, mathematics: 0, implementation: 720 }, maxProgress: 10000, skill: topicSkill({ id: "persistentSegmentTree-attack", name: "历史负荷" }) },
+  { id: "combinatorics", name: "组合计数", difficulties: { dynamicProgramming: 420, graphTheory: 0, dataStructures: 0, mathematics: 860, implementation: 520 }, maxProgress: 10000, skill: topicSkill({ id: "combinatorics-attack", name: "组合爆炸" }) },
+  { id: "computationalGeometry", name: "计算几何", difficulties: { dynamicProgramming: 0, graphTheory: 360, dataStructures: 0, mathematics: 900, implementation: 680 }, maxProgress: 10000, skill: topicSkill({ id: "computationalGeometry-attack", name: "精度扰动" }) },
+  { id: "compilerOptimization", name: "编译优化", difficulties: { dynamicProgramming: 640, graphTheory: 0, dataStructures: 520, mathematics: 0, implementation: 940 }, maxProgress: 10000, skill: topicSkill({ id: "compilerOptimization-attack", name: "编译阻塞" }) },
+  { id: "dynamicConnectivity", name: "动态连通性", difficulties: { dynamicProgramming: 0, graphTheory: 780, dataStructures: 840, mathematics: 0, implementation: 620 }, maxProgress: 10000, skill: topicSkill({ id: "dynamicConnectivity-attack", name: "连通震荡" }) },
+  { id: "matrixPower", name: "矩阵快速幂", difficulties: { dynamicProgramming: 500, graphTheory: 0, dataStructures: 0, mathematics: 820, implementation: 560 }, maxProgress: 10000, skill: topicSkill({ id: "matrixPower-attack", name: "维度压制" }) }
 ]);
 
 export const LEVELS = freeze([
@@ -230,10 +283,11 @@ export function createInitialBattleConfig({ levelId = LEVELS[0].id, seed } = {})
 
   return {
     level: { ...level, seed: seed ?? level.seed },
+    skillGroups: structuredClone(SKILL_GROUPS),
     roster: STUDENTS.map((student) => ({
       ...student,
       abilities: { ...student.abilities },
-      skills: { normal: { ...student.skills.normal }, burst: { ...student.skills.burst } },
+      skillGroupLevels: structuredClone(student.skillGroupLevels),
       currentEnergy: student.maxEnergy,
       focus: 0
     })),
@@ -241,6 +295,7 @@ export function createInitialBattleConfig({ levelId = LEVELS[0].id, seed } = {})
     topics: TOPICS.filter((topic) => level.topicIds.includes(topic.id)).map((topic) => ({
       ...topic,
       difficulties: { ...topic.difficulties },
+      skill: { ...topic.skill },
       progress: 0,
       currentDifficulties: { ...topic.difficulties }
     }))

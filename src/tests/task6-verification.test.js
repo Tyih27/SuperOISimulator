@@ -4,6 +4,7 @@ import { serializeEvents } from "../combat/events.js";
 import {
   calculateBaselineProgress,
   calculateSkillProgress,
+  calculateTopicSkillDamage,
   clamp,
   roundHalfUp,
 } from "../combat/math.js";
@@ -40,6 +41,7 @@ assert.equal(calculateSkillProgress({
   topic: { ...topic, progress: 99990 },
   skill: { skillMultiplier: 2, targetMultiplier: 1, flatBonus: 999 },
 }), 10, "skill progress cannot exceed remaining progress");
+assert.equal(calculateTopicSkillDamage(student, topic, { damageMultiplier: 1.5, flatBonus: 5 }), 755);
 
 // Equal target scores use slot order, making target selection replay-safe.
 const targeting = makeEngine();

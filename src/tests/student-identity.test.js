@@ -35,7 +35,7 @@ assert.equal(profile.students.planner.name, "林澈");
 assert.equal(profile.students.planner.id, beforeRename.students.planner.id);
 assert.equal(profile.students.planner.aptitude, beforeRename.students.planner.aptitude);
 assert.deepEqual(profile.students.planner.abilities, beforeRename.students.planner.abilities);
-assert.deepEqual(profile.students.planner.skills, beforeRename.students.planner.skills);
+assert.deepEqual(profile.students.planner.skillGroupLevels, beforeRename.students.planner.skillGroupLevels);
 assert.deepEqual(profile.formation, beforeRename.formation);
 assert.equal(profile.accountId, beforeRename.accountId);
 assert.deepEqual(profile.students.graphist, beforeRename.students.graphist);
@@ -62,12 +62,13 @@ const legacyProfile = {
   },
 };
 const migrated = migrateProfile(legacyProfile, { seed: "legacy-seed" });
-assert.equal(migrated.schemaVersion, 2);
+assert.equal(migrated.schemaVersion, 3);
 assert.equal(migrated.identitySeed, "legacy-seed");
 assert.equal(migrated.students.planner.name, "自定义名");
 assert.equal(migrated.students.graphist.name, generateStudentName({ studentId: "graphist", seed: "legacy-seed" }));
 assert.deepEqual(migrated.students.planner.abilities, legacyProfile.students.planner.abilities);
-assert.deepEqual(migrated.students.planner.skillLevels, legacyProfile.students.planner.skillLevels);
+assert.equal(migrated.students.planner.skillGroupId, "planner");
+assert.deepEqual(migrated.students.planner.skillGroupLevels.planner, legacyProfile.students.planner.skillLevels);
 assert.equal(migrated.students.planner.id, "planner");
 assert.deepEqual(migrateProfile(legacyProfile, { seed: "legacy-seed" }), migrated, "migration must be deterministic");
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { serializeBattleResult, serializeEvents } from "../combat/events.js";
 import { CombatEngine } from "../combat/engine.js";
-import { ENGINE_VERSION, RULESET_VERSION } from "../data.js";
+import { ENGINE_VERSION, RULESET_VERSION, SKILL_GROUPS } from "../data.js";
 import { createProfile, migrateProfile, PROFILE_SCHEMA_VERSION } from "../domain/profile.js";
 import { BATTLE_SNAPSHOT_VERSION, createBattleSnapshot } from "../domain/snapshot.js";
 import { renameStudent } from "../domain/student-identity.js";
@@ -12,6 +12,8 @@ import {
   CONTRACT_VERSION,
   PROFILE_DTO_SCHEMA,
   PROFILE_V2_DTO_SCHEMA,
+  PROFILE_V3_DTO_SCHEMA,
+  BATTLE_SNAPSHOT_V3_DTO_SCHEMA,
 } from "../../shared/contracts/v1.js";
 
 const studentIds = ["planner", "graphist", "structurer", "mathematician"];
@@ -25,11 +27,12 @@ assert.equal(profile.namePoolVersion, 1);
 assert.deepEqual(Object.keys(profile.students), studentIds);
 assert.ok(Object.values(profile.students).every(({ aptitude }) => aptitude === "普通"));
 assert.equal(Object.keys(profile.students).length, 4, "the profile must not impose the three-student battle limit on the roster");
-assert.deepEqual(profile.students.planner.skillLevels, { normal: 1, burst: 1 });
+assert.equal(profile.students.planner.skillGroupId, "planner");
+assert.deepEqual(profile.students.planner.skillGroupLevels, { planner: { normal: 1, burst: 1 } });
 assert.notEqual(profile.students.planner.abilities, profile.students.graphist.abilities);
 assert.ok(profile.students.planner.name);
 assert.ok(profile.students.planner.aptitude);
-assert.ok(profile.students.planner.skills.normal);
+assert.ok(!Object.hasOwn(profile.students.planner, "skills"));
 
 assert.throws(
   () => createProfile({ accountId: "acc-2", studentIds: ["planner", "planner"] }),
@@ -61,7 +64,12 @@ assert.equal(snapshot.seed, snapshot.level.seed);
 assert.ok(snapshot.level.topics.length > 3);
 assert.ok(!snapshot.team.some(({ id }) => id === "mathematician"), "unselected students must not leak into battle input");
 assert.notEqual(snapshot.team[0].abilities, profile.students.planner.abilities);
-assert.notEqual(snapshot.team[0].skillLevels, profile.students.planner.skillLevels);
+assert.notEqual(snapshot.team[0].skillGroupLevels, profile.students.planner.skillGroupLevels);
+assert.equal(snapshot.team[0].skillGroupId, profile.students.planner.skillGroupId);
+assert.notEqual(snapshot.skillGroups, SKILL_GROUPS);
+assert.deepEqual(snapshot.skillGroups, SKILL_GROUPS);
+assert.ok(!Object.hasOwn(snapshot.team[0], "skills"));
+assert.ok(!Object.hasOwn(snapshot.team[0], "skillLevels"));
 assert.equal(snapshot.team[0].name, profile.students.planner.name);
 assert.equal(snapshot.team[0].aptitude, profile.students.planner.aptitude);
 assert.ok(!Object.hasOwn(snapshot.team[0], "role"), "v2 snapshots must not expose legacy role labels");
@@ -128,6 +136,8 @@ assert.ok(Object.isFrozen(BATTLE_SNAPSHOT_DTO_SCHEMA));
 assert.ok(Object.isFrozen(BATTLE_RESULT_DTO_SCHEMA));
 assert.ok(Object.isFrozen(PROFILE_V2_DTO_SCHEMA));
 assert.ok(Object.isFrozen(BATTLE_SNAPSHOT_V2_DTO_SCHEMA));
+assert.ok(Object.isFrozen(PROFILE_V3_DTO_SCHEMA));
+assert.ok(Object.isFrozen(BATTLE_SNAPSHOT_V3_DTO_SCHEMA));
 assert.ok(PROFILE_DTO_SCHEMA.required.includes("schemaVersion"));
 assert.ok(BATTLE_SNAPSHOT_DTO_SCHEMA.required.includes("rulesetVersion"));
 assert.ok(BATTLE_RESULT_DTO_SCHEMA.required.includes("engineVersion"));
@@ -142,12 +152,13 @@ const legacy = {
     id,
     abilities: structuredClone(profile.students[id].abilities),
     maxEnergy: profile.students[id].maxEnergy,
-    skillLevels: structuredClone(profile.students[id].skillLevels),
+    skillLevels: { normal: 3, burst: 2 },
   }])),
 };
 const migrated = migrateProfile(legacy, { seed: "migration-seed" });
 assert.equal(migrated.schemaVersion, PROFILE_SCHEMA_VERSION);
 assert.deepEqual(migrated.students.graphist.abilities, legacy.students.graphist.abilities);
+assert.deepEqual(migrated.students.planner.skillGroupLevels.planner, { normal: 3, burst: 2 });
 
 function runSnapshot(snapshotToRun) {
   return new CombatEngine({
@@ -156,6 +167,7 @@ function runSnapshot(snapshotToRun) {
     topics: snapshotToRun.level.topics,
     teamIds: snapshotToRun.team.map(({ id }) => id),
     positions: snapshotToRun.formation,
+    skillGroups: snapshotToRun.skillGroups,
     seed: snapshotToRun.seed,
   }).run();
 }

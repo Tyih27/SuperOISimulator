@@ -1,4 +1,4 @@
-import { LEVELS, STUDENTS, TOPICS } from "../data.js";
+import { LEVELS, SKILL_GROUPS, STUDENTS, TOPICS } from "../data.js";
 import { calculateOverallPower } from "../combat/math.js";
 import { createProfile } from "../domain/profile.js";
 import { FormationController } from "./formation.js";
@@ -13,11 +13,26 @@ const playerProfile = createProfile({
 const studentById = playerProfile.students;
 const playerStudents = Object.values(studentById);
 const topicById = Object.fromEntries(TOPICS.map((topic) => [topic.id, topic]));
+const skillGroups = SKILL_GROUPS;
 const abilityLabels = { dynamicProgramming: "动态规划", graphTheory: "图论", dataStructures: "数据结构", mathematics: "数学", implementation: "代码实现" };
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
 const format = (value) => Number(value ?? 0).toLocaleString("zh-CN");
 const percent = (value, total) => Math.max(0, Math.min(100, total ? (value / total) * 100 : 0));
+
+function studentSkill(studentData, runtimeStudent) {
+  const group = skillGroups[studentData?.skillGroupId];
+  if (!group) return { group: null, skill: null, mode: "normal" };
+  const mode = (runtimeStudent?.focus ?? 0) >= (level.focusMax ?? 1000) ? "burst" : "normal";
+  return { group, skill: group.skills?.[mode] ?? null, mode };
+}
+
+function topicSkill(topicId, runtimeTopic) {
+  if (runtimeTopic?.skill) return runtimeTopic.skill;
+  const topic = topicById[topicId];
+  if (!topic) return null;
+  return topic.skill ?? null;
+}
 
 const playback = createPlayback({ combatOptions: { students: playerStudents, seed: level.seed, maxRounds: level.maxRounds, goal: { type: level.objective.type, target: level.objective.requiredTopics } } });
 const formation = new FormationController(STUDENTS.map((student) => student.id));
@@ -74,7 +89,10 @@ function eventText(entry, state) {
   const targets = (entry.targets ?? []).map((id) => studentById[id]?.name ?? topicById[id]?.name ?? id).join("、");
   if (entry.type === "round_start") return `第 ${entry.round} 回合开始，活动题目已补位。`;
   if (entry.type === "stage_start") return `${entry.stage} 行动阶段：${actor} 准备行动。`;
-  if (entry.type === "action") return `${actor} 使用 ${entry.skillName ?? "题目攻击"}${entry.burst ? "（爆发）" : ""}${targets ? `，目标 ${targets}` : ""}。`;
+  if (entry.type === "action") {
+    const kind = topicById[entry.actor] ? "题目技能" : (entry.burst ? "爆发技能" : "常规技能");
+    return `${actor} 使用${kind}「${entry.skillName ?? "未命名技能"}」${targets ? `，目标 ${targets}` : ""}。`;
+  }
   if (entry.type === "skip") return `${actor} 跳过本次行动：${entry.reason === "energy-zero" ? "精力耗尽" : "没有可用目标"}。`;
   if (entry.type === "effect") return (entry.effects ?? []).map((effect) => {
     const target = studentById[effect.target]?.name ?? topicById[effect.target]?.name ?? effect.target;
@@ -103,7 +121,7 @@ function renderStudents(state) {
     const data = studentById[id];
     const student = combat.students[id];
     if (!data || !student) return "";
-    const currentSkill = data.skills[student.focus >= 1000 ? "burst" : "normal"];
+    const { group, skill: currentSkill, mode } = studentSkill(data, student);
     const abilities = Object.entries(data.abilities).map(([key, value]) => `${abilityLabels[key]} ${value}`).join(" · ");
     const active = lastStage?.actor === id && lastStage.stage.startsWith("A");
     return `<article class="student-card${active ? " is-active" : ""}${student.alive ? "" : " is-inactive"}" aria-label="${esc(slot)} ${esc(data.name)} ${student.alive ? "存活" : "已退出"}">
@@ -114,7 +132,7 @@ function renderStudents(state) {
       <div class="meter energy" aria-label="精力 ${Math.round(percent(student.energy, data.maxEnergy))}%"><span style="width:${percent(student.energy, data.maxEnergy)}%"></span></div>
       <div class="stat-line"><span>专注</span><strong>${format(student.focus)} / 1,000</strong></div>
       <div class="meter focus" aria-label="专注 ${Math.round(percent(student.focus, 1000))}%"><span style="width:${percent(student.focus, 1000)}%"></span></div>
-      <div class="student-footer"><span class="skill-chip">${esc(currentSkill.name)} · ${student.focus >= 1000 ? "爆发就绪" : "常规技能"}</span><span class="student-position">${active ? "当前行动" : "自动行动"}</span></div>
+      <div class="student-footer"><span class="skill-chip">${esc(group?.name ?? "未配置技能组")} · ${esc(currentSkill?.name ?? "未配置技能")} · ${mode === "burst" ? "爆发就绪" : "常规技能"}</span><span class="student-position">${active ? "当前行动" : "自动行动"}</span></div>
     </article>`;
   }).join("");
 }
@@ -127,18 +145,19 @@ function renderTopics(state) {
   const root = $("#topic-list");
   const combat = state.combat?.state;
   if (!combat) { root.innerHTML = "<p class=\"empty-state\">题目将在准备阶段载入。</p>"; return; }
-  const activeById = Object.fromEntries(Object.entries(combat.activeProblems ?? {}).map(([slot, id]) => [id, slot]));
   const latest = latestAction(state.combat.events ?? []);
   root.innerHTML = Object.entries(combat.activeProblems ?? {}).map(([slot, id]) => {
     if (!id) return `<article class="topic-card topic-empty"><span class="slot-label">${slot}</span><strong>等待补位</strong><span>下一回合自动补充</span></article>`;
     const topic = combat.problems[id];
     const base = topicById[id] ?? topic;
+    const skill = topicSkill(id, topic);
     const focused = latest?.targets?.includes(id);
     const completed = topic.progress >= topic.maxProgress;
     const status = completed ? "已通过" : focused ? "当前目标" : "进行中";
     return `<article class="topic-card${focused ? " is-focused" : ""}${completed ? " is-complete" : ""}" aria-label="${esc(slot)} ${esc(base.name)} ${status}">
       <div class="topic-name-row"><span class="slot-label">${slot}</span><span class="topic-difficulty">难度 ${format(Object.values(base.difficulties ?? {}).reduce((sum, value) => sum + value, 0))}</span></div>
       <div class="topic-name">${esc(base.name)}</div><div class="topic-kind">${esc(topicKind(base))}</div>
+      <div class="topic-kind">题目技能 · ${esc(skill?.name ?? "未配置技能")}</div>
       <div class="topic-progress-label"><span>完成进度</span><strong>${format(topic.progress)} / ${format(topic.maxProgress)}</strong></div>
       <div class="topic-progress" aria-label="${esc(base.name)} 完成进度 ${Math.round(percent(topic.progress, topic.maxProgress))}%"><span style="width:${percent(topic.progress, topic.maxProgress)}%"></span></div>
       <div class="topic-footer"><span class="topic-state">${status}</span><span class="position-badge">正对 ${slot.replace("B", "A")}</span></div>
@@ -152,17 +171,27 @@ function renderSkills(state) {
   if (!combat) { $("#skill-list").innerHTML = "<p class=\"empty-state\">技能将在战斗开始后显示。</p>"; return; }
   $("#skill-list").innerHTML = Object.entries(state.positions).map(([slot, id]) => {
     const data = studentById[id]; const student = combat.students[id];
-    const current = data.skills[student.focus >= 1000 ? "burst" : "normal"];
-    return `<div class="skill-row"><span class="skill-icon" aria-hidden="true">${student.focus >= 1000 ? "B" : "A"}</span><div><div class="skill-name">${slot} · ${esc(current.name)}</div><div class="skill-desc">${esc(current.category === "support" ? "辅助技能" : "解题技能")} · 专注 ${format(student.focus)} / 1,000</div></div><span class="skill-type">${student.focus >= 1000 ? "爆发" : "常规"}</span></div>`;
+    const { group, skill: current, mode } = studentSkill(data, student);
+    return `<div class="skill-row"><span class="skill-icon" aria-hidden="true">${mode === "burst" ? "B" : "A"}</span><div><div class="skill-name">${esc(data.name)} · ${esc(current?.name ?? "未配置技能")}</div><div class="skill-desc">${esc(group?.name ?? "未配置技能组")} · ${esc(current?.category === "support" ? "辅助技能" : "解题技能")} · ${slot} 位置 · 专注 ${format(student.focus)} / ${format(level.focusMax ?? 1000)}</div></div><span class="skill-type">${mode === "burst" ? "爆发" : "常规"}</span></div>`;
   }).join("");
 }
 
 function renderAction(state) {
+  const combat = state.combat;
   const events = state.combat?.events ?? [];
   const action = latestAction(events);
   const actor = action ? (studentById[action.actor]?.name ?? topicById[action.actor]?.name ?? action.actor) : null;
-  $("#action-title").textContent = actor ? `${actor} · ${action.skillName ?? "题目攻击"}` : state.phase === "result" ? "战斗已结束" : "等待开始";
-  $("#action-description").textContent = action ? `${action.burst ? "爆发技能已触发" : "常规技能执行中"}，结算结果已写入事件日志。` : "战斗开始后，这里会说明行动者、技能和目标。";
+  const actorIsTopic = Boolean(action && !studentById[action.actor] && topicById[action.actor]);
+  const actorSkill = actorIsTopic
+    ? topicSkill(action.actor, combat?.state?.problems?.[action.actor])
+    : action && studentById[action.actor] && combat?.state?.students?.[action.actor]
+      ? studentSkill(studentById[action.actor], combat.state.students[action.actor]).skill
+      : null;
+  const skillCategory = action?.category ?? actorSkill?.category;
+  $("#action-title").textContent = actor ? `${actor} · ${action.skillName ?? actorSkill?.name ?? "未命名技能"}` : state.phase === "result" ? "战斗已结束" : "等待开始";
+  $("#action-description").textContent = action
+    ? `${actorIsTopic ? "题目技能" : (action.burst ? "爆发技能" : "常规技能")}${skillCategory === "support" ? " · 辅助" : " · 解题"}，结算结果已写入事件日志。`
+    : "战斗开始后，这里会说明行动者、技能和目标。";
   const target = action?.targets?.[0];
   $("#action-target").textContent = target ? `目标：${studentById[target]?.name ?? topicById[target]?.name ?? target}` : "暂无事件";
   const effect = [...events].reverse().find((entry) => entry.type === "effect" || entry.type === "problem_completed" || entry.type === "student_exit");

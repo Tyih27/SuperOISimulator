@@ -31,6 +31,23 @@ try {
   assert.deepEqual(initialProfile.formation, { A1: "planner", A2: "graphist", A3: "structurer" });
   assert.deepEqual(initialProfile.unlockedLevelIds, ["chapter-1-1"]);
 
+  const legacyPayload = structuredClone(initialProfile);
+  legacyPayload.schemaVersion = 2;
+  for (const student of Object.values(legacyPayload.students)) {
+    student.skillLevels = student.skillGroupLevels[student.skillGroupId];
+    student.skills = { normal: { id: "legacy-normal" }, burst: { id: "legacy-burst" } };
+    delete student.skillGroupId;
+    delete student.skillGroupLevels;
+  }
+  await app.db.query(
+    "UPDATE player_profiles SET payload = $2::jsonb WHERE account_id = $1",
+    [initialProfile.accountId, JSON.stringify(legacyPayload)],
+  );
+  const migratedResponse = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: { sid: cookie.value } });
+  assert.equal(migratedResponse.statusCode, 200);
+  assert.equal(migratedResponse.json().schemaVersion, 3);
+  assert.deepEqual(migratedResponse.json().students.planner.skillGroupLevels.planner, { normal: 1, burst: 1 });
+
   const saved = await request(app, {
     method: "PUT",
     url: "/api/v1/profile",
@@ -47,6 +64,33 @@ try {
   assert.equal(savedProfile.students.planner.name, "林澈");
   assert.equal(savedProfile.students.planner.id, "planner");
   assert.deepEqual(savedProfile.students.planner.abilities, initialProfile.students.planner.abilities);
+
+  const invalidGroup = structuredClone(savedProfile);
+  invalidGroup.students.planner.skillGroupId = "missing";
+  const invalidGroupResponse = await request(app, {
+    method: "PUT",
+    url: "/api/v1/profile",
+    cookies: { sid: cookie.value },
+    payload: {
+      version: savedProfile.version,
+      students: { planner: invalidGroup.students.planner },
+    },
+  });
+  assert.equal(invalidGroupResponse.statusCode, 400);
+  assert.equal(invalidGroupResponse.json().code, "INVALID_PROFILE");
+
+  const invalidLevels = structuredClone(savedProfile);
+  delete invalidLevels.students.planner.skillGroupLevels.planner.burst;
+  const invalidLevelsResponse = await request(app, {
+    method: "PUT",
+    url: "/api/v1/profile",
+    cookies: { sid: cookie.value },
+    payload: {
+      version: savedProfile.version,
+      students: { planner: invalidLevels.students.planner },
+    },
+  });
+  assert.equal(invalidLevelsResponse.statusCode, 400);
 
   const stale = await request(app, {
     method: "PUT",

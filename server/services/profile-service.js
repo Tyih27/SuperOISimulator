@@ -1,8 +1,15 @@
-import { ABILITY_KEYS, APTITUDE_ABILITY_RANGES, DEFAULT_FORMATION, LEVELS } from "../../src/data.js";
+import {
+  ABILITY_KEYS,
+  APTITUDE_ABILITY_RANGES,
+  DEFAULT_FORMATION,
+  LEVELS,
+  SKILL_GROUPS,
+} from "../../src/data.js";
 import {
   createProfile,
   DEFAULT_CURRENCIES,
   DEFAULT_UNLOCKED_LEVEL_IDS,
+  migrateProfile,
   PROFILE_SCHEMA_VERSION,
   STARTER_STUDENT_IDS,
 } from "../../src/domain/profile.js";
@@ -62,12 +69,23 @@ function validateStudent(studentId, student, ownedStudent) {
   if (!Number.isInteger(student.maxEnergy) || student.maxEnergy < 1) {
     throw invalid("Student max energy must be positive");
   }
-  if (!student.skillLevels || !Number.isInteger(student.skillLevels.normal) || student.skillLevels.normal < 1
-    || !Number.isInteger(student.skillLevels.burst) || student.skillLevels.burst < 1) {
-    throw invalid("Student skill levels are invalid");
+  if (Object.hasOwn(student, "skills") || Object.hasOwn(student, "skillLevels")) {
+    throw invalid("Inline student skills are no longer supported");
   }
-  requireObject(student.skills, "Student skills are invalid");
-  if (!student.skills.normal || !student.skills.burst) throw invalid("Student skills are invalid");
+  if (typeof student.skillGroupId !== "string" || !SKILL_GROUPS[student.skillGroupId]) {
+    throw invalid("Student skill group is invalid");
+  }
+  requireObject(student.skillGroupLevels, "Student skill group levels are invalid");
+  if (Object.keys(student.skillGroupLevels).length !== 1 || !Object.hasOwn(student.skillGroupLevels, student.skillGroupId)) {
+    throw invalid("Student skill group levels must contain the selected group");
+  }
+  const levels = student.skillGroupLevels[student.skillGroupId];
+  if (!levels || typeof levels !== "object" || Array.isArray(levels)
+    || Object.keys(levels).length !== 2
+    || !Number.isInteger(levels.normal) || levels.normal < 1
+    || !Number.isInteger(levels.burst) || levels.burst < 1) {
+    throw invalid("Student skill group levels are invalid");
+  }
 }
 
 function validateFormation(formation, students) {
@@ -110,8 +128,8 @@ function validateProfile(profile, accountId) {
   }
 }
 
-function profileFromRow(row, accountId) {
-  const profile = structuredClone(row.payload);
+export function profileFromRow(row, accountId) {
+  const profile = migrateProfile(structuredClone(row.payload));
   if (profile.version !== row.version) {
     throw new Error(`Stored profile version mismatch for account ${accountId}`);
   }
@@ -132,7 +150,7 @@ function mergeUpdate(profile, update) {
     for (const [studentId, student] of Object.entries(update.students)) {
       if (!next.students[studentId]) throw invalid("Students must already be owned by the profile");
       const current = next.students[studentId];
-      for (const key of ["id", "aptitude", "abilities", "maxEnergy", "skillLevels", "skills"]) {
+      for (const key of ["id", "aptitude", "abilities", "maxEnergy", "skillGroupId", "skillGroupLevels"]) {
         if (student[key] !== undefined && JSON.stringify(student[key]) !== JSON.stringify(current[key])) {
           throw invalid("Student stats are managed by progression actions");
         }
@@ -141,8 +159,8 @@ function mergeUpdate(profile, update) {
         ...next.students[studentId],
         ...structuredClone(student),
         abilities: structuredClone(current.abilities),
-        skillLevels: structuredClone(current.skillLevels),
-        skills: structuredClone(current.skills),
+        skillGroupId: current.skillGroupId,
+        skillGroupLevels: structuredClone(current.skillGroupLevels),
       };
     }
   }
@@ -175,8 +193,12 @@ export class ProfileService {
         accountId,
         profile: this.defaultProfile(accountId),
       });
+      const profile = profileFromRow(row, accountId);
+      if (profile.schemaVersion !== row.payload.schemaVersion) {
+        await this.repository.update(client, { accountId, version: profile.version, profile });
+      }
       await client.query("COMMIT");
-      return profileFromRow(row, accountId);
+      return profile;
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;

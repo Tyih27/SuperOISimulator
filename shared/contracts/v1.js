@@ -33,6 +33,11 @@ const skillLevelMap = {
   },
   additionalProperties: false,
 };
+const skillGroupLevels = {
+  type: "object",
+  minProperties: 1,
+  additionalProperties: skillLevelMap,
+};
 const formation = {
   type: "object",
   required: ["A1", "A2", "A3"],
@@ -270,8 +275,8 @@ export const PROFILE_UPDATE_DTO_SCHEMA = deepFreeze({
           aptitude,
           abilities: abilityMap,
           maxEnergy: positiveInteger,
-          skillLevels: skillLevelMap,
-          skills: identityStudent.properties.skills,
+          skillGroupId: { type: "string", minLength: 1 },
+          skillGroupLevels,
         },
         additionalProperties: false,
       },
@@ -341,6 +346,92 @@ export const BATTLE_SNAPSHOT_V2_DTO_SCHEMA = deepFreeze({
     profileVersion: positiveInteger,
     namePoolVersion: positiveInteger,
     team: { type: "array", items: identityStudent, minItems: 3, maxItems: 3 },
+    level,
+    formation,
+    seed: { type: ["string", "number"] },
+    timestamp: { type: "string", format: "date-time" },
+  },
+  additionalProperties: false,
+});
+
+// v3 moves immutable skill definitions into a battle catalogue. Player
+// profiles retain only the selected group and its progression record.
+export const CONTRACT_V3_VERSION = 3;
+
+const skillGroupStudent = {
+  type: "object",
+  required: ["id", "name", "aptitude", "abilities", "maxEnergy", "skillGroupId", "skillGroupLevels"],
+  properties: {
+    id: { type: "string", minLength: 1 },
+    name: { type: "string", minLength: 1, maxLength: 12 },
+    aptitude,
+    abilities: abilityMap,
+    maxEnergy: positiveInteger,
+    skillGroupId: { type: "string", minLength: 1 },
+    skillGroupLevels,
+  },
+  additionalProperties: false,
+};
+
+export const PROFILE_V3_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/profile-v3",
+  type: "object",
+  required: [
+    "schemaVersion",
+    "version",
+    "accountId",
+    "identitySeed",
+    "namePoolVersion",
+    "students",
+    "formation",
+    "inventory",
+    "currencies",
+    "unlockedLevelIds",
+  ],
+  properties: {
+    schemaVersion: { type: "integer", const: CONTRACT_V3_VERSION },
+    version: positiveInteger,
+    accountId: { type: "string", minLength: 1 },
+    identitySeed: { type: ["string", "number"] },
+    namePoolVersion: positiveInteger,
+    formation,
+    students: { type: "object", additionalProperties: skillGroupStudent },
+    inventory,
+    currencies,
+    unlockedLevelIds: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      minItems: 1,
+      uniqueItems: true,
+    },
+  },
+  additionalProperties: false,
+});
+
+export const BATTLE_SNAPSHOT_V3_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/battle-snapshot-v3",
+  type: "object",
+  required: [
+    "snapshotVersion",
+    "engineVersion",
+    "rulesetVersion",
+    "profileVersion",
+    "namePoolVersion",
+    "team",
+    "skillGroups",
+    "level",
+    "formation",
+    "seed",
+    "timestamp",
+  ],
+  properties: {
+    snapshotVersion: { type: "integer", const: CONTRACT_V3_VERSION },
+    engineVersion: versionString,
+    rulesetVersion: versionString,
+    profileVersion: positiveInteger,
+    namePoolVersion: positiveInteger,
+    team: { type: "array", items: skillGroupStudent, minItems: 3, maxItems: 3 },
+    skillGroups: { type: "object", minProperties: 1, additionalProperties: { type: "object" } },
     level,
     formation,
     seed: { type: ["string", "number"] },

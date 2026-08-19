@@ -1,4 +1,4 @@
-import { ABILITY_KEYS, APTITUDE_ABILITY_RANGES, STUDENTS } from "../data.js";
+import { ABILITY_KEYS, APTITUDE_ABILITY_RANGES, SKILL_GROUPS, STUDENTS } from "../data.js";
 import { createStudentIdentity } from "./student-identity.js";
 
 export const SPECIALIST_TRAINING_COST = 100;
@@ -38,6 +38,7 @@ export function applySpecialistTraining(profile, { studentId, ability } = {}) {
 export function createRecruitedStudent({ studentId, seed, namePoolVersion, templateId, aptitude = "普通" } = {}) {
   const template = STUDENTS.find((student) => student.id === templateId);
   if (!template) throw new Error("Unknown recruitment template");
+  if (!SKILL_GROUPS[template.skillGroupId]) throw new Error("Recruitment template has an unknown skill group");
   if (!APTITUDE_ABILITY_RANGES[aptitude]) throw new Error("Unknown recruited student aptitude");
   const identity = createStudentIdentity({
     studentId: templateId,
@@ -49,7 +50,7 @@ export function createRecruitedStudent({ studentId, seed, namePoolVersion, templ
     ...identity,
     id: studentId,
     maxEnergy: template.maxEnergy,
-    skillLevels: { normal: 1, burst: 1 },
-    skills: structuredClone(template.skills),
+    skillGroupId: template.skillGroupId,
+    skillGroupLevels: { [template.skillGroupId]: { normal: 1, burst: 1 } },
   };
 }

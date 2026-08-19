@@ -2,11 +2,12 @@ import {
   ENGINE_VERSION,
   LEVELS,
   RULESET_VERSION,
+  SKILL_GROUPS,
   TOPICS,
 } from "../data.js";
 import { PROFILE_SCHEMA_VERSION } from "./profile.js";
 
-export const BATTLE_SNAPSHOT_VERSION = 2;
+export const BATTLE_SNAPSHOT_VERSION = 3;
 
 const FORMATION_SLOTS = Object.freeze(["A1", "A2", "A3"]);
 const topicContentById = new Map(TOPICS.map((topic) => [topic.id, topic]));
@@ -47,8 +48,15 @@ function createFormation(teamIds, configuredFormation) {
 
 function createTeamStudent(profile, studentId) {
   const persistentStudent = profile.students[studentId];
-  if (!persistentStudent?.skills?.normal || !persistentStudent?.skills?.burst) {
-    throw new Error(`Owned student ${studentId} is missing battle skills`);
+  const skillGroupId = persistentStudent?.skillGroupId;
+  if (!SKILL_GROUPS[skillGroupId]) {
+    throw new Error(`Owned student ${studentId} has an unknown skill group`);
+  }
+  const skillGroupLevels = persistentStudent?.skillGroupLevels;
+  const selectedLevels = skillGroupLevels?.[skillGroupId];
+  if (!selectedLevels || !Number.isInteger(selectedLevels.normal) || selectedLevels.normal < 1
+    || !Number.isInteger(selectedLevels.burst) || selectedLevels.burst < 1) {
+    throw new Error(`Owned student ${studentId} is missing skill group levels`);
   }
 
   return {
@@ -57,8 +65,8 @@ function createTeamStudent(profile, studentId) {
     aptitude: persistentStudent.aptitude,
     abilities: structuredClone(persistentStudent.abilities),
     maxEnergy: persistentStudent.maxEnergy,
-    skillLevels: structuredClone(persistentStudent.skillLevels),
-    skills: structuredClone(persistentStudent.skills),
+    skillGroupId,
+    skillGroupLevels: structuredClone(skillGroupLevels),
   };
 }
 
@@ -117,6 +125,7 @@ export function createBattleSnapshot(profile, selection = {}) {
     profileVersion: profile.version,
     namePoolVersion: profile.namePoolVersion,
     team: teamIds.map((studentId) => createTeamStudent(profile, studentId)),
+    skillGroups: structuredClone(SKILL_GROUPS),
     level,
     formation,
     seed,

@@ -1,5 +1,5 @@
-import { DEFAULT_FORMATION, LEVELS, STUDENTS, TOPICS } from '../data.js';
-import { clamp, calculateEnergyDamage, calculateSkillProgress, calculateSupportEffect } from './math.js';
+import { DEFAULT_FORMATION, LEVELS, SKILL_GROUPS, STUDENTS, TOPICS } from '../data.js';
+import { clamp, calculateSkillProgress, calculateSupportEffect, calculateTopicSkillDamage } from './math.js';
 import { event } from './events.js';
 import { createRng } from '../rng.js';
 
@@ -20,6 +20,8 @@ export class CombatEngine {
     this.maxRounds = options.maxRounds ?? level.maxRounds;
     this.goal = clone(options.goal ?? { type: level.objective.type, target: level.objective.requiredTopics });
     this.studentData = clone(options.students ?? STUDENTS);
+    this.skillGroups = clone(options.skillGroups ?? SKILL_GROUPS);
+    this.focusMax = options.focusMax ?? level.focusMax ?? 1000;
     this.problemData = clone(options.topics ?? options.problems ?? TOPICS);
     this.studentById = Object.fromEntries(this.studentData.map((student) => [student.id, student]));
     this.problemById = Object.fromEntries(this.problemData.map((problem) => [problem.id, problem]));
@@ -126,8 +128,8 @@ export class CombatEngine {
         return;
       }
       const data = this.studentById[actorId];
-      const burst = student.focus >= 1000;
-      const skill = data.skills[burst ? 'burst' : 'normal'];
+      const burst = student.focus >= this.focusMax;
+      const skill = this.studentSkill(data, burst ? 'burst' : 'normal');
       const targets = this.selectProblemTargets(skill.targetRule, actorId, position, snapshot);
       const intent = { actorId, skill, burst, problemDeltas: {}, energyDeltas: {}, focusDelta: burst ? -student.focus : (skill.focusGain ?? 0), focusReset: burst, buffs: [], targets };
       let targetIds = targets.map((target) => target.id);
@@ -146,8 +148,13 @@ export class CombatEngine {
         const supportTargets = this.selectStudentTargets(skill.targetRule, position, snapshot);
         targetIds = supportTargets.map((target) => target.id);
         for (const target of supportTargets) {
-          if (skill.id.startsWith('structurer')) intent.energyDeltas[target.id] = (intent.energyDeltas[target.id] ?? 0) + amount;
-          else intent.focusDeltas = { ...(intent.focusDeltas ?? {}), [target.id]: amount };
+          if (skill.effectType === 'energyRestore') {
+            intent.energyDeltas[target.id] = (intent.energyDeltas[target.id] ?? 0) + amount;
+          } else if (skill.effectType === 'focusGain') {
+            intent.focusDeltas = { ...(intent.focusDeltas ?? {}), [target.id]: amount };
+          } else {
+            throw new Error(`Unsupported support skill effect type: ${skill.effectType}`);
+          }
         }
       }
       this.push(event('action', {
@@ -156,6 +163,7 @@ export class CombatEngine {
         actor: actorId,
         skill: skill.id,
         skillName: skill.name,
+        category: skill.category,
         burst,
         targets: targetIds,
       }));
@@ -168,14 +176,17 @@ export class CombatEngine {
       this.push(event('skip', { round: this.round, stage, actor: actorId, reason: 'problem-completed-or-empty' }));
       return;
     }
-    const targets = this.selectStudentTargets('matching-position', position, snapshot);
+    // Custom fixtures predating topic skills retain the original plain attack.
+    const skill = problem.skill ?? { id: 'problem-attack', name: '题目攻击', category: 'problem', effectType: 'energyDamage', targetRule: 'matching-position' };
+    if (skill.effectType !== 'energyDamage') throw new Error(`Unsupported topic skill effect type: ${skill.effectType}`);
+    const targets = this.selectStudentTargets(skill.targetRule, position, snapshot);
     const target = targets[0];
     if (!target) {
       this.push(event('skip', { round: this.round, stage, actor: actorId, reason: 'no-living-student' }));
       return;
     }
-    const damage = calculateEnergyDamage(this.effectiveStudent(snapshot, target.id), problem);
-    this.push(event('action', { round: this.round, stage, actor: actorId, skill: 'problem-attack', targets: [target.id], damage }));
+    const damage = calculateTopicSkillDamage(this.effectiveStudent(snapshot, target.id), problem, skill);
+    this.push(event('action', { round: this.round, stage, actor: actorId, skill: skill.id, skillName: skill.name, category: skill.category, burst: false, targets: [target.id], damage }));
     this.applyIntent({ actorId, problemDeltas: {}, energyDeltas: { [target.id]: -damage }, focusDelta: 0, focusReset: false, buffs: [] }, stage);
   }
 
@@ -206,14 +217,14 @@ export class CombatEngine {
     if (intent.actorId && this.students[intent.actorId] && (intent.focusDelta || intent.focusReset)) {
       const student = this.students[intent.actorId];
       const before = student.focus;
-      student.focus = intent.focusReset ? 0 : clamp(student.focus + intent.focusDelta, 0, 1000);
+      student.focus = intent.focusReset ? 0 : clamp(student.focus + intent.focusDelta, 0, this.focusMax);
       effects.push({ kind: 'focus', target: intent.actorId, before, after: student.focus, delta: student.focus - before });
     }
     for (const [studentId, delta] of Object.entries(intent.focusDeltas ?? {})) {
       const student = this.students[studentId];
       if (!student) continue;
       const before = student.focus;
-      student.focus = clamp(student.focus + delta, 0, 1000);
+      student.focus = clamp(student.focus + delta, 0, this.focusMax);
       effects.push({ kind: 'focus', target: studentId, before, after: student.focus, delta: student.focus - before });
     }
     for (const buff of intent.buffs ?? []) {
@@ -231,6 +242,23 @@ export class CombatEngine {
     this.push(event('round_end', { round: this.round, completedCount: this.completedCount(), remainingEnergy: this.remainingEnergy() }));
     this.checkTerminal('round-end');
     if (this.status !== 'ended' && this.round >= this.maxRounds) this.finish('lose', 'round-limit');
+  }
+
+  studentSkill(studentData, focus) {
+    const groupId = studentData.skillGroupId;
+    if (groupId) {
+      const group = this.skillGroups[groupId];
+      if (!group) throw new Error(`Unknown skill group: ${groupId}`);
+      const skill = group.skills?.[focus];
+      if (!skill) throw new Error(`Skill group ${groupId} is missing its ${focus} skill`);
+      return skill;
+    }
+
+    // Existing external fixtures may still provide inline skills. Content data
+    // and all new students must use a skill-group reference.
+    const skill = studentData.skills?.[focus];
+    if (!skill) throw new Error(`Student ${studentData.id} has no ${focus} skill group or legacy skill`);
+    return skill;
   }
 
   checkTerminal(stage) {
