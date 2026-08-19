@@ -1,0 +1,104 @@
+import assert from "node:assert/strict";
+import { buildTestApp } from "./helpers.js";
+
+const ORIGIN = "http://localhost:3000";
+const PASSWORD = "correct horse battery";
+
+function request(app, options) {
+  return app.inject({ ...options, headers: { origin: ORIGIN, ...options.headers } });
+}
+
+function sid(response) {
+  return response.cookies.find(({ name }) => name === "sid");
+}
+
+const app = await buildTestApp();
+try {
+  const registered = await request(app, {
+    method: "POST",
+    url: "/api/v1/auth/register",
+    payload: { username: "profile01", password: PASSWORD },
+  });
+  assert.equal(registered.statusCode, 201);
+  const cookie = sid(registered);
+  assert.ok(cookie);
+
+  const initial = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: { sid: cookie.value } });
+  assert.equal(initial.statusCode, 200);
+  const initialProfile = initial.json();
+  assert.equal(Object.keys(initialProfile.students).length, 6);
+  assert.deepEqual(initialProfile.currencies, { trainingCoins: 1000, recruitmentTickets: 1 });
+  assert.deepEqual(initialProfile.formation, { A1: "planner", A2: "graphist", A3: "structurer" });
+  assert.deepEqual(initialProfile.unlockedLevelIds, ["chapter-1-1"]);
+
+  const saved = await request(app, {
+    method: "PUT",
+    url: "/api/v1/profile",
+    cookies: { sid: cookie.value },
+    payload: {
+      version: initialProfile.version,
+      formation: { A1: "planner", A2: "graphist", A3: "mathematician" },
+      students: { planner: { ...initialProfile.students.planner, name: "  林澈  " } },
+    },
+  });
+  assert.equal(saved.statusCode, 200);
+  const savedProfile = saved.json();
+  assert.equal(savedProfile.version, initialProfile.version + 1);
+  assert.equal(savedProfile.students.planner.name, "林澈");
+  assert.equal(savedProfile.students.planner.id, "planner");
+  assert.deepEqual(savedProfile.students.planner.abilities, initialProfile.students.planner.abilities);
+
+  const stale = await request(app, {
+    method: "PUT",
+    url: "/api/v1/profile",
+    cookies: { sid: cookie.value },
+    payload: { version: initialProfile.version, formation: savedProfile.formation },
+  });
+  assert.equal(stale.statusCode, 409);
+  assert.equal(stale.json().code, "PROFILE_VERSION_CONFLICT");
+
+  const invalidName = await request(app, {
+    method: "PUT",
+    url: "/api/v1/profile",
+    cookies: { sid: cookie.value },
+    payload: {
+      version: savedProfile.version,
+      students: { planner: { ...savedProfile.students.planner, name: "" } },
+    },
+  });
+  assert.equal(invalidName.statusCode, 400);
+
+  const unauthenticated = await app.inject({ method: "GET", url: "/api/v1/profile" });
+  assert.equal(unauthenticated.statusCode, 401);
+
+  const secondLogin = await request(app, {
+    method: "POST",
+    url: "/api/v1/auth/login",
+    payload: { username: "profile01", password: PASSWORD },
+  });
+  const fresh = await app.inject({
+    method: "GET",
+    url: "/api/v1/profile",
+    cookies: { sid: sid(secondLogin).value },
+  });
+  assert.equal(fresh.statusCode, 200);
+  assert.deepEqual(fresh.json(), savedProfile);
+
+  const other = await request(app, {
+    method: "POST",
+    url: "/api/v1/auth/register",
+    payload: { username: "profile02", password: PASSWORD },
+  });
+  const otherProfile = await app.inject({
+    method: "GET",
+    url: "/api/v1/profile",
+    cookies: { sid: sid(other).value },
+  });
+  assert.equal(otherProfile.statusCode, 200);
+  assert.notEqual(otherProfile.json().accountId, savedProfile.accountId);
+  assert.equal(otherProfile.json().version, 1);
+
+  console.log("profile API tests passed");
+} finally {
+  await app.close();
+}

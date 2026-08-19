@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
 import { authRoutes } from "./routes/auth.js";
+import { profileRoutes } from "./routes/profile.js";
 
 function requirePool(pool) {
   if (!pool || typeof pool.query !== "function") {
@@ -34,6 +35,7 @@ export function buildApp({ pool, config = {} } = {}) {
     });
     await api.register(rateLimit, { global: false });
     await api.register(authRoutes, { prefix: "/api/v1/auth" });
+    await api.register(profileRoutes, { prefix: "/api/v1/profile" });
   });
 
   return app;

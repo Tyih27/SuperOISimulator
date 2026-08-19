@@ -43,6 +43,21 @@ const formation = {
   },
   additionalProperties: false,
 };
+const aptitude = { enum: ["普通", "优秀", "稀有", "天才", "顶尖"] };
+const nonNegativeInteger = { type: "integer", minimum: 0 };
+const inventory = {
+  type: "object",
+  additionalProperties: nonNegativeInteger,
+};
+const currencies = {
+  type: "object",
+  required: ["trainingCoins", "recruitmentTickets"],
+  properties: {
+    trainingCoins: nonNegativeInteger,
+    recruitmentTickets: nonNegativeInteger,
+  },
+  additionalProperties: false,
+};
 const ownedStudent = {
   type: "object",
   required: ["id", "abilities", "maxEnergy", "skillLevels"],
@@ -189,7 +204,7 @@ const identityStudent = {
   properties: {
     id: { type: "string", minLength: 1 },
     name: { type: "string", minLength: 1, maxLength: 12 },
-    aptitude: { enum: ["普通", "优秀", "稀有", "天才", "顶尖"] },
+    aptitude,
     abilities: abilityMap,
     maxEnergy: positiveInteger,
     skillLevels: skillLevelMap,
@@ -206,7 +221,18 @@ const identityStudent = {
 export const PROFILE_V2_DTO_SCHEMA = deepFreeze({
   $id: "super-oi/profile-v2",
   type: "object",
-  required: ["schemaVersion", "version", "accountId", "identitySeed", "namePoolVersion", "students"],
+  required: [
+    "schemaVersion",
+    "version",
+    "accountId",
+    "identitySeed",
+    "namePoolVersion",
+    "students",
+    "formation",
+    "inventory",
+    "currencies",
+    "unlockedLevelIds",
+  ],
   properties: {
     schemaVersion: { type: "integer", const: CONTRACT_V2_VERSION },
     version: positiveInteger,
@@ -215,6 +241,49 @@ export const PROFILE_V2_DTO_SCHEMA = deepFreeze({
     namePoolVersion: positiveInteger,
     formation,
     students: { type: "object", additionalProperties: identityStudent },
+    inventory,
+    currencies,
+    unlockedLevelIds: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      minItems: 1,
+      uniqueItems: true,
+    },
+  },
+  additionalProperties: false,
+});
+
+export const PROFILE_UPDATE_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/profile-update-v1",
+  type: "object",
+  required: ["version"],
+  properties: {
+    version: positiveInteger,
+    formation,
+    students: {
+      type: "object",
+      additionalProperties: {
+        type: "object",
+        properties: {
+          id: { type: "string", minLength: 1 },
+          name: { type: "string", minLength: 1, maxLength: 12 },
+          aptitude,
+          abilities: abilityMap,
+          maxEnergy: positiveInteger,
+          skillLevels: skillLevelMap,
+          skills: identityStudent.properties.skills,
+        },
+        additionalProperties: false,
+      },
+    },
+    inventory,
+    currencies,
+    unlockedLevelIds: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      minItems: 1,
+      uniqueItems: true,
+    },
   },
   additionalProperties: false,
 });

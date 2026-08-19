@@ -238,7 +238,7 @@ git commit -m "feat: add password login and sessions"
 - Create: `server/routes/profile.js`, `server/services/profile-service.js`, `server/repositories/profile-repository.js`, `server/migrations/002_profiles.sql`, `server/tests/profile.test.js`
 - Modify: `src/domain/profile.js`, `shared/contracts/v1.js`, `server/app.js`
 
-- [ ] **Step 1: Write an authenticated round-trip and optimistic-version-conflict test.**
+- [x] **Step 1: Write an authenticated round-trip and optimistic-version-conflict test.**
 
 ```js
 const saved = await request.put("/api/v1/profile", { version: 1, formation: { A1: "planner", A2: "graphist", A3: "structurer" } });
@@ -246,9 +246,9 @@ assert.equal(saved.statusCode, 200);
 assert.equal((await request.put("/api/v1/profile", { version: 1, formation: saved.json().formation })).statusCode, 409);
 ```
 
-- [ ] **Step 2: Run `node server/tests/profile.test.js`; expect failure because profile endpoints do not exist.**
+- [x] **Step 2: Run `node server/tests/profile.test.js`; expect failure because profile endpoints do not exist.**
 
-- [ ] **Step 3: Add tables and transactional service methods.**
+- [x] **Step 3: Add tables and transactional service methods.**
 
 ```sql
 CREATE TABLE player_profiles (account_id uuid PRIMARY KEY REFERENCES accounts(id), version integer NOT NULL, payload jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
@@ -256,9 +256,9 @@ CREATE TABLE player_profiles (account_id uuid PRIMARY KEY REFERENCES accounts(id
 
 Initialize a new profile with six students whose names are generated from a stored seed/name-pool version, each with an aptitude and independently configured five-type ability values, empty inventory, initial training coins and recruitment tickets, one unlocked campaign level, and a valid three-student formation. The profile API must allow a player to rename an owned student while preserving its stable ID and stats; after trimming, names must contain 1～12 visible characters. `PUT` must validate the DTO, including name and aptitude-range constraints, lock the row, compare `version`, increment it exactly once, and return the full saved profile.
 
-- [ ] **Step 4: Run `npm run test:api`; assert that a second fresh login reads the persisted profile and stale writes return HTTP 409.**
+- [x] **Step 4: Run `npm run test:api`; assert that a second fresh login reads the persisted profile and stale writes return HTTP 409.**
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
 ```bash
 git add server/routes/profile.js server/services/profile-service.js server/repositories/profile-repository.js server/migrations/002_profiles.sql server/tests/profile.test.js src/domain/profile.js shared/contracts/v1.js server/app.js

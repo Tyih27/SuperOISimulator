@@ -10,6 +10,12 @@ export { renameStudent } from "./student-identity.js";
 
 export const LEGACY_PROFILE_SCHEMA_VERSION = 1;
 export const PROFILE_SCHEMA_VERSION = 2;
+export const STARTER_STUDENT_IDS = Object.freeze(STUDENTS.map(({ id }) => id));
+export const DEFAULT_CURRENCIES = Object.freeze({
+  trainingCoins: 1_000,
+  recruitmentTickets: 1,
+});
+export const DEFAULT_UNLOCKED_LEVEL_IDS = Object.freeze(["chapter-1-1"]);
 
 const studentById = new Map(STUDENTS.map((student) => [student.id, student]));
 
@@ -61,6 +67,9 @@ export function createProfile({
   identitySeed = accountId,
   namePoolVersion = NAME_POOL_VERSION,
   formation,
+  inventory = {},
+  currencies = DEFAULT_CURRENCIES,
+  unlockedLevelIds = DEFAULT_UNLOCKED_LEVEL_IDS,
 } = {}) {
   requireAccountId(accountId);
   requireVersion(version);
@@ -80,6 +89,9 @@ export function createProfile({
     namePoolVersion,
     students,
     ...(formation === undefined ? {} : { formation: structuredClone(formation) }),
+    inventory: structuredClone(inventory),
+    currencies: structuredClone(currencies),
+    unlockedLevelIds: structuredClone(unlockedLevelIds),
   };
 }
 
@@ -87,7 +99,14 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
   if (!profile || typeof profile !== "object") throw new Error("A profile is required for migration");
   requireAccountId(profile.accountId);
   requireVersion(profile.version);
-  if (profile.schemaVersion === PROFILE_SCHEMA_VERSION) return structuredClone(profile);
+  if (profile.schemaVersion === PROFILE_SCHEMA_VERSION) {
+    return {
+      ...structuredClone(profile),
+      inventory: structuredClone(profile.inventory ?? {}),
+      currencies: structuredClone(profile.currencies ?? DEFAULT_CURRENCIES),
+      unlockedLevelIds: structuredClone(profile.unlockedLevelIds ?? DEFAULT_UNLOCKED_LEVEL_IDS),
+    };
+  }
   if (profile.schemaVersion !== LEGACY_PROFILE_SCHEMA_VERSION) {
     throw new Error(`Unsupported profile schema version: ${profile.schemaVersion}`);
   }
@@ -118,5 +137,8 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
     identitySeed: seed,
     namePoolVersion,
     students,
+    inventory: structuredClone(profile.inventory ?? {}),
+    currencies: structuredClone(profile.currencies ?? DEFAULT_CURRENCIES),
+    unlockedLevelIds: structuredClone(profile.unlockedLevelIds ?? DEFAULT_UNLOCKED_LEVEL_IDS),
   };
 }
