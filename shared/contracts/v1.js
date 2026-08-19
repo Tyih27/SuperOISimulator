@@ -474,3 +474,23 @@ export const BATTLE_SNAPSHOT_V3_DTO_SCHEMA = deepFreeze({
   },
   additionalProperties: false,
 });
+
+export const ARENA_DEFENSE_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/arena-defense-v1",
+  type: "object",
+  required: ["version", "teamIds", "formation"],
+  properties: {
+    version: positiveInteger,
+    teamIds: { type: "array", minItems: 3, maxItems: 3, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 128 } },
+    formation,
+  },
+  additionalProperties: false,
+});
+
+export const ARENA_MATCH_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/arena-match-v1",
+  type: "object",
+  required: ["opponentId"],
+  properties: { opponentId: { type: "string", minLength: 1, maxLength: 128 } },
+  additionalProperties: false,
+});

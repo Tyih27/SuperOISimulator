@@ -318,6 +318,21 @@ h2 { margin-bottom: 0; font-size: 1.05rem; letter-spacing: -0.02em; line-height:
 .result-reason { margin: 0.35rem 0 0; color: #bebebe; font-size: 0.74rem; }
 .result-metrics { display: flex; gap: 1rem; color: #bdbdbd; font-size: 0.68rem; }
 .result-metrics strong { display: block; margin-top: 0.15rem; color: var(--surface); font-size: 0.9rem; }
+.arena-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.25rem; }
+.arena-copy { color: var(--muted); font-size: 0.76rem; line-height: 1.6; }
+.arena-formation { display: grid; gap: 0.5rem; margin: 1rem 0; padding: 0; list-style: none; }
+.arena-formation li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.65rem 0.75rem; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 5px; }
+.arena-formation li span { color: var(--subtle); font-family: monospace; font-size: 0.7rem; }
+.arena-formation li strong { font-size: 0.78rem; }
+.opponent-list { display: grid; gap: 0.6rem; }
+.opponent-row { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.7rem; border: 1px solid var(--line); border-radius: 5px; }
+.opponent-row > div { display: grid; gap: 0.2rem; min-width: 0; }
+.opponent-row strong { font-size: 0.76rem; }
+.opponent-row span { color: var(--muted); font-size: 0.66rem; }
+.arena-match { margin-top: 1rem; }
+.arena-match details { margin-top: 1rem; }
+.arena-match summary { color: var(--ink); font-size: 0.76rem; font-weight: 700; cursor: pointer; }
+@media (max-width: 760px) { .arena-grid { grid-template-columns: 1fr; } }
 
 @media (max-width: 1050px) {
   .topbar { align-items: flex-start; }

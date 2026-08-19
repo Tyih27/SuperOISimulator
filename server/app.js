@@ -8,6 +8,7 @@ import { profileRoutes } from "./routes/profile.js";
 import { progressionRoutes } from "./routes/progression.js";
 import { battleRoutes } from "./routes/battles.js";
 import { accountDataRoutes } from "./routes/account-data.js";
+import { arenaRoutes } from "./routes/arena.js";
 
 function requirePool(pool) {
   if (!pool || typeof pool.query !== "function") {
@@ -101,6 +102,7 @@ export function buildApp({ pool, config = {} } = {}) {
     await api.register(profileRoutes, { prefix: "/api/v1/profile" });
     await api.register(progressionRoutes, { prefix: "/api/v1/progression" });
     await api.register(battleRoutes, { prefix: "/api/v1" });
+    await api.register(arenaRoutes, { prefix: "/api/v1/arena" });
   });
 
   configureStaticFiles(app, config.staticDir);

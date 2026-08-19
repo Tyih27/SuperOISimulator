@@ -2,8 +2,9 @@ import { ApiError } from "../api/client.js";
 import { createAuthSession, renderAccountScreen, renderAuthScreen } from "./auth.js";
 import { getLevel, renderCampaign } from "./campaign.js";
 import { renderProgression, renderRoster } from "./progression.js";
+import { renderArena } from "./arena.js";
 
-const ROUTES = new Set(["campaign", "roster", "progression", "account", "battle"]);
+const ROUTES = new Set(["campaign", "roster", "progression", "account", "battle", "arena"]);
 const POSITIONS = ["A1", "A2", "A3"];
 
 function esc(value) {
@@ -29,7 +30,7 @@ function isValidFormation(draft) {
 }
 
 function renderShell({ account, route, content }) {
-  return `<a class="skip-link" href="#main-content">跳到主要内容</a><div class="account-shell"><header class="account-topbar"><a class="app-brand" href="#campaign">SUPER OI <span>SIMULATOR</span></a><nav aria-label="主导航"><a href="#campaign"${route === "campaign" ? " aria-current=\"page\"" : ""}>主线关卡</a><a href="#roster"${route === "roster" ? " aria-current=\"page\"" : ""}>学生名单</a><a href="#progression"${route === "progression" ? " aria-current=\"page\"" : ""}>训练与补给</a><a href="#account"${route === "account" ? " aria-current=\"page\"" : ""}>账户与数据</a></nav><div class="account-actions"><span>${esc(account.username)}</span><button class="icon-button" type="button" data-action="logout" aria-label="退出登录" title="退出登录">退出</button></div></header><main id="main-content" class="account-main">${content}</main></div>`;
+  return `<a class="skip-link" href="#main-content">跳到主要内容</a><div class="account-shell"><header class="account-topbar"><a class="app-brand" href="#campaign">SUPER OI <span>SIMULATOR</span></a><nav aria-label="主导航"><a href="#campaign"${route === "campaign" ? " aria-current=\"page\"" : ""}>主线关卡</a><a href="#arena"${route === "arena" ? " aria-current=\"page\"" : ""}>异步竞技场</a><a href="#roster"${route === "roster" ? " aria-current=\"page\"" : ""}>学生名单</a><a href="#progression"${route === "progression" ? " aria-current=\"page\"" : ""}>训练与补给</a><a href="#account"${route === "account" ? " aria-current=\"page\"" : ""}>账户与数据</a></nav><div class="account-actions"><span>${esc(account.username)}</span><button class="icon-button" type="button" data-action="logout" aria-label="退出登录" title="退出登录">退出</button></div></header><main id="main-content" class="account-main">${content}</main></div>`;
 }
 
 function downloadJson(value, filename) {
@@ -60,6 +61,7 @@ export class AppRouter {
     this.selectedLevelId = null;
     this.formationDraft = null;
     this.battle = null;
+    this.arena = { defense: null, opponents: [], match: null, replay: null };
     this.message = "";
     this.root.addEventListener("submit", (event) => this.onSubmit(event));
     this.root.addEventListener("click", (event) => this.onClick(event));
@@ -120,6 +122,7 @@ export class AppRouter {
     else if (this.route === "progression") content = renderProgression({ profile: this.profile, message: this.message });
     else if (this.route === "account") content = renderAccountScreen({ account: this.account, message: this.message });
     else if (this.route === "battle" && this.battle) content = renderBattle({ battle: this.battle, message: this.message });
+    else if (this.route === "arena") content = renderArena({ profile: this.profile, ...this.arena, message: this.message });
     else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, ...this.formationDraft, message: this.message });
     this.root.innerHTML = renderShell({ account: this.account, route: this.route, content });
   }
@@ -156,7 +159,7 @@ export class AppRouter {
       return;
     }
     const action = button.dataset.action;
-    if (!action) return;
+    if (!action && !button.dataset.opponentId && !button.dataset.buyOffer && !button.dataset.saveName) return;
     event.preventDefault();
     try {
       if (action === "logout") {
@@ -171,6 +174,16 @@ export class AppRouter {
         await this.startBattle();
       } else if (action === "settle-battle") {
         await this.settleBattle();
+      } else if (action === "load-arena-opponents") {
+        this.arena.opponents = await this.client.get("/arena/opponents");
+        this.message = "对手列表已刷新。";
+      } else if (action === "save-arena-defense") {
+        const saved = await this.client.put("/arena/defense", { version: this.profile.version, teamIds: POSITIONS.map((slot) => this.profile.formation[slot]), formation: this.profile.formation });
+        this.arena.defense = saved.defense;
+        this.message = "防守编队已锁定。";
+      } else if (action === "settle-arena") {
+        this.arena.replay = await this.client.post(`/arena/matches/${this.arena.match.id}/settle`, {});
+        this.message = "竞技场回放已结算。";
       } else if (action === "export-account") {
         const exported = await this.client.get("/account/export");
         downloadJson(exported, `super-oi-${this.account.id}.json`);
@@ -179,6 +192,10 @@ export class AppRouter {
         await this.train();
       } else if (action === "recruit") {
         await this.recruit();
+      } else if (button.dataset.opponentId) {
+        this.arena.match = await this.client.post("/arena/matches", { opponentId: button.dataset.opponentId });
+        this.arena.replay = null;
+        this.message = "比赛快照已锁定。";
       } else if (button.dataset.buyOffer) {
         await this.buy(button.dataset.buyOffer);
       } else if (button.dataset.saveName) {
