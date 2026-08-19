@@ -68,6 +68,14 @@ try {
   });
   assert.equal(invalidName.statusCode, 400);
 
+  const clientEconomyWrite = await request(app, {
+    method: "PUT",
+    url: "/api/v1/profile",
+    cookies: { sid: cookie.value },
+    payload: { version: savedProfile.version, currencies: { trainingCoins: 999999, recruitmentTickets: 1 } },
+  });
+  assert.equal(clientEconomyWrite.statusCode, 400);
+
   const unauthenticated = await app.inject({ method: "GET", url: "/api/v1/profile" });
   assert.equal(unauthenticated.statusCode, 401);
 

@@ -271,7 +271,7 @@ git commit -m "feat: persist versioned player profiles"
 - Create: `src/domain/progression.js`, `server/routes/progression.js`, `server/services/progression-service.js`, `server/repositories/ledger-repository.js`, `server/migrations/003_progression.sql`, `server/tests/progression.test.js`
 - Modify: `src/data.js`, `src/domain/snapshot.js`, `server/app.js`
 
-- [ ] **Step 1: Write tests for one-time settlement, specialist training cost, shop limits, and recruitment ownership.**
+- [x] **Step 1: Write tests for one-time settlement, specialist training cost, shop limits, and recruitment ownership.**
 
 ```js
 assert.equal(applySpecialistTraining(profile, { studentId: "planner", ability: "dynamicProgramming" }).students.planner.abilities.dynamicProgramming, 840);
@@ -280,13 +280,13 @@ assert.equal(await service.settleCampaignBattle(input).reward.trainingCoins, 100
 await assert.rejects(() => service.settleCampaignBattle(input), /already settled/);
 ```
 
-- [ ] **Step 2: Run `node server/tests/progression.test.js`; expect failure because progression services do not exist.**
+- [x] **Step 2: Run `node server/tests/progression.test.js`; verify settlement, training, shop, and recruitment flows.**
 
-- [ ] **Step 3: Add immutable content and transactional ledgers.**
+- [x] **Step 3: Add immutable content and transactional ledgers.**
 
 Define 3-5 levels in `src/data.js`, with ordered difficulty and both objective types. Also define the five ability keys, the aptitude-by-type initial ranges, and versioned name pools used by starter students and recruitment. Record every resource mutation in `currency_ledger` and every granted item in `inventory_entries`; enforce shop purchase limits with a unique `(account_id, offer_id, reset_period)` key. Specialist training is the only released stat upgrade: it consumes a named training book plus coins and adds a fixed ability increment.
 
-- [ ] **Step 4: Run `npm test && npm run test:api`; verify a completed battle cannot award resources twice and a roster can grow beyond six students while a battle request still allows exactly three.**
+- [x] **Step 4: Run `npm test && npm run test:api`; verify a completed battle cannot award resources twice and a roster can grow beyond six students while a battle request still allows exactly three.**
 
 - [ ] **Step 5: Commit.**
 

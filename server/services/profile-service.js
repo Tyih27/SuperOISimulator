@@ -54,9 +54,9 @@ function validateStudent(studentId, student, ownedStudent) {
   }
   for (const key of ABILITY_KEYS) {
     const value = student.abilities[key];
-    const [minimum, maximum] = ranges[key];
-    if (!Number.isInteger(value) || value < minimum || value > maximum) {
-      throw invalid("Student abilities must be within the aptitude range");
+    const [minimum] = ranges[key];
+    if (!Number.isInteger(value) || value < minimum || value > 2_000) {
+      throw invalid("Student abilities must be within the aptitude range or trained cap");
     }
   }
   if (!Number.isInteger(student.maxEnergy) || student.maxEnergy < 1) {
@@ -120,26 +120,29 @@ function profileFromRow(row, accountId) {
 }
 
 function mergeUpdate(profile, update) {
+  if (update.inventory !== undefined || update.currencies !== undefined || update.unlockedLevelIds !== undefined) {
+    throw invalid("Inventory, currencies, and campaign progress are managed by progression actions");
+  }
   const next = structuredClone(profile);
-  for (const key of ["formation", "inventory", "currencies", "unlockedLevelIds"]) {
+  for (const key of ["formation"]) {
     if (update[key] !== undefined) next[key] = structuredClone(update[key]);
   }
   if (update.students !== undefined) {
     requireObject(update.students, "Students are invalid");
     for (const [studentId, student] of Object.entries(update.students)) {
       if (!next.students[studentId]) throw invalid("Students must already be owned by the profile");
+      const current = next.students[studentId];
+      for (const key of ["id", "aptitude", "abilities", "maxEnergy", "skillLevels", "skills"]) {
+        if (student[key] !== undefined && JSON.stringify(student[key]) !== JSON.stringify(current[key])) {
+          throw invalid("Student stats are managed by progression actions");
+        }
+      }
       next.students[studentId] = {
         ...next.students[studentId],
         ...structuredClone(student),
-        abilities: student.abilities === undefined
-          ? next.students[studentId].abilities
-          : structuredClone(student.abilities),
-        skillLevels: student.skillLevels === undefined
-          ? next.students[studentId].skillLevels
-          : structuredClone(student.skillLevels),
-        skills: student.skills === undefined
-          ? next.students[studentId].skills
-          : structuredClone(student.skills),
+        abilities: structuredClone(current.abilities),
+        skillLevels: structuredClone(current.skillLevels),
+        skills: structuredClone(current.skills),
       };
     }
   }

@@ -288,6 +288,37 @@ export const PROFILE_UPDATE_DTO_SCHEMA = deepFreeze({
   additionalProperties: false,
 });
 
+export const CAMPAIGN_SETTLEMENT_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/campaign-settlement-v1",
+  type: "object",
+  required: ["settlementId", "levelId", "result"],
+  properties: {
+    settlementId: { type: "string", minLength: 1, maxLength: 128 },
+    levelId: { type: "string", minLength: 1, maxLength: 128 },
+    result: { const: "win" },
+  },
+  additionalProperties: false,
+});
+
+export const SPECIALIST_TRAINING_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/specialist-training-v1",
+  type: "object",
+  required: ["studentId", "ability"],
+  properties: {
+    studentId: { type: "string", minLength: 1, maxLength: 128 },
+    ability: { enum: ["dynamicProgramming", "graphTheory", "dataStructures", "mathematics", "implementation"] },
+  },
+  additionalProperties: false,
+});
+
+export const SHOP_PURCHASE_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/shop-purchase-v1",
+  type: "object",
+  required: ["offerId"],
+  properties: { offerId: { type: "string", minLength: 1, maxLength: 128 } },
+  additionalProperties: false,
+});
+
 export const BATTLE_SNAPSHOT_V2_DTO_SCHEMA = deepFreeze({
   $id: "super-oi/battle-snapshot-v2",
   type: "object",

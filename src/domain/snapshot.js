@@ -2,7 +2,6 @@ import {
   ENGINE_VERSION,
   LEVELS,
   RULESET_VERSION,
-  STUDENTS,
   TOPICS,
 } from "../data.js";
 import { PROFILE_SCHEMA_VERSION } from "./profile.js";
@@ -10,7 +9,6 @@ import { PROFILE_SCHEMA_VERSION } from "./profile.js";
 export const BATTLE_SNAPSHOT_VERSION = 2;
 
 const FORMATION_SLOTS = Object.freeze(["A1", "A2", "A3"]);
-const studentContentById = new Map(STUDENTS.map((student) => [student.id, student]));
 const topicContentById = new Map(TOPICS.map((topic) => [topic.id, topic]));
 const levelContentById = new Map(LEVELS.map((level) => [level.id, level]));
 
@@ -49,8 +47,9 @@ function createFormation(teamIds, configuredFormation) {
 
 function createTeamStudent(profile, studentId) {
   const persistentStudent = profile.students[studentId];
-  const content = studentContentById.get(studentId);
-  if (!content) throw new Error(`Unknown student content: ${studentId}`);
+  if (!persistentStudent?.skills?.normal || !persistentStudent?.skills?.burst) {
+    throw new Error(`Owned student ${studentId} is missing battle skills`);
+  }
 
   return {
     id: studentId,
@@ -59,7 +58,7 @@ function createTeamStudent(profile, studentId) {
     abilities: structuredClone(persistentStudent.abilities),
     maxEnergy: persistentStudent.maxEnergy,
     skillLevels: structuredClone(persistentStudent.skillLevels),
-    skills: structuredClone(persistentStudent.skills ?? content.skills),
+    skills: structuredClone(persistentStudent.skills),
   };
 }
 

@@ -16,7 +16,7 @@ Super OI Simulator 是一个以信息学竞赛训练为主题的自动战斗模�
 - 展示胜负结果及战斗统计
 - 支持桌面端和移动端布局，并包含基础键盘与屏幕阅读器支持
 
-账号和云存档已实现；主线成长、训练、商店、招募和异步竞技场尚未实现，详见[项目完成计划](docs/superpowers/plans/2026-08-19-project-completion.md)。
+账号、云存档、主线奖励、专项训练、基础商店和招募已实现；服务端权威战斗结算与异步竞技场尚未实现，详见[项目完成计划](docs/superpowers/plans/2026-08-19-project-completion.md)。
 
 ## 环境要求
 
@@ -73,6 +73,7 @@ npm run test:combat
 npm run test:formation
 npm run test:playback
 npm run test:task6
+npm run test:progression
 ```
 
 测试覆盖确定性战斗、回合顺序、编队规则、播放状态、边界数值和页面可访问性审计。
@@ -113,4 +114,4 @@ npm run test:task6
 
 ## 开发状态
 
-当前已完成项目计划中的 Task 1 至 Task 5：战斗契约与三人编队、版本化领域模型、PostgreSQL API 基础、账号认证，以及版本化玩家档案、库存与云存档。下一项工作是 Task 6：主线成长、奖励、专项训练、商店和招募。
+当前已完成项目计划中的 Task 1 至 Task 6：战斗契约与三人编队、版本化领域模型、PostgreSQL API 基础、账号认证、版本化玩家档案和云存档，以及主线奖励、专项训练、商店与招募。下一项工作是 Task 7：服务端权威的单人战斗结算。

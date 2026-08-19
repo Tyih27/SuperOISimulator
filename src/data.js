@@ -155,6 +155,8 @@ export const LEVELS = freeze([
   {
     id: "chapter-1-1",
     name: "清晨训练场",
+    order: 1,
+    recommendedAbility: 550,
     seed: "A7C4-19",
     maxRounds: 12,
     objective: { type: "count", requiredTopics: 3 },
@@ -162,8 +164,62 @@ export const LEVELS = freeze([
     activeTopicSlots: ["B1", "B2", "B3"],
     studentSlots: ["A1", "A2", "A3"],
     focusMax: 1000,
-    focusGain: 200
-  }
+    focusGain: 200,
+    reward: { trainingCoins: 100, inventory: { "specialist-book-dynamicProgramming": 1 }, unlockLevelId: "chapter-1-2" },
+  },
+  {
+    id: "chapter-1-2",
+    name: "图论午练",
+    order: 2,
+    recommendedAbility: 650,
+    seed: "B3F8-42",
+    maxRounds: 14,
+    objective: { type: "count", requiredTopics: 3 },
+    topicIds: ["treeKnapsack", "maxFlow", "persistentSegmentTree", "combinatorics", "computationalGeometry"],
+    activeTopicSlots: ["B1", "B2", "B3"],
+    studentSlots: ["A1", "A2", "A3"],
+    focusMax: 1000,
+    focusGain: 200,
+    reward: { trainingCoins: 140, inventory: { "specialist-book-graphTheory": 1, "specialist-book-dataStructures": 1 }, unlockLevelId: "chapter-1-3" },
+  },
+  {
+    id: "chapter-1-3",
+    name: "专题测验",
+    order: 3,
+    recommendedAbility: 750,
+    seed: "C9D2-71",
+    maxRounds: 16,
+    objective: { type: "all" },
+    topicIds: ["maxFlow", "persistentSegmentTree", "combinatorics", "computationalGeometry"],
+    activeTopicSlots: ["B1", "B2", "B3"],
+    studentSlots: ["A1", "A2", "A3"],
+    focusMax: 1000,
+    focusGain: 200,
+    reward: { trainingCoins: 190, inventory: { "specialist-book-mathematics": 1, "specialist-book-implementation": 1 }, unlockLevelId: "chapter-1-4" },
+  },
+  {
+    id: "chapter-1-4",
+    name: "黄昏模拟赛",
+    order: 4,
+    recommendedAbility: 850,
+    seed: "D5A6-88",
+    maxRounds: 18,
+    objective: { type: "all" },
+    topicIds: ["treeKnapsack", "maxFlow", "persistentSegmentTree", "combinatorics", "computationalGeometry", "compilerOptimization", "dynamicConnectivity", "matrixPower"],
+    activeTopicSlots: ["B1", "B2", "B3"],
+    studentSlots: ["A1", "A2", "A3"],
+    focusMax: 1000,
+    focusGain: 200,
+    reward: { trainingCoins: 260, inventory: { "specialist-book-dynamicProgramming": 1, "specialist-book-graphTheory": 1 }, recruitmentTickets: 1 },
+  },
+]);
+
+export const SHOP_OFFERS = freeze([
+  { id: "daily-dp-book", name: "动态规划专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-dynamicProgramming": 1 }, purchaseLimit: { period: "daily", count: 1 } },
+  { id: "daily-graph-book", name: "图论专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-graphTheory": 1 }, purchaseLimit: { period: "daily", count: 1 } },
+  { id: "data-book", name: "数据结构专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-dataStructures": 1 } },
+  { id: "math-book", name: "数学专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-mathematics": 1 } },
+  { id: "implementation-book", name: "代码实现专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-implementation": 1 } },
 ]);
 
 export const DEFAULT_FORMATION = freeze({ A1: "planner", A2: "graphist", A3: "structurer" });
