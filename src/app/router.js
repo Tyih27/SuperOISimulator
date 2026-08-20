@@ -129,6 +129,7 @@ export class AppRouter {
     this.formationDraft = null;
     this.rosterEditing = false;
     this.detailStudentId = null;
+    this.detailNameEditing = false;
     this.dragStudentId = null;
     this.battle = null;
     this.arena = { defense: null, opponents: [], match: null, replay: null };
@@ -166,7 +167,10 @@ export class AppRouter {
 
   async loadProfile() {
     this.profile = await this.client.get("/profile");
-    if (this.detailStudentId && !this.profile.students?.[this.detailStudentId]) this.detailStudentId = null;
+    if (this.detailStudentId && !this.profile.students?.[this.detailStudentId]) {
+      this.detailStudentId = null;
+      this.detailNameEditing = false;
+    }
     this.selectedLevelId ??= this.profile.unlockedLevelIds[0];
     this.formationDraft = initialFormation(this.profile);
     this.rosterEditing = false;
@@ -182,7 +186,10 @@ export class AppRouter {
 
   navigate(route) {
     if (route !== "battle") this.battle?.playback?.pause();
-    if (route !== "roster") this.detailStudentId = null;
+    if (route !== "roster") {
+      this.detailStudentId = null;
+      this.detailNameEditing = false;
+    }
     if (globalThis.location) globalThis.location.hash = route;
     this.route = route;
     this.render();
@@ -205,8 +212,13 @@ export class AppRouter {
     else if (this.route === "arena") content = renderArena({ profile: this.profile, ...this.arena, message: this.message });
     else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, ...this.formationDraft, message: this.message });
     const detailStudent = this.route === "roster" && this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
-    this.root.innerHTML = renderShell({ account: this.account, route: this.route, content: `${content}${renderStudentDetail({ student: detailStudent })}` });
-    if (detailStudent) this.root.querySelector("[data-student-detail-close]")?.focus();
+    this.root.innerHTML = renderShell({ account: this.account, route: this.route, content: `${content}${renderStudentDetail({ student: detailStudent, editingName: this.detailNameEditing })}` });
+    if (detailStudent) {
+      const focusTarget = this.detailNameEditing
+        ? this.root.querySelector("[data-name-input]")
+        : this.root.querySelector("[data-student-detail-close]");
+      focusTarget?.focus();
+    }
   }
 
   async onSubmit(event) {
@@ -236,6 +248,7 @@ export class AppRouter {
     if (overlay && event.target === overlay) {
       event.preventDefault();
       this.detailStudentId = null;
+      this.detailNameEditing = false;
       this.render();
       return;
     }
@@ -245,6 +258,7 @@ export class AppRouter {
       event.preventDefault();
       event.stopPropagation();
       this.detailStudentId = button.dataset.studentDetail;
+      this.detailNameEditing = false;
       this.render();
       return;
     }
@@ -266,13 +280,18 @@ export class AppRouter {
         this.battle = null;
         this.rosterEditing = false;
         this.detailStudentId = null;
+        this.detailNameEditing = false;
         this.message = "已退出登录。";
       } else if (action === "close-student-detail") {
         this.detailStudentId = null;
+        this.detailNameEditing = false;
         this.message = "";
+      } else if (action === "edit-student-name") {
+        this.detailNameEditing = true;
+        this.message = "请输入新的学生名称。";
       } else if (action === "cancel-student-rename") {
         this.message = "已取消名称修改。";
-        this.detailStudentId = null;
+        this.detailNameEditing = false;
       } else if (action === "edit-roster") {
         this.rosterEditing = true;
         this.message = "请选择新的三人队伍。";
@@ -357,7 +376,11 @@ export class AppRouter {
   async onKeyDown(event) {
     if (event.key === "Escape" && this.detailStudentId) {
       event.preventDefault();
-      this.detailStudentId = null;
+      if (this.detailNameEditing) {
+        this.detailNameEditing = false;
+      } else {
+        this.detailStudentId = null;
+      }
       this.render();
       return;
     }
@@ -475,6 +498,7 @@ export class AppRouter {
     this.profile = await this.client.put("/profile", { version: this.profile.version, students: { [studentId]: { name: input?.value ?? "" } } });
     this.formationDraft = initialFormation(this.profile);
     this.rosterEditing = false;
+    this.detailNameEditing = false;
     this.message = "学生名称已保存。";
   }
 

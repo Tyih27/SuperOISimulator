@@ -31,6 +31,8 @@ assert.match(progressionSource, /student-detail-dialog/);
 assert.match(progressionSource, /最大精力/);
 assert.match(progressionSource, /student-detail-name/);
 assert.match(progressionSource, /data-save-name/);
+assert.match(progressionSource, /edit-student-name/);
+assert.doesNotMatch(progressionSource, /student-detail-rename/);
 assert.doesNotMatch(progressionSource, /edit-name/);
 assert.match(progressionSource, /常规技能/);
 assert.match(progressionSource, /爆发技能/);

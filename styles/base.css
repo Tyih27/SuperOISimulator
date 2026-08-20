@@ -151,7 +151,12 @@ input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 
 .student-detail-overlay { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: clamp(1rem, 4vw, 3rem); background: rgba(23, 23, 23, 0.58); }
 .student-detail-dialog { width: min(860px, 100%); max-height: min(90vh, 760px); overflow: auto; padding: clamp(1.15rem, 3vw, 2rem); background: var(--surface); border: 1px solid var(--line-strong); border-top: 4px solid var(--gold); border-radius: 8px; box-shadow: 0 24px 70px rgba(23, 23, 23, 0.25); }
 .student-detail-header, .student-detail-skill-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.student-detail-header h2 { font-size: clamp(1.3rem, 3vw, 1.8rem); }
+.student-detail-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.65rem; }
+.student-detail-name-row h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 1.8rem); }
+.student-detail-name-row .secondary-button { min-height: 1.9rem; padding: 0.25rem 0.55rem; font-size: 0.68rem; }
+.student-detail-name-editor { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 0.55rem; }
+.student-detail-name-editor label { color: var(--muted); font-size: 0.7rem; }
+.student-detail-name-editor input { min-width: 0; }
 .student-detail-subtitle { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.78rem; }
 .student-detail-header .icon-button { flex: 0 0 auto; }
 .student-detail-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; margin-top: 1.25rem; }
@@ -159,11 +164,6 @@ input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 
 .student-detail-summary span { color: var(--muted); font-size: 0.68rem; }
 .student-detail-summary strong { font-size: 1rem; }
 .student-detail-section { margin-top: 1.3rem; padding-top: 1.1rem; border-top: 1px solid var(--line); }
-.student-detail-rename { margin-top: 1.1rem; padding: 0.9rem; background: var(--surface-soft); border: 1px solid var(--line); border-top: 1px solid var(--line); border-radius: 6px; }
-.student-detail-rename .section-heading { margin-bottom: 0.65rem; }
-.student-detail-rename .student-name-edit { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 0.55rem; }
-.student-detail-rename .student-name-edit label { color: var(--muted); font-size: 0.7rem; }
-.student-detail-rename .student-name-edit input { min-width: 0; }
 .student-detail-section .section-heading { margin-bottom: 0.75rem; }
 .student-detail-section h3 { margin: 0; font-size: 1rem; }
 .student-detail-group-id { color: var(--subtle); font-family: "SFMono-Regular", Consolas, monospace; font-size: 0.68rem; }
@@ -440,7 +440,7 @@ h2 { margin-bottom: 0; font-size: 1.05rem; letter-spacing: -0.02em; line-height:
 
 @media (max-width: 420px) {
   .auth-panel { padding: 1.15rem; }.auth-actions, .level-list, .roster-grid, .student-choices, .shop-grid, .student-detail-summary, .student-detail-abilities { grid-template-columns: 1fr; }.campaign-detail, .battle-summary, .campaign-actions { display: grid; }.reward-summary { padding: 0.7rem 0 0; border-top: 1px solid #3c3c3c; border-left: 0; }.resource-strip { gap: 0.6rem; }.resource-strip div { min-width: 0; padding-right: 0.7rem; }.settled-result dl { gap: 0.8rem; }
-  .student-detail-rename .student-name-edit { grid-template-columns: 1fr; align-items: stretch; }
+  .student-detail-name-editor { grid-template-columns: 1fr; align-items: stretch; }
   .page-content { padding-right: 0.75rem; padding-left: 0.75rem; }
   .briefing-metrics > div { padding: 0 0.45rem; }
   .briefing-metrics span { font-size: 0.62rem; }
