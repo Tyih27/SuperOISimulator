@@ -49,6 +49,14 @@ export async function progressionRoutes(app) {
     }
   }));
 
+  app.post("/daily-check-in", action({ type: "object", additionalProperties: false }, async (request, reply) => {
+    try {
+      return await service.claimDailyCheckIn(request.account.id);
+    } catch (error) {
+      return sendProgressionError(reply, error);
+    }
+  }));
+
   app.post("/shop/purchases", action(SHOP_PURCHASE_DTO_SCHEMA, async (request, reply) => {
     try {
       return await service.purchaseShopOffer(request.account.id, request.body);

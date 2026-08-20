@@ -75,7 +75,8 @@ export function applySpecialistTraining(profile, { studentId, ability } = {}) {
   const student = profile.students[studentId];
   if (!student) throw new Error("Student must be owned by the profile");
   const bookId = specialistTrainingBookId(ability);
-  if ((profile.inventory[bookId] ?? 0) < 1) throw new Error("A matching specialist training book is required");
+  const itemId = (profile.inventory[bookId] ?? 0) > 0 ? bookId : STUDENT_TRAINING_MATERIAL_ID;
+  if ((profile.inventory[itemId] ?? 0) < 1) throw new Error("A matching specialist training book or student training material is required");
   if ((profile.currencies.trainingCoins ?? 0) < SPECIALIST_TRAINING_COST) {
     throw new Error("Not enough training coins");
   }
@@ -86,7 +87,7 @@ export function applySpecialistTraining(profile, { studentId, ability } = {}) {
   const next = structuredClone(profile);
   next.students[studentId].abilities[ability] += SPECIALIST_TRAINING_INCREMENT;
   next.currencies.trainingCoins -= SPECIALIST_TRAINING_COST;
-  next.inventory[bookId] -= 1;
+  next.inventory[itemId] -= 1;
   return next;
 }
 

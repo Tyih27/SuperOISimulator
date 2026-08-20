@@ -27,6 +27,11 @@ try {
   const settled = await request(app, { method: "POST", url: `/api/v1/arena/matches/${match.json().id}/settle`, cookies: aliceCookie, payload: {} });
   assert.equal(settled.statusCode, 200);
   assert.ok(settled.json().replay.attackerEventsHash);
+  const settledProfile = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: aliceCookie });
+  assert.equal(settledProfile.statusCode, 200);
+  assert.equal(settledProfile.json().currencies.trainingCoins, settled.json().reward.trainingCoins ? 1025 : 1000);
+  const arenaLedger = await app.db.query("SELECT delta FROM currency_ledger WHERE account_id = $1 AND source_type = 'arena'", [alice.json().account.id]);
+  assert.equal(arenaLedger.rows.length, settled.json().reward.trainingCoins ? 1 : 0);
   const replay = await app.inject({ method: "GET", url: `/api/v1/arena/matches/${match.json().id}`, cookies: bobCookie });
   assert.equal(replay.statusCode, 200);
   assert.equal(replay.json().hashes.attacker, settled.json().replay.attackerEventsHash);

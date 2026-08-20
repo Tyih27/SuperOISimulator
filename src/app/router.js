@@ -303,6 +303,8 @@ export class AppRouter {
         this.message = "已取消队伍调整。";
       } else if (action === "save-formation") {
         await this.saveFormation();
+      } else if (action === "daily-check-in") {
+        await this.dailyCheckIn();
       } else if (action === "start-battle") {
         await this.startBattle();
       } else if (action === "settle-battle") {
@@ -328,6 +330,9 @@ export class AppRouter {
         this.message = "防守编队已锁定。";
       } else if (action === "settle-arena") {
         this.arena.replay = await this.client.post(`/arena/matches/${this.arena.match.id}/settle`, {});
+        this.profile = this.arena.replay.profile ?? await this.client.get("/profile");
+        this.formationDraft = initialFormation(this.profile);
+        this.rosterEditing = false;
         this.message = "竞技场回放已结算。";
       } else if (action === "export-account") {
         const exported = await this.client.get("/account/export");
@@ -513,7 +518,17 @@ export class AppRouter {
     this.profile = result.profile;
     this.formationDraft = initialFormation(this.profile);
     this.rosterEditing = false;
-    this.message = "专项训练已完成。";
+    this.message = result.training?.itemId === "student-training-material"
+      ? `学生强化完成，数值 ${result.training.previousValue} → ${result.training.currentValue}，已消耗 1 份学生培养材料。`
+      : `学生强化完成，数值 ${result.training.previousValue} → ${result.training.currentValue}，已消耗对应训练册。`;
+  }
+
+  async dailyCheckIn() {
+    const result = await this.client.post("/progression/daily-check-in", {});
+    this.profile = result.profile;
+    this.formationDraft = initialFormation(this.profile);
+    this.rosterEditing = false;
+    this.message = `签到成功，获得 ${result.reward?.trainingCoins ?? 1000} 训练币。`;
   }
 
   async buy(offerId) {

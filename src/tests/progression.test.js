@@ -64,6 +64,16 @@ dismissalProfile.students[recruit.id] = recruit;
 const dismissed = dismissRecruitedStudent(dismissalProfile, { studentId: recruit.id });
 assert.equal(dismissed.students[recruit.id], undefined);
 assert.equal(dismissed.inventory[STUDENT_TRAINING_MATERIAL_ID], 1);
+const materialTraining = applySpecialistTraining({
+  ...structuredClone(profile),
+  inventory: { [STUDENT_TRAINING_MATERIAL_ID]: 1 },
+}, { studentId: "planner", ability: "dynamicProgramming" });
+assert.equal(materialTraining.students.planner.abilities.dynamicProgramming, abilityBefore + SPECIALIST_TRAINING_INCREMENT);
+assert.equal(materialTraining.inventory[STUDENT_TRAINING_MATERIAL_ID], 0);
+assert.throws(
+  () => applySpecialistTraining({ ...profile, inventory: {} }, { studentId: "planner", ability: "dynamicProgramming" }),
+  /training book or student training material/,
+);
 assert.throws(() => dismissRecruitedStudent(profile, { studentId: "planner" }), /Only recruited students/);
 assert.throws(
   () => dismissRecruitedStudent({ ...dismissalProfile, formation: { A1: recruit.id, A2: "graphist", A3: "structurer" } }, { studentId: recruit.id }),

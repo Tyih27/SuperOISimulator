@@ -21,7 +21,7 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
     if (path === "/arena/defense" && route.request().method() === "PUT") { defense = { accountId: profile.accountId, rating: 1000, battlesWon: 0, battlesLost: 0 }; return json({ defense, snapshot: { team: Object.values(profile.students) } }); }
     if (path === "/arena/opponents") return json([{ accountId: "opponent-account", rating: 1000, battlesWon: 4, battlesLost: 2 }]);
     if (path === "/arena/matches" && route.request().method() === "POST") { match = { id: "11111111-1111-4111-8111-111111111111", seed: "arena-seed", snapshots: { attacker: {}, defender: {} } }; return json(match, 201); }
-    if (path.endsWith("/settle")) return json({ id: match.id, result: { winner: "attacker" }, rating: { attackerBefore: 1000, attackerAfter: 1025 }, reward: { trainingCoins: 25 }, replay: { attackerEventsHash: "hash-a", defenderEventsHash: "hash-d" } });
+    if (path.endsWith("/settle")) { profile.currencies.trainingCoins += 25; return json({ id: match.id, result: { winner: "attacker" }, rating: { attackerBefore: 1000, attackerAfter: 1025 }, reward: { trainingCoins: 25 }, replay: { attackerEventsHash: "hash-a", defenderEventsHash: "hash-d" } }); }
     return json({ message: path }, 404);
   });
 
@@ -36,5 +36,8 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
   await expect(page.getByText("比赛 11111111-1111-4111-8111-111111111111")).toBeVisible();
   await page.getByRole("button", { name: "开始回放并结算" }).click();
   await expect(page.getByText("挑战胜利")).toBeVisible();
+  await expect(page.getByText("获得 25 训练币。")).toBeVisible();
+  await page.getByRole("link", { name: "训练与补给" }).click();
+  await expect(page.getByText("1025")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
 });

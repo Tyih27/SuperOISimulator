@@ -58,6 +58,7 @@ function addCurrencies(profile, reward) {
 }
 
 const CURRENCY_KEYS = new Set(["trainingCoins", "recruitmentTickets"]);
+const DAILY_CHECK_IN_REWARD = Object.freeze({ trainingCoins: 1_000 });
 
 function addShopGrants(profile, grants) {
   for (const [itemId, quantity] of Object.entries(grants ?? {})) {
@@ -141,6 +142,12 @@ export class ProgressionService {
       } catch (error) {
         throw invalid(error.message);
       }
+      const previousValue = profile.students[studentId].abilities[ability];
+      const currentValue = next.students[studentId].abilities[ability];
+      const bookId = specialistTrainingBookId(ability);
+      const itemId = (next.inventory[bookId] ?? 0) < (profile.inventory[bookId] ?? 0)
+        ? bookId
+        : STUDENT_TRAINING_MATERIAL_ID;
       Object.assign(profile, next);
       await this.ledger.recordCurrency(client, {
         accountId,
@@ -150,7 +157,7 @@ export class ProgressionService {
         sourceId: `${studentId}:${ability}`,
       });
       return {
-        training: { studentId, ability, itemId: specialistTrainingBookId(ability) },
+        training: { studentId, ability, itemId, previousValue, currentValue, increment: currentValue - previousValue },
         auditAction: "specialist_training",
         auditPayload: { studentId, ability },
       };
@@ -181,6 +188,30 @@ export class ProgressionService {
         }
       }
       return { offer: structuredClone(offer), auditAction: "shop_purchase", auditPayload: { offerId: normalizedOfferId } };
+    });
+  }
+
+  async claimDailyCheckIn(accountId) {
+    requireString(accountId, "Account is required");
+    return this.withProfile(accountId, async ({ client, profile }) => {
+      const claimPeriod = dailyPeriod(this.now());
+      const claimed = await this.ledger.claimDailyCheckIn(client, { accountId, claimPeriod });
+      if (!claimed) throw conflict("DAILY_CHECK_IN_ALREADY_CLAIMED", "今日签到奖励已领取");
+
+      addCurrencies(profile, DAILY_CHECK_IN_REWARD);
+      await this.ledger.recordCurrency(client, {
+        accountId,
+        currency: "trainingCoins",
+        delta: DAILY_CHECK_IN_REWARD.trainingCoins,
+        sourceType: "daily-check-in",
+        sourceId: claimPeriod,
+      });
+      return {
+        reward: structuredClone(DAILY_CHECK_IN_REWARD),
+        claimPeriod,
+        auditAction: "daily_check_in",
+        auditPayload: { claimPeriod },
+      };
     });
   }
 

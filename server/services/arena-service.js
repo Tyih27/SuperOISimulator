@@ -87,8 +87,19 @@ export class ArenaService {
       const delta = ratingDelta(result.winner);
       const attackerAfter = Math.max(0, match.attacker_rating_before + delta);
       const defenderAfter = Math.max(0, match.defender_rating_before - delta);
-      await this.arena.updateRatings(client, { attackerId: match.attacker_id, defenderId: match.defender_id, attackerRating: attackerAfter, defenderRating: defenderAfter, winner: result.winner });
       let rewardLedgerId = null;
+      let savedProfile = null;
+      if (result.winner === "attacker") {
+        const profileRow = await this.profiles.findOrCreateForUpdate(client, {
+          accountId,
+          profile: this.defaults.defaultProfile(accountId),
+        });
+        const profile = profileFromRow(profileRow, accountId);
+        profile.currencies.trainingCoins += 25;
+        profile.version = profileRow.version + 1;
+        savedProfile = await this.profiles.update(client, { accountId, version: profile.version, profile });
+      }
+      await this.arena.updateRatings(client, { attackerId: match.attacker_id, defenderId: match.defender_id, attackerRating: attackerAfter, defenderRating: defenderAfter, winner: result.winner });
       if (result.winner === "attacker") {
         const ledger = await client.query(`INSERT INTO currency_ledger (account_id, currency, delta, source_type, source_id) VALUES ($1, 'trainingCoins', 25, 'arena', $2) RETURNING id`, [accountId, matchId]);
         rewardLedgerId = ledger.rows[0]?.id ?? null;
@@ -97,7 +108,7 @@ export class ArenaService {
       if (!saved) throw conflict("Arena match has already been settled");
       await this.audit.append(client, { accountId, actionType: "arena_settlement", payload: { matchId, winner: result.winner } });
       await client.query("COMMIT");
-      return { id: matchId, result, rating: { before: match.attacker_rating_before, after: attackerAfter }, reward: result.winner === "attacker" ? { trainingCoins: 25 } : {}, replay: { attackerEventsHash: result.attacker.eventsHash, defenderEventsHash: result.defender.eventsHash } };
+      return { id: matchId, result, rating: { before: match.attacker_rating_before, after: attackerAfter }, reward: result.winner === "attacker" ? { trainingCoins: 25 } : {}, profile: savedProfile ? structuredClone(savedProfile.payload) : undefined, replay: { attackerEventsHash: result.attacker.eventsHash, defenderEventsHash: result.defender.eventsHash } };
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
   }
 

@@ -36,4 +36,15 @@ export class LedgerRepository {
     );
     return result.rowCount === 1;
   }
+
+  async claimDailyCheckIn(client, { accountId, claimPeriod }) {
+    const result = await client.query(
+      `INSERT INTO daily_checkins (account_id, claim_period)
+       VALUES ($1, $2)
+       ON CONFLICT (account_id, claim_period) DO NOTHING
+       RETURNING claim_period`,
+      [accountId, claimPeriod],
+    );
+    return result.rowCount === 1;
+  }
 }

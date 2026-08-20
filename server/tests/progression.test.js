@@ -13,7 +13,8 @@ function sid(response) {
   return response.cookies.find(({ name }) => name === "sid");
 }
 
-const app = await buildTestApp({ config: { idFactory: () => "stable-recruit-id", now: () => new Date("2026-08-19T12:00:00.000Z") } });
+let now = new Date("2026-08-19T12:00:00.000Z");
+const app = await buildTestApp({ config: { idFactory: () => "stable-recruit-id", now: () => now } });
 try {
   const registered = await request(app, {
     method: "POST", url: "/api/v1/auth/register", payload: { username: "progression01", password: PASSWORD },
@@ -26,6 +27,17 @@ try {
   assert.equal(initial.statusCode, 200);
   const before = initial.json();
   const abilityBefore = before.students.planner.abilities.dynamicProgramming;
+  const checkIn = await request(app, {
+    method: "POST", url: "/api/v1/progression/daily-check-in", cookies: auth, payload: {},
+  });
+  assert.equal(checkIn.statusCode, 200);
+  assert.equal(checkIn.json().reward.trainingCoins, 1000);
+  assert.equal(checkIn.json().profile.currencies.trainingCoins, 2000);
+  const duplicateCheckIn = await request(app, {
+    method: "POST", url: "/api/v1/progression/daily-check-in", cookies: auth, payload: {},
+  });
+  assert.equal(duplicateCheckIn.statusCode, 409);
+  assert.equal(duplicateCheckIn.json().code, "DAILY_CHECK_IN_ALREADY_CLAIMED");
   await app.db.query(
     "UPDATE player_profiles SET payload = jsonb_set(payload, '{inventory,specialist-book-dynamicProgramming}', '1'::jsonb) WHERE account_id = $1",
     [before.accountId],
@@ -53,7 +65,7 @@ try {
 
   const recruitmentRight = await request(app, { method: "POST", url: "/api/v1/progression/shop/purchases", cookies: auth, payload: { offerId: "recruitment-right" } });
   assert.equal(recruitmentRight.statusCode, 200);
-  assert.equal(recruitmentRight.json().profile.currencies.trainingCoins, 480);
+  assert.equal(recruitmentRight.json().profile.currencies.trainingCoins, 1480);
   assert.equal(recruitmentRight.json().profile.currencies.recruitmentTickets, 2);
   await app.db.query("UPDATE player_profiles SET payload = jsonb_set(payload, '{recruitment,attemptsSinceGenius}', '29'::jsonb) WHERE account_id = $1", [before.accountId]);
 
@@ -72,6 +84,34 @@ try {
   assert.equal(dismissed.statusCode, 200);
   assert.equal(dismissed.json().profile.students[dismissedId], undefined);
   assert.equal(dismissed.json().profile.inventory["student-training-material"], 1);
+  const graphistAbilityBefore = dismissed.json().profile.students.graphist.abilities.graphTheory;
+
+  const materialTraining = await request(app, {
+    method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
+    payload: { studentId: "graphist", ability: "graphTheory" },
+  });
+  assert.equal(materialTraining.statusCode, 200);
+  assert.equal(materialTraining.json().training.itemId, "student-training-material");
+  assert.equal(materialTraining.json().training.previousValue, graphistAbilityBefore);
+  assert.equal(materialTraining.json().training.currentValue, graphistAbilityBefore + 40);
+  assert.equal(materialTraining.json().training.increment, 40);
+  assert.equal(materialTraining.json().profile.students.graphist.abilities.graphTheory, graphistAbilityBefore + 40);
+  assert.equal(materialTraining.json().profile.inventory["student-training-material"], 0);
+  const failedTraining = await request(app, {
+    method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
+    payload: { studentId: "graphist", ability: "graphTheory" },
+  });
+  assert.equal(failedTraining.statusCode, 400);
+  assert.match(failedTraining.json().message, /training book or student training material/);
+  const afterFailedTraining = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: auth });
+  assert.equal(afterFailedTraining.json().version, materialTraining.json().profile.version);
+
+  now = new Date("2026-08-20T00:01:00.000Z");
+  const nextDayCheckIn = await request(app, {
+    method: "POST", url: "/api/v1/progression/daily-check-in", cookies: auth, payload: {},
+  });
+  assert.equal(nextDayCheckIn.statusCode, 200);
+  assert.equal(nextDayCheckIn.json().profile.currencies.trainingCoins, 2480);
 
   const protectedDismissal = await request(app, {
     method: "POST", url: "/api/v1/progression/students/planner/dismiss", cookies: auth,
@@ -89,11 +129,14 @@ try {
 
   const currencyEntries = await app.db.query("SELECT currency, delta, source_type FROM currency_ledger ORDER BY id");
   assert.deepEqual(currencyEntries.rows.map(({ currency, delta, source_type: sourceType }) => [currency, delta, sourceType]), [
+    ["trainingCoins", 1000, "daily-check-in"],
+    ["trainingCoins", -100, "specialist-training"],
     ["trainingCoins", -100, "specialist-training"],
     ["trainingCoins", -120, "shop"],
     ["trainingCoins", -300, "shop"],
     ["recruitmentTickets", 1, "shop"],
     ["recruitmentTickets", -1, "recruitment"],
+    ["trainingCoins", 1000, "daily-check-in"],
   ]);
   const inventoryEntries = await app.db.query("SELECT item_id, quantity, source_type FROM inventory_entries ORDER BY id");
   assert.deepEqual(inventoryEntries.rows.map(({ item_id: itemId, quantity, source_type: sourceType }) => [itemId, quantity, sourceType]), [
@@ -102,7 +145,7 @@ try {
   ]);
   const auditEntries = await app.db.query("SELECT action_type FROM account_audit_log ORDER BY id");
   assert.deepEqual(auditEntries.rows.map(({ action_type: actionType }) => actionType), [
-    "specialist_training", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal",
+    "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in",
   ]);
 
   const catalogRegistered = await request(app, {
