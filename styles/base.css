@@ -70,6 +70,9 @@ svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width:
 .account-topbar nav a:hover, .account-topbar nav a[aria-current="page"] { color: var(--ink); border-color: var(--gold); }
 .account-actions { display: flex; align-items: center; gap: 0.6rem; color: var(--muted); font-size: 0.74rem; }
 .account-actions .icon-button { width: auto; padding: 0 0.55rem; font-size: 0.7rem; }
+.topbar-warning { position: sticky; top: 0; z-index: 9; display: flex; align-items: center; justify-content: center; gap: 0.55rem; padding: 0.5rem clamp(1rem, 3vw, 3.75rem); background: var(--red-wash); border-bottom: 1px solid var(--red); color: var(--red); font-size: 0.76rem; font-weight: 600; box-shadow: 0 2px 8px rgba(180, 35, 24, 0.12); }
+.topbar-warning p { margin: 0; }
+.topbar-warning .warning-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.05rem; height: 1.05rem; border: 2px solid var(--red); border-radius: 50%; font-weight: 800; font-size: 0.65rem; line-height: 1; flex: 0 0 auto; }
 .account-main { width: min(1180px, 100%); margin: 0 auto; padding: 1.8rem clamp(1rem, 3vw, 3.75rem) 3.75rem; }
 .auth-page { display: grid; min-height: 100vh; place-items: center; padding: 1rem; }
 .auth-panel { width: min(100%, 29rem); padding: 1.6rem; background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow); }
