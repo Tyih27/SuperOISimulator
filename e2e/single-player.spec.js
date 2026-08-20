@@ -44,15 +44,28 @@ async function mockApi(page) {
   });
 }
 
-test("single-player campaign is server-driven", async ({ page }) => {
+test("single-player campaign is server-driven", async ({ page }, testInfo) => {
   await mockApi(page);
   await page.goto("/");
   await page.getByLabel("用户名").fill("alice01");
   await page.getByLabel("密码").fill("correct horse battery");
   await page.getByRole("button", { name: "注册并登录" }).click();
+  await page.getByRole("link", { name: "学生名单" }).click();
+  await expect(page.locator("[data-drag-student]")).toHaveCount(3);
+  await expect(page.getByText("许知", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "更换队员" }).click();
+  await expect(page.getByText("许知", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "取消更换" }).click();
+  if (testInfo.project.name !== "mobile") {
+    await page.locator('[data-drag-student="planner"]').dragTo(page.locator('[data-drop-position="A3"]'));
+    await expect(page.locator('[data-drop-position="A1"]')).toContainText("程野");
+    await expect(page.locator('[data-drop-position="A3"]')).toContainText("林澈");
+  } else {
+    await expect(page.locator("[data-position]")).toHaveCount(0);
+  }
+  await page.getByRole("button", { name: "保存编队" }).click();
   await page.getByRole("link", { name: "主线关卡" }).click();
   await expect(page.getByText("第 1 章")).toBeVisible();
-  await page.getByRole("button", { name: "保存编队" }).click();
   await page.getByRole("button", { name: "开始挑战" }).click();
   await expect(page.getByText("快照已锁定")).toBeVisible();
   await page.getByRole("button", { name: "开始回放并结算" }).click();

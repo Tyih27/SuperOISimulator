@@ -1,5 +1,11 @@
+import { SKILL_GROUPS } from "../data.js";
+
 function esc(value) {
   return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+function skillGroupName(student) {
+  return SKILL_GROUPS[student?.skillGroupId]?.name ?? student?.skillGroupId ?? "未配置";
 }
 
 export function renderArena({ profile, defense, opponents = [], match, replay, message = "" } = {}) {
@@ -10,7 +16,7 @@ export function renderArena({ profile, defense, opponents = [], match, replay, m
     <div class="arena-grid">
       <section class="panel"><div class="panel-header"><h2>防守编队</h2><span class="panel-meta">积分 ${esc(defense?.rating ?? 1000)}</span></div>
         <p class="arena-copy">服务器保存三名学生的能力、技能组和站位快照，进攻时不会读取对手当前档案。</p>
-        <ol class="arena-formation">${["A1", "A2", "A3"].map((slot) => `<li><span>${slot}</span><strong>${esc(students.find((student) => student.id === formation[slot])?.name ?? formation[slot] ?? "未设置")}</strong></li>`).join("")}</ol>
+        <ol class="arena-formation">${["A1", "A2", "A3"].map((slot) => { const student = students.find((item) => item.id === formation[slot]); return `<li><span>${slot}</span><div><strong>${esc(student?.name ?? formation[slot] ?? "未设置")}</strong>${student ? `<small>技能组：${esc(skillGroupName(student))}</small>` : ""}</div></li>`; }).join("")}</ol>
         <button class="primary-button" type="button" data-action="save-arena-defense">保存当前编队</button>
       </section>
       <section class="panel"><div class="panel-header"><h2>可挑战对手</h2><button class="secondary-button" type="button" data-action="load-arena-opponents">刷新列表</button></div>

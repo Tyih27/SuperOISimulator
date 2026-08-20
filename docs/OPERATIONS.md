@@ -2,7 +2,7 @@
 
 ## 配置
 
-服务启动前必须设置 `DATABASE_URL`、至少 32 字符的 `SESSION_SECRET` 和同源 `APP_ORIGIN`。`ACCOUNT_DELETION_RETENTION_DAYS` 是删除请求的保留天数，默认 `30`，可设置为 `1` 至 `3650`。
+服务启动前必须设置 `DATABASE_URL`、至少 32 字符的 `SESSION_SECRET` 和同源 `APP_ORIGIN`。`APP_ORIGIN` 可配置为逗号分隔的完整 HTTP(S) 来源白名单，例如 `http://localhost:3000,http://127.0.0.1:3000`；不能包含路径。生产环境还必须明确设置 `SECURE_COOKIES=true` 或 `SECURE_COOKIES=false`；开发环境未设置时默认为 `false`。`ACCOUNT_DELETION_RETENTION_DAYS` 是删除请求的保留天数，默认 `30`，可设置为 `1` 至 `3650`。
 
 ```bash
 docker compose up -d postgres

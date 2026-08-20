@@ -4,7 +4,7 @@ The production image runs the Node 22 API and browser assets from one origin. `s
 
 ## Required configuration
 
-Set `DATABASE_URL`, `SESSION_SECRET` (at least 32 random characters), `APP_ORIGIN`, and `SECURE_COOKIES`. Use `SECURE_COOKIES=true` behind HTTPS. `POSTGRES_*` values are required by the production Compose file; keep them in a secret store rather than committing them.
+Set `DATABASE_URL`, `SESSION_SECRET` (at least 32 random characters), `APP_ORIGIN`, and `SECURE_COOKIES`. `APP_ORIGIN` accepts a comma-separated allowlist of full HTTP(S) origins, for example `https://oisimulator.example.com,https://www.oisimulator.example.com`; do not include paths. Use `SECURE_COOKIES=true` behind HTTPS. `POSTGRES_*` values are required by the production Compose file; keep them in a secret store rather than committing them.
 
 ## Compose deployment
 

@@ -17,7 +17,12 @@ function request(app, options) {
   });
 }
 
-const app = await buildTestApp({ config: { authRateLimitMax: 4 } });
+const app = await buildTestApp({
+  config: {
+    authRateLimitMax: 4,
+    allowedOrigins: [ORIGIN, "http://127.0.0.1:3000"],
+  },
+});
 
 try {
   const invalid = await request(app, {
@@ -37,6 +42,14 @@ try {
   assert.match(registered.headers["set-cookie"], /SameSite=Lax/i);
   assert.deepEqual(registered.json().account.username, "alice01");
   const registeredCookie = sessionCookie(registered);
+
+  const loopbackRegistration = await app.inject({
+    method: "POST",
+    url: "/api/v1/auth/register",
+    headers: { origin: "http://127.0.0.1:3000" },
+    payload: { username: "loopback01", password: PASSWORD },
+  });
+  assert.equal(loopbackRegistration.statusCode, 201);
 
   const duplicate = await request(app, {
     method: "POST",

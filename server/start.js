@@ -2,6 +2,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPool, runMigrations } from "./db.js";
 import { buildApp } from "./app.js";
+import { parseAllowedOrigins } from "./origins.js";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -29,13 +30,16 @@ function retentionDays(value) {
 
 const databaseUrl = required("DATABASE_URL");
 const sessionSecret = required("SESSION_SECRET");
-const secureCookies = process.env.SECURE_COOKIES;
+const environment = process.env.NODE_ENV ?? "development";
+const secureCookies = process.env.SECURE_COOKIES ?? (environment === "production" ? undefined : "false");
 if (secureCookies !== "true" && secureCookies !== "false") {
   throw new Error("SECURE_COOKIES is required and must be true or false");
 }
 const port = Number.parseInt(process.env.PORT ?? "3000", 10);
 const host = process.env.HOST ?? "127.0.0.1";
-const appOrigin = process.env.APP_ORIGIN ?? `http://localhost:${port}`;
+const allowedOrigins = parseAllowedOrigins(process.env.APP_ORIGIN, {
+  fallback: `http://localhost:${port}`,
+});
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid TCP port");
 if (sessionSecret.length < 32) throw new Error("SESSION_SECRET must contain at least 32 characters");
@@ -44,10 +48,10 @@ const pool = createPool({ connectionString: databaseUrl });
 const app = buildApp({
   pool,
   config: {
-    environment: process.env.NODE_ENV ?? "development",
+    environment,
     sessionSecret,
     secureCookies: secureCookies === "true",
-    allowedOrigins: [appOrigin],
+    allowedOrigins,
     accountDeletionRetentionDays: retentionDays(process.env.ACCOUNT_DELETION_RETENTION_DAYS),
     staticDir: projectRoot,
   },
@@ -56,7 +60,7 @@ const app = buildApp({
 try {
   await runMigrations(pool);
   await app.listen({ port, host });
-  console.log(`Super OI Simulator running at ${appOrigin}`);
+  console.log(`Super OI Simulator running at ${allowedOrigins.join(", ")}`);
 } catch (error) {
   await app.close().catch(() => {});
   await pool.end().catch(() => {});

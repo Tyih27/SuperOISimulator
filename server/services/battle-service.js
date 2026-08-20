@@ -99,6 +99,7 @@ export class BattleService {
       });
       const profile = profileFromRow(row, accountId);
       if (!profile.unlockedLevelIds.includes(level.id)) throw invalid("Campaign level is locked");
+      const battleId = this.idFactory();
       let snapshot;
       try {
         snapshot = createBattleSnapshot(profile, {
@@ -106,12 +107,16 @@ export class BattleService {
           teamIds: selection.teamIds,
           formation: selection.formation,
           timestamp: this.now().toISOString(),
+          // A level's seed is only a content default. Every persisted battle
+          // gets its own seed so repeated attempts are different, while
+          // settlement/replay can deterministically reuse this snapshot.
+          seed: `campaign:${battleId}`,
         });
       } catch (error) {
         throw invalid(error.message);
       }
       const battle = await this.battles.create(client, {
-        id: this.idFactory(), accountId, levelId: level.id, snapshot,
+        id: battleId, accountId, levelId: level.id, snapshot,
       });
       await this.audit.append(client, {
         accountId,

@@ -68,7 +68,8 @@ export class ArenaService {
       const defender = await this.arena.getDefense(client, opponentId, true);
       if (!attacker) throw invalid("Set a defensive formation before attacking");
       if (!defender || defender.account_id === accountId) throw notFound();
-      const match = await this.arena.createMatch(client, { id: this.idFactory(), attackerId: accountId, defenderId: opponentId, seed: `${this.now().toISOString()}:${accountId}:${opponentId}`, attackerSnapshot: attacker.snapshot, defenderSnapshot: defender.snapshot, attackerRatingBefore: attacker.rating, defenderRatingBefore: defender.rating });
+      const matchId = this.idFactory();
+      const match = await this.arena.createMatch(client, { id: matchId, attackerId: accountId, defenderId: opponentId, seed: `arena:${matchId}`, attackerSnapshot: attacker.snapshot, defenderSnapshot: defender.snapshot, attackerRatingBefore: attacker.rating, defenderRatingBefore: defender.rating });
       await client.query("COMMIT");
       return { id: match.id, seed: match.seed, attacker: { accountId }, defender: { accountId: opponentId, rating: defender.rating }, snapshots: { attacker: match.attacker_snapshot, defender: match.defender_snapshot } };
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
