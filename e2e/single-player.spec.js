@@ -13,7 +13,7 @@ function profile(version = 1) {
   return {
     schemaVersion: 3, version, accountId: "account-1", identitySeed: "test", namePoolVersion: 1,
     students: structuredClone(students), formation: { A1: "planner", A2: "graphist", A3: "structurer" },
-    inventory: { "specialist-book-dynamicProgramming": 1 }, currencies: { trainingCoins: 1000, recruitmentTickets: 1 }, unlockedLevelIds: ["chapter-1-1"],
+    inventory: { "specialist-book-dynamicProgramming": 1 }, currencies: { trainingCoins: 1000, recruitmentTickets: 1 }, recruitment: { attemptsSinceGenius: 0 }, unlockedLevelIds: ["chapter-1-1"],
   };
 }
 
@@ -37,7 +37,38 @@ async function mockApi(page) {
       return json(current);
     }
     if (path === "/progression/training/specialist") return json({ profile: current });
-    if (path === "/progression/recruitment" || path === "/progression/shop/purchases") return json({ profile: current });
+    if (path === "/progression/shop/purchases") {
+      const offerId = route.request().postDataJSON().offerId;
+      if (offerId === "recruitment-right") {
+        current = {
+          ...current,
+          version: current.version + 1,
+          currencies: { ...current.currencies, trainingCoins: current.currencies.trainingCoins - 300, recruitmentTickets: current.currencies.recruitmentTickets + 1 },
+        };
+      }
+      return json({ profile: current });
+    }
+    if (path === "/progression/recruitment") {
+      const student = { ...current.students.planner, id: "recruit-1", name: "天才候选", aptitude: "天才" };
+      current = {
+        ...current,
+        version: current.version + 1,
+        students: { ...current.students, [student.id]: student },
+        currencies: { ...current.currencies, recruitmentTickets: current.currencies.recruitmentTickets - 1 },
+        recruitment: { attemptsSinceGenius: 0 },
+      };
+      return json({ profile: current, student, recruitment: { aptitude: "天才", attemptsSinceGenius: 0 } });
+    }
+    if (path === "/progression/students/recruit-1/dismiss") {
+      const { ["recruit-1"]: dismissedStudent, ...remainingStudents } = current.students;
+      current = {
+        ...current,
+        version: current.version + 1,
+        students: remainingStudents,
+        inventory: { ...current.inventory, "student-training-material": (current.inventory["student-training-material"] ?? 0) + 1 },
+      };
+      return json({ profile: current, dismissal: { studentId: dismissedStudent?.id, itemId: "student-training-material", quantity: 1 } });
+    }
     if (path === "/campaign/battles") return json({ id: "7e11b4e1-0fc6-4af3-8a09-2c0591cebc22", snapshot: { level: { name: "清晨训练场" }, seed: "A7C4-19", team: Object.values(current.students).slice(0, 3) } }, 201);
     if (path.endsWith("/settle")) return json({ result: { result: "win", completedCount: 3, round: 8, remainingEnergy: 9200, events: [{ round: 1, type: "battle_started" }, { round: 8, type: "battle_ended" }] }, reward: { trainingCoins: 100 }, profile: current });
     return json({ code: "NOT_FOUND", message: path }, 404);
@@ -72,6 +103,16 @@ test("single-player campaign is server-driven", async ({ page }, testInfo) => {
   await expect(page.getByText("挑战胜利")).toBeVisible();
   await page.getByRole("link", { name: "训练与补给" }).click();
   await page.getByRole("button", { name: "消耗训练册训练" }).click();
+  await expect(page.getByText("天才保底")).toBeVisible();
+  await page.locator('[data-buy-offer="recruitment-right"]').click();
+  await page.getByRole("button", { name: "使用招募券" }).click();
+  await expect(page.getByText(/已招募一名天才学生/)).toBeVisible();
+  await page.getByRole("link", { name: "学生名单" }).click();
+  await page.getByRole("button", { name: "更换队员" }).click();
+  await page.locator('[data-student-detail="recruit-1"]').click();
+  await page.getByRole("button", { name: "劝退并获得培养材料" }).click();
+  await expect(page.getByText("学生已劝退，获得 1 份学生培养材料。" )).toBeVisible();
+  await page.getByRole("link", { name: "训练与补给" }).click();
   await page.reload();
   await expect(page.getByRole("heading", { name: "进度管理" })).toBeVisible();
   await page.getByRole("link", { name: "账户与数据" }).click();

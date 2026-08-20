@@ -4,7 +4,7 @@ import { AccountRepository } from "../repositories/account-repository.js";
 import { AuditRepository } from "../repositories/audit-repository.js";
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,24}$/;
-const MINIMUM_PASSWORD_LENGTH = 12;
+const MINIMUM_PASSWORD_LENGTH = 8;
 const MAXIMUM_PASSWORD_LENGTH = 1024;
 const DEFAULT_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const DUMMY_PASSWORD_HASH = "$argon2id$v=19$m=65536,p=4,t=3$oT0ozQlI8RrFqi0m6XfiTA$y6Uu/PGG9w4VF5+RTs+w1A5En2d5U7/LlhmdnLKJgy8";
@@ -34,7 +34,7 @@ function normalizeCredentials({ username, password } = {}) {
     throw new AuthError(
       "INVALID_CREDENTIALS_FORMAT",
       400,
-      "Password must contain between 12 and 1024 characters",
+      "Password must contain between 8 and 1024 characters",
     );
   }
   return { username: username.toLowerCase(), password };

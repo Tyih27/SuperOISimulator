@@ -24,6 +24,7 @@ assert.equal(profile.version, 1);
 assert.equal(profile.accountId, "acc-1");
 assert.equal(typeof profile.identitySeed, "string");
 assert.equal(profile.namePoolVersion, 1);
+assert.deepEqual(profile.recruitment, { attemptsSinceGenius: 0 });
 assert.deepEqual(Object.keys(profile.students), studentIds);
 assert.ok(Object.values(profile.students).every(({ aptitude }) => aptitude === "普通"));
 assert.equal(Object.keys(profile.students).length, 4, "the profile must not impose the three-student battle limit on the roster");

@@ -3,8 +3,12 @@ import { LEVELS, SHOP_OFFERS, STUDENTS } from "../../src/data.js";
 import {
   applySpecialistTraining,
   createRecruitedStudent,
+  dismissRecruitedStudent,
   SPECIALIST_TRAINING_COST,
+  STUDENT_DISMISSAL_MATERIAL_REWARD,
+  STUDENT_TRAINING_MATERIAL_ID,
   specialistTrainingBookId,
+  rollRecruitmentAptitude,
 } from "../../src/domain/progression.js";
 import { LedgerRepository } from "../repositories/ledger-repository.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
@@ -50,6 +54,15 @@ function addCurrencies(profile, reward) {
   for (const currency of ["trainingCoins", "recruitmentTickets"]) {
     const amount = reward[currency] ?? 0;
     if (amount > 0) profile.currencies[currency] += amount;
+  }
+}
+
+const CURRENCY_KEYS = new Set(["trainingCoins", "recruitmentTickets"]);
+
+function addShopGrants(profile, grants) {
+  for (const [itemId, quantity] of Object.entries(grants ?? {})) {
+    if (CURRENCY_KEYS.has(itemId)) profile.currencies[itemId] += quantity;
+    else profile.inventory[itemId] = (profile.inventory[itemId] ?? 0) + quantity;
   }
 }
 
@@ -146,23 +159,58 @@ export class ProgressionService {
 
   async purchaseShopOffer(accountId, { offerId } = {}) {
     requireString(accountId, "Account is required");
-    const offer = offerById.get(offerId);
+    const normalizedOfferId = typeof offerId === "string" ? offerId.trim() : offerId;
+    const offer = offerById.get(normalizedOfferId);
     if (!offer) throw invalid("Unknown shop offer");
     return this.withProfile(accountId, async ({ client, profile }) => {
       const price = offer.price.trainingCoins ?? 0;
       if (profile.currencies.trainingCoins < price) throw invalid("Not enough training coins");
       if (offer.purchaseLimit) {
         const resetPeriod = offer.purchaseLimit.period === "daily" ? dailyPeriod(this.now()) : "permanent";
-        const claimed = await this.ledger.claimShopPurchase(client, { accountId, offerId, resetPeriod });
+        const claimed = await this.ledger.claimShopPurchase(client, { accountId, offerId: normalizedOfferId, resetPeriod });
         if (!claimed) throw conflict("SHOP_PURCHASE_LIMIT_REACHED", "Shop purchase limit has been reached");
       }
       profile.currencies.trainingCoins -= price;
-      addInventory(profile, offer.grants);
-      if (price > 0) await this.ledger.recordCurrency(client, { accountId, currency: "trainingCoins", delta: -price, sourceType: "shop", sourceId: offerId });
+      addShopGrants(profile, offer.grants);
+      if (price > 0) await this.ledger.recordCurrency(client, { accountId, currency: "trainingCoins", delta: -price, sourceType: "shop", sourceId: normalizedOfferId });
       for (const [itemId, quantity] of Object.entries(offer.grants)) {
-        await this.ledger.recordInventoryGrant(client, { accountId, itemId, quantity, sourceType: "shop", sourceId: offerId });
+        if (CURRENCY_KEYS.has(itemId)) {
+          await this.ledger.recordCurrency(client, { accountId, currency: itemId, delta: quantity, sourceType: "shop", sourceId: normalizedOfferId });
+        } else {
+          await this.ledger.recordInventoryGrant(client, { accountId, itemId, quantity, sourceType: "shop", sourceId: normalizedOfferId });
+        }
       }
-      return { offer: structuredClone(offer), auditAction: "shop_purchase", auditPayload: { offerId } };
+      return { offer: structuredClone(offer), auditAction: "shop_purchase", auditPayload: { offerId: normalizedOfferId } };
+    });
+  }
+
+  async dismissStudent(accountId, { studentId } = {}) {
+    requireString(accountId, "Account is required");
+    requireString(studentId, "Student id is required");
+    return this.withProfile(accountId, async ({ client, profile }) => {
+      let next;
+      try {
+        next = dismissRecruitedStudent(profile, { studentId: studentId.trim() });
+      } catch (error) {
+        throw invalid(error.message);
+      }
+      Object.assign(profile, next);
+      await this.ledger.recordInventoryGrant(client, {
+        accountId,
+        itemId: STUDENT_TRAINING_MATERIAL_ID,
+        quantity: STUDENT_DISMISSAL_MATERIAL_REWARD,
+        sourceType: "student-dismissal",
+        sourceId: studentId.trim(),
+      });
+      return {
+        dismissal: {
+          studentId: studentId.trim(),
+          itemId: STUDENT_TRAINING_MATERIAL_ID,
+          quantity: STUDENT_DISMISSAL_MATERIAL_REWARD,
+        },
+        auditAction: "student_dismissal",
+        auditPayload: { studentId: studentId.trim(), itemId: STUDENT_TRAINING_MATERIAL_ID },
+      };
     });
   }
 
@@ -172,17 +220,27 @@ export class ProgressionService {
       if (profile.currencies.recruitmentTickets < 1) throw invalid("Not enough recruitment tickets");
       const studentId = `recruit-${this.idFactory()}`;
       const template = STUDENTS[Object.keys(profile.students).length % STUDENTS.length];
+      const recruitment = rollRecruitmentAptitude({
+        seed: `${profile.identitySeed}:${studentId}`,
+        attemptsSinceGenius: profile.recruitment.attemptsSinceGenius,
+      });
       const student = createRecruitedStudent({
         studentId,
         seed: `${profile.identitySeed}:${studentId}`,
         namePoolVersion: profile.namePoolVersion,
         templateId: template.id,
-        aptitude: "普通",
+        aptitude: recruitment.aptitude,
       });
       profile.students[studentId] = student;
       profile.currencies.recruitmentTickets -= 1;
+      profile.recruitment.attemptsSinceGenius = recruitment.attemptsSinceGenius;
       await this.ledger.recordCurrency(client, { accountId, currency: "recruitmentTickets", delta: -1, sourceType: "recruitment", sourceId: studentId });
-      return { student, auditAction: "student_recruitment", auditPayload: { studentId } };
+      return {
+        student,
+        recruitment: { aptitude: recruitment.aptitude, attemptsSinceGenius: recruitment.attemptsSinceGenius },
+        auditAction: "student_recruitment",
+        auditPayload: { studentId, aptitude: recruitment.aptitude },
+      };
     });
   }
 }

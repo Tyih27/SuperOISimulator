@@ -108,6 +108,7 @@ input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 
 .campaign-formation-grid legend { margin-bottom: 0.55rem; color: var(--muted); font-size: 0.7rem; font-weight: 720; }
 .student-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
 .student-choice { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.55rem; align-items: center; min-height: 3.25rem; padding: 0.5rem 0.6rem; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 5px; }
+.student-choice-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem; }
 .student-choice > label { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.5rem; align-items: center; min-width: 0; color: var(--muted); font-size: 0.72rem; }
 .student-choice input { min-height: auto; padding: 0; }
 .student-choice span { display: grid; min-width: 0; }
@@ -151,6 +152,7 @@ input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 
 .student-detail-overlay { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: clamp(1rem, 4vw, 3rem); background: rgba(23, 23, 23, 0.58); }
 .student-detail-dialog { width: min(860px, 100%); max-height: min(90vh, 760px); overflow: auto; padding: clamp(1.15rem, 3vw, 2rem); background: var(--surface); border: 1px solid var(--line-strong); border-top: 4px solid var(--gold); border-radius: 8px; box-shadow: 0 24px 70px rgba(23, 23, 23, 0.25); }
 .student-detail-header, .student-detail-skill-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.student-detail-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 0.45rem; }
 .student-detail-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.65rem; }
 .student-detail-name-row h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 1.8rem); }
 .student-detail-name-row .secondary-button { min-height: 1.9rem; padding: 0.25rem 0.55rem; font-size: 0.68rem; }

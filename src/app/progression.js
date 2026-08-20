@@ -1,5 +1,12 @@
-import { ABILITY_KEYS, SHOP_OFFERS, SKILL_GROUPS } from "../data.js";
+import {
+  ABILITY_KEYS,
+  RECRUITMENT_APTITUDE_WEIGHTS,
+  RECRUITMENT_PITY_LIMIT,
+  SHOP_OFFERS,
+  SKILL_GROUPS,
+} from "../data.js";
 import { calculateOverallPower } from "../combat/math.js";
+import { STUDENT_TRAINING_MATERIAL_ID } from "../domain/progression.js";
 
 const abilityLabels = Object.freeze({
   dynamicProgramming: "动态规划",
@@ -64,7 +71,10 @@ function renderSkillDetail(skill, level, timing) {
 
 function studentChoice(student, selected) {
   const overallPower = Math.round(calculateOverallPower(student));
-  return `<div class="student-choice"><label><input type="checkbox" data-student-toggle value="${esc(student.id)}"${selected ? " checked" : ""}><span><strong>${esc(student.name)}</strong><small>${esc(student.aptitude)} · 技能组：${esc(skillGroupName(student))}</small><small>总体水平 ${overallPower} · 精力 ${esc(student.maxEnergy)}</small></span></label><button type="button" class="secondary-button student-detail-trigger" data-student-detail="${esc(student.id)}">详情</button></div>`;
+  const dismissalAction = student.id.startsWith("recruit-") && !selected
+    ? `<button type="button" class="secondary-button" data-dismiss-student="${esc(student.id)}">劝退</button>`
+    : "";
+  return `<div class="student-choice"><label><input type="checkbox" data-student-toggle value="${esc(student.id)}"${selected ? " checked" : ""}><span><strong>${esc(student.name)}</strong><small>${esc(student.aptitude)} · 技能组：${esc(skillGroupName(student))}</small><small>总体水平 ${overallPower} · 精力 ${esc(student.maxEnergy)}</small></span></label><div class="student-choice-actions"><button type="button" class="secondary-button student-detail-trigger" data-student-detail="${esc(student.id)}">详情</button>${dismissalAction}</div></div>`;
 }
 
 function rosterCard(student, slot) {
@@ -79,11 +89,14 @@ function renderStudentName(student, editingName) {
   return `<div class="student-detail-name-editor"><label for="student-detail-name">学生名称</label><input id="student-detail-name" data-name-input="${esc(student.id)}" value="${esc(student.name)}" maxlength="12" autocomplete="off"><button type="button" class="primary-button" data-save-name="${esc(student.id)}">保存</button><button type="button" class="secondary-button" data-action="cancel-student-rename">取消</button></div>`;
 }
 
-export function renderStudentDetail({ student, editingName = false } = {}) {
+export function renderStudentDetail({ student, editingName = false, dismissible = false } = {}) {
   if (!student) return "";
   const group = skillGroupData(student);
   const dialogLabel = editingName ? `aria-label="${esc(`学生详情：${student.name}`)}"` : `aria-labelledby="student-detail-title"`;
-  return `<div class="student-detail-overlay" data-student-detail-overlay><section class="student-detail-dialog" role="dialog" aria-modal="true" ${dialogLabel}><div class="student-detail-header"><div><p class="eyebrow">学生档案</p>${renderStudentName(student, editingName)}<p class="student-detail-subtitle">${esc(student.aptitude)} · 技能组：${esc(group.name)}</p></div><button type="button" class="icon-button" data-student-detail-close data-action="close-student-detail" aria-label="关闭学生详情" title="关闭学生详情">关闭</button></div><div class="student-detail-summary"><div><span>总体水平</span><strong>${Math.round(calculateOverallPower(student))}</strong></div><div><span>最大精力</span><strong>${esc(student.maxEnergy)}</strong></div><div><span>技能组</span><strong>${esc(group.name)}</strong></div></div><section class="student-detail-section"><div class="section-heading"><div><p class="eyebrow">能力构成</p><h3>五项数值</h3></div></div><dl class="student-detail-abilities">${Object.entries(student.abilities).map(([ability, value]) => `<div><dt>${esc(abilityLabels[ability] ?? ability)}</dt><dd>${esc(value)}</dd><span style="width:${Math.max(0, Math.min(100, Number(value) / 10))}%"></span></div>`).join("")}</dl></section><section class="student-detail-section"><div class="section-heading"><div><p class="eyebrow">个人技能组</p><h3>${esc(group.name)}</h3></div><span class="student-detail-group-id">${esc(group.id)}</span></div><div class="student-detail-skills">${renderSkillDetail(group.normal, group.levels.normal, "常规技能")}${renderSkillDetail(group.burst, group.levels.burst, "爆发技能")}</div></section></section></div>`;
+  const dismissalAction = dismissible
+    ? `<button type="button" class="secondary-button" data-dismiss-student="${esc(student.id)}">劝退并获得培养材料</button>`
+    : "";
+  return `<div class="student-detail-overlay" data-student-detail-overlay><section class="student-detail-dialog" role="dialog" aria-modal="true" ${dialogLabel}><div class="student-detail-header"><div><p class="eyebrow">学生档案</p>${renderStudentName(student, editingName)}<p class="student-detail-subtitle">${esc(student.aptitude)} · 技能组：${esc(group.name)}</p></div><div class="student-detail-actions">${dismissalAction}<button type="button" class="icon-button" data-student-detail-close data-action="close-student-detail" aria-label="关闭学生详情" title="关闭学生详情">关闭</button></div></div><div class="student-detail-summary"><div><span>总体水平</span><strong>${Math.round(calculateOverallPower(student))}</strong></div><div><span>最大精力</span><strong>${esc(student.maxEnergy)}</strong></div><div><span>技能组</span><strong>${esc(group.name)}</strong></div></div><section class="student-detail-section"><div class="section-heading"><div><p class="eyebrow">能力构成</p><h3>五项数值</h3></div></div><dl class="student-detail-abilities">${Object.entries(student.abilities).map(([ability, value]) => `<div><dt>${esc(abilityLabels[ability] ?? ability)}</dt><dd>${esc(value)}</dd><span style="width:${Math.max(0, Math.min(100, Number(value) / 10))}%"></span></div>`).join("")}</dl></section><section class="student-detail-section"><div class="section-heading"><div><p class="eyebrow">个人技能组</p><h3>${esc(group.name)}</h3></div><span class="student-detail-group-id">${esc(group.id)}</span></div><div class="student-detail-skills">${renderSkillDetail(group.normal, group.levels.normal, "常规技能")}${renderSkillDetail(group.burst, group.levels.burst, "爆发技能")}</div></section></section></div>`;
 }
 
 export function renderRoster({ profile, formation, teamIds, editing = false, message }) {
@@ -96,10 +109,16 @@ export function renderRoster({ profile, formation, teamIds, editing = false, mes
 
 function inventoryRows(inventory) {
   const rows = Object.entries(inventory).filter(([, quantity]) => quantity > 0);
-  return rows.length ? rows.map(([item, quantity]) => `<li>${esc(item)} <strong>${esc(quantity)}</strong></li>`).join("") : "<li>暂无训练道具</li>";
+  const labels = { [STUDENT_TRAINING_MATERIAL_ID]: "学生培养材料" };
+  return rows.length ? rows.map(([item, quantity]) => `<li>${esc(labels[item] ?? item)} <strong>${esc(quantity)}</strong></li>`).join("") : "<li>暂无训练道具</li>";
 }
 
 export function renderProgression({ profile, message }) {
   const students = Object.values(profile.students);
-  return `<section class="app-view" aria-labelledby="progression-title"><div class="view-heading"><div><p class="eyebrow">训练与补给</p><h1 id="progression-title">进度管理</h1></div><p class="app-message" role="status" aria-live="polite">${esc(message)}</p></div><div class="resource-strip"><div><span>训练币</span><strong>${esc(profile.currencies.trainingCoins)}</strong></div><div><span>招募券</span><strong>${esc(profile.currencies.recruitmentTickets)}</strong></div></div><div class="progression-grid"><section class="panel"><h2>专项训练</h2><label>学生<select id="training-student">${students.map((student) => `<option value="${esc(student.id)}">${esc(student.name)}</option>`).join("")}</select></label><label>能力<select id="training-ability">${ABILITY_KEYS.map((ability) => `<option value="${ability}">${abilityLabels[ability]}</option>`).join("")}</select></label><button class="primary-button" type="button" data-action="train">消耗训练册训练</button></section><section class="panel"><h2>补给背包</h2><ul class="inventory-list">${inventoryRows(profile.inventory)}</ul></section></div><section class="shop-section"><div class="section-heading"><div><p class="eyebrow">商店</p><h2>训练补给</h2></div><button class="secondary-button" type="button" data-action="recruit">使用招募券</button></div><div class="shop-grid">${SHOP_OFFERS.map((offer) => `<article class="shop-offer"><strong>${esc(offer.name)}</strong><span>${offer.price.trainingCoins} 训练币</span><button class="secondary-button" type="button" data-buy-offer="${esc(offer.id)}">购买</button></article>`).join("")}</div></section></section>`;
+  const pityCount = profile.recruitment?.attemptsSinceGenius ?? 0;
+  const pityRemaining = Math.max(0, RECRUITMENT_PITY_LIMIT - pityCount);
+  const rates = Object.entries(RECRUITMENT_APTITUDE_WEIGHTS)
+    .map(([aptitude, probability]) => `<span>${esc(aptitude)} ${Math.round(probability * 1000) / 10}%</span>`)
+    .join("");
+  return `<section class="app-view" aria-labelledby="progression-title"><div class="view-heading"><div><p class="eyebrow">训练与补给</p><h1 id="progression-title">进度管理</h1></div><p class="app-message" role="status" aria-live="polite">${esc(message)}</p></div><div class="resource-strip"><div><span>训练币</span><strong>${esc(profile.currencies.trainingCoins)}</strong></div><div><span>招募券</span><strong>${esc(profile.currencies.recruitmentTickets)}</strong></div><div><span>天才保底</span><strong>${esc(pityCount)} / ${RECRUITMENT_PITY_LIMIT}</strong><small>还需 ${esc(pityRemaining)} 次</small></div></div><div class="progression-grid"><section class="panel"><h2>专项训练</h2><label>学生<select id="training-student">${students.map((student) => `<option value="${esc(student.id)}">${esc(student.name)}</option>`).join("")}</select></label><label>能力<select id="training-ability">${ABILITY_KEYS.map((ability) => `<option value="${ability}">${abilityLabels[ability]}</option>`).join("")}</select></label><button class="primary-button" type="button" data-action="train">消耗训练册训练</button></section><section class="panel"><h2>补给背包</h2><ul class="inventory-list">${inventoryRows(profile.inventory)}</ul></section></div><section class="shop-section"><div class="section-heading"><div><p class="eyebrow">商店</p><h2>训练补给</h2><p class="view-subtitle">资质概率：${rates}</p></div><button class="secondary-button" type="button" data-action="recruit">使用招募券</button></div><div class="shop-grid">${SHOP_OFFERS.map((offer) => `<article class="shop-offer"><strong>${esc(offer.name)}</strong><span>${offer.price.trainingCoins} 训练币</span><button class="secondary-button" type="button" data-buy-offer="${esc(offer.id)}">购买</button></article>`).join("")}</div></section></section>`;
 }

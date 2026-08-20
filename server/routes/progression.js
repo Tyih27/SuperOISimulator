@@ -29,10 +29,10 @@ async function requireAccount(request, reply) {
   request.account = account;
 }
 
-function action(schema, handler) {
+function action(schema, handler, params) {
   return {
     preHandler: [requireSameOrigin, requireAccount],
-    schema: { body: schema },
+    schema: { body: schema, ...(params ? { params } : {}) },
     handler,
   };
 }
@@ -56,6 +56,18 @@ export async function progressionRoutes(app) {
       return sendProgressionError(reply, error);
     }
   }));
+
+  app.post("/students/:studentId/dismiss", action(
+    { type: "object", additionalProperties: false },
+    async (request, reply) => {
+      try {
+        return await service.dismissStudent(request.account.id, request.params);
+      } catch (error) {
+        return sendProgressionError(reply, error);
+      }
+    },
+    { type: "object", required: ["studentId"], properties: { studentId: { type: "string", minLength: 1, maxLength: 128 } }, additionalProperties: false },
+  ));
 
   app.post("/recruitment", action({ type: "object", additionalProperties: false }, async (request, reply) => {
     try {

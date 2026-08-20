@@ -212,7 +212,9 @@ export class AppRouter {
     else if (this.route === "arena") content = renderArena({ profile: this.profile, ...this.arena, message: this.message });
     else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, ...this.formationDraft, message: this.message });
     const detailStudent = this.route === "roster" && this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
-    this.root.innerHTML = renderShell({ account: this.account, route: this.route, content: `${content}${renderStudentDetail({ student: detailStudent, editingName: this.detailNameEditing })}` });
+    const dismissible = Boolean(detailStudent?.id?.startsWith("recruit-")
+      && !Object.values(this.profile.formation ?? {}).includes(detailStudent.id));
+    this.root.innerHTML = renderShell({ account: this.account, route: this.route, content: `${content}${renderStudentDetail({ student: detailStudent, editingName: this.detailNameEditing, dismissible })}` });
     if (detailStudent) {
       const focusTarget = this.detailNameEditing
         ? this.root.querySelector("[data-name-input]")
@@ -269,7 +271,7 @@ export class AppRouter {
       return;
     }
     const action = button.dataset.action;
-    if (!action && !button.dataset.opponentId && !button.dataset.buyOffer && !button.dataset.saveName) return;
+    if (!action && !button.dataset.opponentId && !button.dataset.buyOffer && !button.dataset.saveName && !button.dataset.dismissStudent) return;
     event.preventDefault();
     try {
       if (action === "logout") {
@@ -341,6 +343,8 @@ export class AppRouter {
         this.message = "比赛快照已锁定。";
       } else if (button.dataset.buyOffer) {
         await this.buy(button.dataset.buyOffer);
+      } else if (button.dataset.dismissStudent) {
+        await this.dismissStudent(button.dataset.dismissStudent);
       } else if (button.dataset.saveName) {
         await this.saveName(button.dataset.saveName);
       }
@@ -520,12 +524,28 @@ export class AppRouter {
     this.message = "购买成功。";
   }
 
+  async dismissStudent(studentId) {
+    const result = await this.client.post(`/progression/students/${encodeURIComponent(studentId)}/dismiss`, {});
+    this.profile = result.profile;
+    this.formationDraft = initialFormation(this.profile);
+    this.rosterEditing = false;
+    this.detailStudentId = null;
+    this.detailNameEditing = false;
+    this.message = "学生已劝退，获得 1 份学生培养材料。";
+  }
+
   async recruit() {
     const result = await this.client.post("/progression/recruitment", {});
     this.profile = result.profile;
     this.formationDraft = initialFormation(this.profile);
     this.rosterEditing = false;
-    this.message = "已招募一名新学生。";
+    const aptitude = result.student?.aptitude;
+    const pity = Number.isInteger(result.recruitment?.attemptsSinceGenius)
+      ? result.recruitment.attemptsSinceGenius
+      : this.profile.recruitment?.attemptsSinceGenius;
+    this.message = aptitude
+      ? `已招募一名${aptitude}学生${pity === 0 ? "，天才保底已重置。" : `，天才保底进度 ${pity} / 30。`}`
+      : "已招募一名新学生。";
   }
 
   async submitAccountForm(form) {

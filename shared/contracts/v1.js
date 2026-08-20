@@ -15,7 +15,7 @@ export const AUTH_CREDENTIALS_DTO_SCHEMA = deepFreeze({
   required: ["username", "password"],
   properties: {
     username: { type: "string", pattern: "^[a-zA-Z0-9_]{3,24}$" },
-    password: { type: "string", minLength: 12, maxLength: 1024 },
+    password: { type: "string", minLength: 8, maxLength: 1024 },
   },
   additionalProperties: false,
 });
@@ -24,8 +24,8 @@ export const PASSWORD_CHANGE_DTO_SCHEMA = deepFreeze({
   type: "object",
   required: ["currentPassword", "newPassword"],
   properties: {
-    currentPassword: { type: "string", minLength: 12, maxLength: 1024 },
-    newPassword: { type: "string", minLength: 12, maxLength: 1024 },
+    currentPassword: { type: "string", minLength: 8, maxLength: 1024 },
+    newPassword: { type: "string", minLength: 8, maxLength: 1024 },
   },
   additionalProperties: false,
 });
@@ -33,7 +33,7 @@ export const ACCOUNT_DELETE_DTO_SCHEMA = deepFreeze({
   $id: "super-oi/account-delete-v1",
   type: "object",
   required: ["password"],
-  properties: { password: { type: "string", minLength: 12, maxLength: 1024 } },
+  properties: { password: { type: "string", minLength: 8, maxLength: 1024 } },
   additionalProperties: false,
 });
 const versionString = { type: "string", const: "1" };
@@ -421,6 +421,7 @@ export const PROFILE_V3_DTO_SCHEMA = deepFreeze({
     "formation",
     "inventory",
     "currencies",
+    "recruitment",
     "unlockedLevelIds",
   ],
   properties: {
@@ -433,6 +434,12 @@ export const PROFILE_V3_DTO_SCHEMA = deepFreeze({
     students: { type: "object", additionalProperties: skillGroupStudent },
     inventory,
     currencies,
+    recruitment: {
+      type: "object",
+      required: ["attemptsSinceGenius"],
+      properties: { attemptsSinceGenius: { type: "integer", minimum: 0, maximum: 29 } },
+      additionalProperties: false,
+    },
     unlockedLevelIds: {
       type: "array",
       items: { type: "string", minLength: 1 },

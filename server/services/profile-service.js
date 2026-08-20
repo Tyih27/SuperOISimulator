@@ -8,6 +8,7 @@ import {
 import {
   createProfile,
   DEFAULT_CURRENCIES,
+  DEFAULT_RECRUITMENT_STATE,
   DEFAULT_UNLOCKED_LEVEL_IDS,
   PROFILE_SCHEMA_VERSION,
   STARTER_STUDENT_IDS,
@@ -122,6 +123,13 @@ function validateProfile(profile, accountId) {
     || Object.keys(profile.currencies).length !== 2) {
     throw invalid("Currencies are invalid");
   }
+  requireObject(profile.recruitment, "Recruitment state is invalid");
+  if (Object.keys(profile.recruitment).length !== 1
+    || !Number.isInteger(profile.recruitment.attemptsSinceGenius)
+    || profile.recruitment.attemptsSinceGenius < 0
+    || profile.recruitment.attemptsSinceGenius > 29) {
+    throw invalid("Recruitment state is invalid");
+  }
   if (!Array.isArray(profile.unlockedLevelIds) || profile.unlockedLevelIds.length < 1
     || new Set(profile.unlockedLevelIds).size !== profile.unlockedLevelIds.length
     || profile.unlockedLevelIds.some((levelId) => !knownLevelIds.has(levelId))) {
@@ -139,8 +147,8 @@ export function profileFromRow(row, accountId) {
 }
 
 function mergeUpdate(profile, update) {
-  if (update.inventory !== undefined || update.currencies !== undefined || update.unlockedLevelIds !== undefined) {
-    throw invalid("Inventory, currencies, and campaign progress are managed by progression actions");
+  if (update.inventory !== undefined || update.currencies !== undefined || update.recruitment !== undefined || update.unlockedLevelIds !== undefined) {
+    throw invalid("Inventory, currencies, recruitment, and campaign progress are managed by progression actions");
   }
   const next = structuredClone(profile);
   for (const key of ["formation"]) {
@@ -183,6 +191,7 @@ export class ProfileService {
       formation: DEFAULT_FORMATION,
       inventory: {},
       currencies: DEFAULT_CURRENCIES,
+      recruitment: DEFAULT_RECRUITMENT_STATE,
       unlockedLevelIds: DEFAULT_UNLOCKED_LEVEL_IDS,
     });
   }

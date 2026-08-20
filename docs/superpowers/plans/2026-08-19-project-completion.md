@@ -221,7 +221,7 @@ const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
 reply.setCookie("sid", sessionToken, { httpOnly: true, secure: config.isProduction, sameSite: "lax", path: "/" });
 ```
 
-Reject usernames outside `[a-zA-Z0-9_]{3,24}` and passwords shorter than 12 characters. Store only Argon2id hashes and SHA-256 hashes of random session tokens. Add session expiry, logout revocation, rate limiting on auth routes, and same-origin checks for mutating cookie-authenticated requests.
+Reject usernames outside `[a-zA-Z0-9_]{3,24}` and passwords shorter than 8 characters. Store only Argon2id hashes and SHA-256 hashes of random session tokens. Add session expiry, logout revocation, rate limiting on auth routes, and same-origin checks for mutating cookie-authenticated requests.
 
 - [x] **Step 4: Run `npm run test:api`; verify the database contains no submitted plaintext password and all four auth cases pass.**
 

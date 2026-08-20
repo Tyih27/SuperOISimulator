@@ -16,6 +16,7 @@ export const DEFAULT_CURRENCIES = Object.freeze({
   trainingCoins: 1_000,
   recruitmentTickets: 1,
 });
+export const DEFAULT_RECRUITMENT_STATE = Object.freeze({ attemptsSinceGenius: 0 });
 export const DEFAULT_UNLOCKED_LEVEL_IDS = Object.freeze(["chapter-1-1"]);
 
 const studentById = new Map(STUDENTS.map((student) => [student.id, student]));
@@ -79,6 +80,7 @@ export function createProfile({
   formation,
   inventory = {},
   currencies = DEFAULT_CURRENCIES,
+  recruitment = DEFAULT_RECRUITMENT_STATE,
   unlockedLevelIds = DEFAULT_UNLOCKED_LEVEL_IDS,
 } = {}) {
   requireAccountId(accountId);
@@ -101,6 +103,7 @@ export function createProfile({
     ...(formation === undefined ? {} : { formation: structuredClone(formation) }),
     inventory: structuredClone(inventory),
     currencies: structuredClone(currencies),
+    recruitment: structuredClone(recruitment),
     unlockedLevelIds: structuredClone(unlockedLevelIds),
   };
 }
@@ -118,6 +121,7 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
       formation: structuredClone(profile.formation ?? { A1: "planner", A2: "graphist", A3: "structurer" }),
       inventory: structuredClone(profile.inventory ?? {}),
       currencies: structuredClone(profile.currencies ?? DEFAULT_CURRENCIES),
+      recruitment: structuredClone(profile.recruitment ?? DEFAULT_RECRUITMENT_STATE),
       unlockedLevelIds: structuredClone(profile.unlockedLevelIds ?? DEFAULT_UNLOCKED_LEVEL_IDS),
     };
   }
@@ -169,6 +173,7 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
     formation: structuredClone(profile.formation ?? { A1: "planner", A2: "graphist", A3: "structurer" }),
     inventory: structuredClone(profile.inventory ?? {}),
     currencies: structuredClone(profile.currencies ?? DEFAULT_CURRENCIES),
+    recruitment: structuredClone(profile.recruitment ?? DEFAULT_RECRUITMENT_STATE),
     unlockedLevelIds: structuredClone(profile.unlockedLevelIds ?? DEFAULT_UNLOCKED_LEVEL_IDS),
   };
 }

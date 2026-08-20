@@ -54,6 +54,20 @@ export const APTITUDE_ABILITY_RANGES = Object.freeze({
   }),
 });
 
+export const APTITUDE_ORDER = Object.freeze(["普通", "优秀", "稀有", "天才", "顶尖"]);
+
+// Recruitment weights are intentionally data-driven so balancing does not
+// require changing the recruitment transaction or student generation code.
+export const RECRUITMENT_APTITUDE_WEIGHTS = Object.freeze({
+  "普通": 0.70,
+  "优秀": 0.20,
+  "稀有": 0.08,
+  "天才": 0.019,
+  "顶尖": 0.001,
+});
+
+export const RECRUITMENT_PITY_LIMIT = 30;
+
 const freeze = (value) => {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.values(value).forEach(freeze);
@@ -218,6 +232,7 @@ export const BALANCE_BASELINES = freeze({
 });
 
 export const SHOP_OFFERS = freeze([
+  { id: "recruitment-right", name: "招募权", price: { trainingCoins: 300 }, grants: { recruitmentTickets: 1 } },
   { id: "daily-dp-book", name: "动态规划专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-dynamicProgramming": 1 }, purchaseLimit: { period: "daily", count: 1 } },
   { id: "daily-graph-book", name: "图论专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-graphTheory": 1 }, purchaseLimit: { period: "daily", count: 1 } },
   { id: "data-book", name: "数据结构专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-dataStructures": 1 } },
