@@ -219,7 +219,46 @@ export const TOPICS = freeze([
   { id: "computationalGeometry", name: "计算几何", difficulties: { dynamicProgramming: 0, graphTheory: 360, dataStructures: 0, mathematics: 900, implementation: 680 }, maxProgress: 10000, skill: topicSkill({ id: "computationalGeometry-attack", name: "精度扰动" }) },
   { id: "compilerOptimization", name: "编译优化", difficulties: { dynamicProgramming: 640, graphTheory: 0, dataStructures: 520, mathematics: 0, implementation: 940 }, maxProgress: 10000, skill: topicSkill({ id: "compilerOptimization-attack", name: "编译阻塞" }) },
   { id: "dynamicConnectivity", name: "动态连通性", difficulties: { dynamicProgramming: 0, graphTheory: 780, dataStructures: 840, mathematics: 0, implementation: 620 }, maxProgress: 10000, skill: topicSkill({ id: "dynamicConnectivity-attack", name: "连通震荡" }) },
-  { id: "matrixPower", name: "矩阵快速幂", difficulties: { dynamicProgramming: 500, graphTheory: 0, dataStructures: 0, mathematics: 820, implementation: 560 }, maxProgress: 10000, skill: topicSkill({ id: "matrixPower-attack", name: "维度压制" }) }
+  { id: "matrixPower", name: "矩阵快速幂", difficulties: { dynamicProgramming: 500, graphTheory: 0, dataStructures: 0, mathematics: 820, implementation: 560 }, maxProgress: 10000, skill: topicSkill({ id: "matrixPower-attack", name: "维度压制" }) },
+  // Chapter 2 hard tiers. Each tier scales the base subjects' ability spread
+  // so a level's recommended total power (3 students x average ability)
+  // genuinely reflects the training needed to clear it.
+  // Tier 1 (加练): relevant abilities ~1200-1880 -> team power ~5000.
+  { id: "drill-treeKnapsack", name: "加练·树上背包", difficulties: { dynamicProgramming: 1600, graphTheory: 0, dataStructures: 600, mathematics: 0, implementation: 1200 }, maxProgress: 10000, skill: topicSkill({ id: "drill-treeKnapsack-attack", name: "递归重压" }) },
+  { id: "drill-maxFlow", name: "加练·网络流", difficulties: { dynamicProgramming: 0, graphTheory: 1840, dataStructures: 840, mathematics: 0, implementation: 1200 }, maxProgress: 10000, skill: topicSkill({ id: "drill-maxFlow-attack", name: "残量洪流" }) },
+  { id: "drill-persistentSegmentTree", name: "加练·可持久化线段树", difficulties: { dynamicProgramming: 0, graphTheory: 0, dataStructures: 1760, mathematics: 0, implementation: 1440 }, maxProgress: 10000, skill: topicSkill({ id: "drill-persistentSegmentTree-attack", name: "历史回溯" }) },
+  { id: "drill-combinatorics", name: "加练·组合计数", difficulties: { dynamicProgramming: 840, graphTheory: 0, dataStructures: 0, mathematics: 1720, implementation: 1040 }, maxProgress: 10000, skill: topicSkill({ id: "drill-combinatorics-attack", name: "组合坍缩" }) },
+  { id: "drill-computationalGeometry", name: "加练·计算几何", difficulties: { dynamicProgramming: 0, graphTheory: 720, dataStructures: 0, mathematics: 1800, implementation: 1360 }, maxProgress: 10000, skill: topicSkill({ id: "drill-computationalGeometry-attack", name: "精度崩坏" }) },
+  { id: "drill-compilerOptimization", name: "加练·编译优化", difficulties: { dynamicProgramming: 1280, graphTheory: 0, dataStructures: 1040, mathematics: 0, implementation: 1880 }, maxProgress: 10000, skill: topicSkill({ id: "drill-compilerOptimization-attack", name: "指令阻塞" }) },
+  { id: "drill-dynamicConnectivity", name: "加练·动态连通性", difficulties: { dynamicProgramming: 0, graphTheory: 1560, dataStructures: 1680, mathematics: 0, implementation: 1240 }, maxProgress: 10000, skill: topicSkill({ id: "drill-dynamicConnectivity-attack", name: "连通风暴" }) },
+  { id: "drill-matrixPower", name: "加练·矩阵快速幂", difficulties: { dynamicProgramming: 1000, graphTheory: 0, dataStructures: 0, mathematics: 1640, implementation: 1120 }, maxProgress: 10000, skill: topicSkill({ id: "drill-matrixPower-attack", name: "维度碾压" }) },
+  // Tier 2 (集训): relevant abilities ~1680-3760 -> team power ~10000.
+  { id: "camp-treeKnapsack", name: "集训·树上背包", difficulties: { dynamicProgramming: 3200, graphTheory: 0, dataStructures: 1200, mathematics: 0, implementation: 2400 }, maxProgress: 10000, skill: topicSkill({ id: "camp-treeKnapsack-attack", name: "递归深渊" }) },
+  { id: "camp-maxFlow", name: "集训·网络流", difficulties: { dynamicProgramming: 0, graphTheory: 3680, dataStructures: 1680, mathematics: 0, implementation: 2400 }, maxProgress: 10000, skill: topicSkill({ id: "camp-maxFlow-attack", name: "残量海啸" }) },
+  { id: "camp-persistentSegmentTree", name: "集训·可持久化线段树", difficulties: { dynamicProgramming: 0, graphTheory: 0, dataStructures: 3520, mathematics: 0, implementation: 2880 }, maxProgress: 10000, skill: topicSkill({ id: "camp-persistentSegmentTree-attack", name: "时空负荷" }) },
+  { id: "camp-combinatorics", name: "集训·组合计数", difficulties: { dynamicProgramming: 1680, graphTheory: 0, dataStructures: 0, mathematics: 3440, implementation: 2080 }, maxProgress: 10000, skill: topicSkill({ id: "camp-combinatorics-attack", name: "排列湮灭" }) },
+  { id: "camp-computationalGeometry", name: "集训·计算几何", difficulties: { dynamicProgramming: 0, graphTheory: 1440, dataStructures: 0, mathematics: 3600, implementation: 2720 }, maxProgress: 10000, skill: topicSkill({ id: "camp-computationalGeometry-attack", name: "维度畸变" }) },
+  { id: "camp-compilerOptimization", name: "集训·编译优化", difficulties: { dynamicProgramming: 2560, graphTheory: 0, dataStructures: 2080, mathematics: 0, implementation: 3760 }, maxProgress: 10000, skill: topicSkill({ id: "camp-compilerOptimization-attack", name: "流水线停摆" }) },
+  { id: "camp-dynamicConnectivity", name: "集训·动态连通性", difficulties: { dynamicProgramming: 0, graphTheory: 3120, dataStructures: 3360, mathematics: 0, implementation: 2480 }, maxProgress: 10000, skill: topicSkill({ id: "camp-dynamicConnectivity-attack", name: "图裂震荡" }) },
+  { id: "camp-matrixPower", name: "集训·矩阵快速幂", difficulties: { dynamicProgramming: 2000, graphTheory: 0, dataStructures: 0, mathematics: 3280, implementation: 2240 }, maxProgress: 10000, skill: topicSkill({ id: "camp-matrixPower-attack", name: "幂次坍塌" }) },
+  // Tier 3 (大考): relevant abilities ~2880-7520 -> team power ~20000.
+  { id: "exam-treeKnapsack", name: "大考·树上背包", difficulties: { dynamicProgramming: 6400, graphTheory: 0, dataStructures: 2400, mathematics: 0, implementation: 4800 }, maxProgress: 10000, skill: topicSkill({ id: "exam-treeKnapsack-attack", name: "递归奇点" }) },
+  { id: "exam-maxFlow", name: "大考·网络流", difficulties: { dynamicProgramming: 0, graphTheory: 7360, dataStructures: 3360, mathematics: 0, implementation: 4800 }, maxProgress: 10000, skill: topicSkill({ id: "exam-maxFlow-attack", name: "残量决堤" }) },
+  { id: "exam-persistentSegmentTree", name: "大考·可持久化线段树", difficulties: { dynamicProgramming: 0, graphTheory: 0, dataStructures: 7040, mathematics: 0, implementation: 5760 }, maxProgress: 10000, skill: topicSkill({ id: "exam-persistentSegmentTree-attack", name: "历史过载" }) },
+  { id: "exam-combinatorics", name: "大考·组合计数", difficulties: { dynamicProgramming: 3360, graphTheory: 0, dataStructures: 0, mathematics: 6880, implementation: 4160 }, maxProgress: 10000, skill: topicSkill({ id: "exam-combinatorics-attack", name: "组合黑洞" }) },
+  { id: "exam-computationalGeometry", name: "大考·计算几何", difficulties: { dynamicProgramming: 0, graphTheory: 2880, dataStructures: 0, mathematics: 7200, implementation: 5440 }, maxProgress: 10000, skill: topicSkill({ id: "exam-computationalGeometry-attack", name: "精度湮灭" }) },
+  { id: "exam-compilerOptimization", name: "大考·编译优化", difficulties: { dynamicProgramming: 5120, graphTheory: 0, dataStructures: 4160, mathematics: 0, implementation: 7520 }, maxProgress: 10000, skill: topicSkill({ id: "exam-compilerOptimization-attack", name: "编译死锁" }) },
+  { id: "exam-dynamicConnectivity", name: "大考·动态连通性", difficulties: { dynamicProgramming: 0, graphTheory: 6240, dataStructures: 6720, mathematics: 0, implementation: 4960 }, maxProgress: 10000, skill: topicSkill({ id: "exam-dynamicConnectivity-attack", name: "连通崩溃" }) },
+  { id: "exam-matrixPower", name: "大考·矩阵快速幂", difficulties: { dynamicProgramming: 4000, graphTheory: 0, dataStructures: 0, mathematics: 6560, implementation: 4480 }, maxProgress: 10000, skill: topicSkill({ id: "exam-matrixPower-attack", name: "维度绞杀" }) },
+  // Tier 4 (国赛): relevant abilities ~4320-11280 -> team power ~30000.
+  { id: "national-treeKnapsack", name: "国赛·树上背包", difficulties: { dynamicProgramming: 9600, graphTheory: 0, dataStructures: 3600, mathematics: 0, implementation: 7200 }, maxProgress: 10000, skill: topicSkill({ id: "national-treeKnapsack-attack", name: "递归终局" }) },
+  { id: "national-maxFlow", name: "国赛·网络流", difficulties: { dynamicProgramming: 0, graphTheory: 11040, dataStructures: 5040, mathematics: 0, implementation: 7200 }, maxProgress: 10000, skill: topicSkill({ id: "national-maxFlow-attack", name: "残量天灾" }) },
+  { id: "national-persistentSegmentTree", name: "国赛·可持久化线段树", difficulties: { dynamicProgramming: 0, graphTheory: 0, dataStructures: 10560, mathematics: 0, implementation: 8640 }, maxProgress: 10000, skill: topicSkill({ id: "national-persistentSegmentTree-attack", name: "历史审判" }) },
+  { id: "national-combinatorics", name: "国赛·组合计数", difficulties: { dynamicProgramming: 5040, graphTheory: 0, dataStructures: 0, mathematics: 10320, implementation: 6240 }, maxProgress: 10000, skill: topicSkill({ id: "national-combinatorics-attack", name: "组合末日" }) },
+  { id: "national-computationalGeometry", name: "国赛·计算几何", difficulties: { dynamicProgramming: 0, graphTheory: 4320, dataStructures: 0, mathematics: 10800, implementation: 8160 }, maxProgress: 10000, skill: topicSkill({ id: "national-computationalGeometry-attack", name: "精度悖论" }) },
+  { id: "national-compilerOptimization", name: "国赛·编译优化", difficulties: { dynamicProgramming: 7680, graphTheory: 0, dataStructures: 6240, mathematics: 0, implementation: 11280 }, maxProgress: 10000, skill: topicSkill({ id: "national-compilerOptimization-attack", name: "编译天堑" }) },
+  { id: "national-dynamicConnectivity", name: "国赛·动态连通性", difficulties: { dynamicProgramming: 0, graphTheory: 9360, dataStructures: 10080, mathematics: 0, implementation: 7440 }, maxProgress: 10000, skill: topicSkill({ id: "national-dynamicConnectivity-attack", name: "连通寂灭" }) },
+  { id: "national-matrixPower", name: "国赛·矩阵快速幂", difficulties: { dynamicProgramming: 6000, graphTheory: 0, dataStructures: 0, mathematics: 9840, implementation: 6720 }, maxProgress: 10000, skill: topicSkill({ id: "national-matrixPower-attack", name: "维度封印" }) }
 ]);
 
 export const LEVELS = freeze(LEVEL_DEFINITIONS);
@@ -231,6 +270,10 @@ export const BALANCE_BASELINES = freeze({
   "chapter-1-2": { seeds: [1, 2, 3, 4, 5], winRate: 0.011666666666666667 },
   "chapter-1-3": { seeds: [1, 2, 3, 4, 5], winRate: 0 },
   "chapter-1-4": { seeds: [1, 2, 3, 4, 5], winRate: 0 },
+  "chapter-2-1": { seeds: [1, 2, 3, 4, 5], winRate: 0 },
+  "chapter-2-2": { seeds: [1, 2, 3, 4, 5], winRate: 0 },
+  "chapter-2-3": { seeds: [1, 2, 3, 4, 5], winRate: 0 },
+  "chapter-2-4": { seeds: [1, 2, 3, 4, 5], winRate: 0 },
 });
 
 export const SHOP_OFFERS = freeze([

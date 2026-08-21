@@ -12,7 +12,7 @@ import {
 import { createProfile } from "../domain/profile.js";
 import { createBattleSnapshot } from "../domain/snapshot.js";
 
-assert.ok(LEVELS.length >= 3 && LEVELS.length <= 5, "the campaign must ship with 3-5 levels");
+assert.ok(LEVELS.length >= 3 && LEVELS.length <= 12, "the campaign must ship with 3-12 levels");
 assert.deepEqual(LEVELS.map((level) => level.order), [...LEVELS.keys()].map((index) => index + 1));
 assert.ok(LEVELS.some((level) => level.objective.type === "count"));
 assert.ok(LEVELS.some((level) => level.objective.type === "all"));
