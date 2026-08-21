@@ -136,3 +136,27 @@ export function dismissStudent(profile, { studentId } = {}) {
     (next.inventory[STUDENT_TRAINING_MATERIAL_ID] ?? 0) + STUDENT_DISMISSAL_MATERIAL_REWARD;
   return next;
 }
+
+export function dismissStudents(profile, { studentIds = [] } = {}) {
+  requireProfile(profile);
+  if (!Array.isArray(studentIds) || studentIds.length === 0) {
+    throw new Error("At least one student must be selected for dismissal");
+  }
+  if (new Set(studentIds).size !== studentIds.length) {
+    throw new Error("Duplicate students in the dismissal list");
+  }
+  for (const studentId of studentIds) {
+    if (typeof studentId !== "string" || !profile.students[studentId]) {
+      throw new Error(`Student ${studentId} must be owned by the profile`);
+    }
+    if (Object.values(profile.formation ?? {}).includes(studentId)) {
+      throw new Error(`Formation student ${studentId} cannot be dismissed`);
+    }
+  }
+
+  const next = structuredClone(profile);
+  for (const studentId of studentIds) delete next.students[studentId];
+  next.inventory[STUDENT_TRAINING_MATERIAL_ID] =
+    (next.inventory[STUDENT_TRAINING_MATERIAL_ID] ?? 0) + STUDENT_DISMISSAL_MATERIAL_REWARD * studentIds.length;
+  return next;
+}

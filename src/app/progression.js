@@ -1,5 +1,6 @@
 import {
   ABILITY_KEYS,
+  APTITUDE_ORDER,
   RECRUITMENT_APTITUDE_WEIGHTS,
   RECRUITMENT_PITY_LIMIT,
   SHOP_OFFERS,
@@ -86,9 +87,12 @@ export function renderLineupDialog({ profile }) {
 
 function renderReplacePicker(profile, current) {
   const starterIds = new Set(FORMATION_SLOTS.map((slot) => profile.formation?.[slot]).filter(Boolean));
-  const bench = Object.values(profile.students ?? {}).filter((student) => !starterIds.has(student.id));
+  const bench = Object.values(profile.students ?? {})
+    .filter((student) => !starterIds.has(student.id))
+    .map((student) => ({ student, power: Math.round(calculateOverallPower(student)) }))
+    .sort((a, b) => b.power - a.power || a.student.id.localeCompare(b.student.id));
   if (!bench.length) return "<p class=\"empty-state\">暂无替补学生可供替换。</p>";
-  return `<div class="replace-options">${bench.map((student) => `<div class="replace-option"><div class="replace-info"><strong>${esc(student.name)}</strong><small>${esc(student.aptitude)} · 技能组：${esc(skillGroupName(student))} · 总体水平 ${Math.round(calculateOverallPower(student))}</small></div><div class="replace-actions"><button type="button" class="secondary-button student-detail-trigger" data-student-detail="${esc(student.id)}">详情</button><button type="button" class="primary-button" data-replace-with="${esc(student.id)}" data-replace-target="${esc(current.id)}">替换上场</button></div></div>`).join("")}</div>`;
+  return `<div class="replace-options">${bench.map(({ student, power }) => `<div class="replace-option"><div class="replace-info"><strong>${esc(student.name)}</strong><small>${esc(student.aptitude)} · ${esc(skillGroupName(student))} · 总体水平 ${power}</small></div><div class="replace-actions"><button type="button" class="secondary-button student-detail-trigger" data-student-detail="${esc(student.id)}">详情</button><button type="button" class="primary-button" data-replace-with="${esc(student.id)}" data-replace-target="${esc(current.id)}">替换上场</button></div></div>`).join("")}</div>`;
 }
 
 function renderStudentDossier({ profile, student, slot, enhanceOpen = false, replaceOpen = false }) {
@@ -125,7 +129,7 @@ export function renderStudentDetail({ student, editingName = false, dismissible 
   return `<div class="student-detail-overlay" data-student-detail-overlay><section class="student-detail-dialog" role="dialog" aria-modal="true" ${dialogLabel}><div class="student-detail-header"><div><p class="eyebrow">学生档案</p>${renderStudentName(student, editingName)}<p class="student-detail-subtitle">${esc(student.aptitude)} · 技能组：${esc(group.name)}</p></div><div class="student-detail-actions">${dismissalAction}<button type="button" class="icon-button" data-student-detail-close data-action="close-student-detail" aria-label="关闭学生详情" title="关闭学生详情">关闭</button></div></div><div class="student-detail-summary"><div><span>总体水平</span><strong>${Math.round(calculateOverallPower(student))}</strong></div><div><span>最大精力</span><strong>${esc(student.maxEnergy)}</strong></div><div><span>技能组</span><strong>${esc(group.name)}</strong></div></div><section class="student-detail-section"><div class="section-heading"><div><p class="eyebrow">能力构成</p><h3>五项数值</h3></div></div><dl class="student-detail-abilities">${Object.entries(student.abilities).map(([ability, value]) => `<div><dt>${esc(abilityLabels[ability] ?? ability)}</dt><dd>${esc(value)}</dd><span style="width:${Math.max(0, Math.min(100, Number(value) / 10))}%"></span></div>`).join("")}</dl></section><section class="student-detail-section"><div class="section-heading"><div><p class="eyebrow">个人技能组</p><h3>${esc(group.name)}</h3></div><span class="student-detail-group-id">${esc(group.id)}</span></div><div class="student-detail-skills">${renderSkillDetail(group.normal, group.levels.normal, "常规技能")}${renderSkillDetail(group.burst, group.levels.burst, "爆发技能")}</div></section></section></div>`;
 }
 
-export function renderRoster({ profile, selectedId, enhanceOpen = false, replaceOpen = false, message, messageIsError = false }) {
+export function renderRoster({ profile, selectedId, enhanceOpen = false, replaceOpen = false, dismissOpen = false, dismissSelected = [], dismissConfirmPending = false, message, messageIsError = false }) {
   const students = Object.values(profile.students ?? {});
   const studentsById = new Map(students.map((student) => [student.id, student]));
   const team = FORMATION_SLOTS
@@ -134,8 +138,28 @@ export function renderRoster({ profile, selectedId, enhanceOpen = false, replace
   const selected = team.find(({ student }) => student.id === selectedId) ?? team[0];
   const teamOverallPower = team.reduce((sum, { student }) => sum + Math.round(calculateOverallPower(student)), 0);
   const teamIds = new Set(team.map(({ student }) => student.id));
-  const bench = students.filter((student) => !teamIds.has(student.id));
-  return `<section class="app-view roster-view" aria-labelledby="roster-title"><div class="view-heading"><div class="roster-heading"><p class="eyebrow">学生名单</p><div class="roster-title-row"><h1 id="roster-title">当前队伍</h1><strong class="roster-overall">总体水平 ${teamOverallPower}</strong></div></div><button type="button" class="primary-button" data-action="open-lineup-editor">调整阵容</button><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div>${team.length ? `<div class="roster-tabs" aria-label="上场队员">${team.map(({ slot, student }) => `<button type="button" class="roster-tab${selected.student.id === student.id ? " is-active" : ""}" aria-pressed="${selected.student.id === student.id}" data-select-roster-student="${esc(student.id)}"><span class="roster-slot" aria-hidden="true">${esc(slot)}</span>${esc(student.name)}</button>`).join("")}</div>${renderStudentDossier({ profile, student: selected.student, slot: selected.slot, enhanceOpen, replaceOpen })}` : `<p class="empty-state">尚未安排上场队员，请点击「调整阵容」。</p>`}${bench.length ? `<section class="bench-strip" aria-labelledby="bench-strip-title"><h2 id="bench-strip-title">替补席</h2><div class="bench-pills">${bench.map((student) => `<button type="button" class="bench-pill" data-student-detail="${esc(student.id)}" aria-label="查看 ${esc(student.name)} 详情"><strong>${esc(student.name)}</strong><span>${esc(student.aptitude)} · ${esc(skillGroupName(student))}</span></button>`).join("")}</div></section>` : ""}</section>`;
+  const bench = students
+    .filter((student) => !teamIds.has(student.id))
+    .map((student) => ({ student, power: Math.round(calculateOverallPower(student)) }))
+    .sort((a, b) => b.power - a.power || a.student.id.localeCompare(b.student.id));
+  const dismissList = bench.map(({ student, power }) => {
+    const isSelected = dismissSelected.includes(student.id);
+    return `<button type="button" class="dismiss-tile${isSelected ? " is-selected" : ""}" role="checkbox" aria-checked="${isSelected}" data-toggle-dismiss="${esc(student.id)}"><span class="dismiss-toggle" aria-hidden="true">${isSelected ? "✓" : ""}</span><strong>${esc(student.name)}</strong><span>${esc(student.aptitude)} · ${esc(skillGroupName(student))}</span><span>总体水平 ${power}</span></button>`;
+  }).join("");
+  const benchAptitudes = APTITUDE_ORDER
+    .map((aptitude) => ({ aptitude, students: bench.filter(({ student }) => student.aptitude === aptitude) }))
+    .filter(({ students: group }) => group.length > 0);
+  const dismissStats = benchAptitudes.map(({ aptitude, students: group }) => {
+    const allSelected = group.every(({ student }) => dismissSelected.includes(student.id));
+    const selectedCount = group.filter(({ student }) => dismissSelected.includes(student.id)).length;
+    return `<button type="button" class="dismiss-stat-chip${allSelected ? " is-active" : ""}" data-toggle-dismiss-aptitude="${esc(aptitude)}"><strong>${esc(aptitude)} × ${group.length}</strong><span>${group.length ? (allSelected ? "取消全选" : "全选") : ""}${selectedCount && !allSelected ? `（已选 ${selectedCount}）` : ""}</span></button>`;
+  }).join("");
+  const rareCount = dismissSelected
+    .map((id) => studentsById.get(id)?.aptitude)
+    .filter((aptitude) => aptitude && APTITUDE_ORDER.indexOf(aptitude) >= APTITUDE_ORDER.indexOf("稀有"))
+    .length;
+  const dismissFooter = `<footer class="dismiss-footer"><span>已选 ${dismissSelected.length} 名，预计获得 ${dismissSelected.length} 份学生培养材料${rareCount ? `，其中 ${rareCount} 名为稀有及以上` : ""}</span><span class="dismiss-footer-actions"><button type="button" class="secondary-button" data-action="clear-dismiss-selection"${dismissSelected.length ? "" : " disabled"}>清空选择</button><button type="button" class="primary-button" data-action="confirm-dismiss-selected"${dismissSelected.length ? "" : " disabled"}>${dismissConfirmPending ? "确认劝退" : "劝退选中"}</button></span></footer>`;
+  return `<section class="app-view roster-view" aria-labelledby="roster-title"><div class="view-heading"><div class="roster-heading"><p class="eyebrow">学生名单</p><div class="roster-title-row"><h1 id="roster-title">当前队伍</h1><strong class="roster-overall">总体水平 ${teamOverallPower}</strong></div></div><button type="button" class="primary-button" data-action="open-lineup-editor">调整阵容</button><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div>${team.length ? `<div class="roster-tabs" aria-label="上场队员">${team.map(({ slot, student }) => `<button type="button" class="roster-tab${selected.student.id === student.id ? " is-active" : ""}" aria-pressed="${selected.student.id === student.id}" data-select-roster-student="${esc(student.id)}"><span class="roster-slot" aria-hidden="true">${esc(slot)}</span>${esc(student.name)}</button>`).join("")}</div>${renderStudentDossier({ profile, student: selected.student, slot: selected.slot, enhanceOpen, replaceOpen })}` : `<p class="empty-state">尚未安排上场队员，请点击「调整阵容」。</p>`}${bench.length ? `<section class="bench-strip" aria-labelledby="bench-strip-title"><div class="bench-header"><h2 id="bench-strip-title">替补席</h2><button type="button" class="secondary-button" data-action="${dismissOpen ? "close-dismiss-panel" : "open-dismiss-panel"}">${dismissOpen ? "收起劝退列表" : "批量劝退"}</button></div>${dismissOpen ? `${rareCount && dismissConfirmPending ? `<p class="app-message--error" role="alert">所选包含稀有及以上资质学生，请再次点击「确认劝退」完成操作。</p>` : ""}<div class="dismiss-stats" role="group" aria-label="按资质统计与全选">${dismissStats}</div><div class="dismiss-options" role="group" aria-label="选择要劝退的替补学生">${dismissList}</div>${dismissFooter}` : ""}<div class="bench-pills">${bench.map(({ student }) => `<button type="button" class="bench-pill" data-student-detail="${esc(student.id)}" aria-label="查看 ${esc(student.name)} 详情"><strong>${esc(student.name)}</strong><span>${esc(student.aptitude)} · ${esc(skillGroupName(student))}</span></button>`).join("")}</div></section>` : ""}</section>`;
 }
 
 function inventoryRows(inventory) {

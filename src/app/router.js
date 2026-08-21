@@ -1,4 +1,5 @@
 import { ApiError } from "../api/client.js";
+import { APTITUDE_ORDER } from "../data.js";
 import { createAuthSession, renderAccountScreen, renderAuthScreen } from "./auth.js";
 import { getLevel, renderCampaign } from "./campaign.js";
 import { renderLineupDialog, renderProgression, renderRoster, renderStudentDetail } from "./progression.js";
@@ -130,6 +131,9 @@ export class AppRouter {
     this.rosterSelectedId = null;
     this.enhanceOpen = false;
     this.replaceOpen = false;
+    this.dismissOpen = false;
+    this.dismissSelected = [];
+    this.dismissConfirmPending = false;
     this.detailStudentId = null;
     this.detailNameEditing = false;
     this.dragStudentId = null;
@@ -187,6 +191,9 @@ export class AppRouter {
       this.rosterSelectedId = null;
       this.enhanceOpen = false;
       this.replaceOpen = false;
+      this.dismissOpen = false;
+      this.dismissSelected = [];
+      this.dismissConfirmPending = false;
       this.detailStudentId = null;
       this.detailNameEditing = false;
     }
@@ -222,7 +229,7 @@ export class AppRouter {
       return;
     }
     let content;
-    if (this.route === "roster") content = renderRoster({ profile: this.profile, selectedId: this.rosterSelectedId, enhanceOpen: this.enhanceOpen, replaceOpen: this.replaceOpen, message: this.message, messageIsError: this.messageIsError });
+    if (this.route === "roster") content = renderRoster({ profile: this.profile, selectedId: this.rosterSelectedId, enhanceOpen: this.enhanceOpen, replaceOpen: this.replaceOpen, dismissOpen: this.dismissOpen, dismissSelected: this.dismissSelected, dismissConfirmPending: this.dismissConfirmPending, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "progression") content = renderProgression({ profile: this.profile, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "account") content = renderAccountScreen({ account: this.account, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "battle" && this.battle) content = renderBattle({ battle: this.battle, message: this.message, messageIsError: this.messageIsError });
@@ -324,7 +331,7 @@ export class AppRouter {
       return;
     }
     const action = button.dataset.action;
-    if (!action && !button.dataset.opponentId && !button.dataset.buyOffer && !button.dataset.saveName && !button.dataset.dismissStudent && !button.dataset.benchStudent && !button.dataset.playbackSpeed) return;
+    if (!action && !button.dataset.opponentId && !button.dataset.buyOffer && !button.dataset.saveName && !button.dataset.dismissStudent && !button.dataset.benchStudent && !button.dataset.toggleDismiss && !button.dataset.toggleDismissAptitude && !button.dataset.playbackSpeed) return;
     event.preventDefault();
     try {
       if (action === "logout") {
@@ -368,6 +375,55 @@ export class AppRouter {
         this.message = "";
       } else if (action === "cancel-enhance") {
         this.enhanceOpen = false;
+        this.message = "";
+      } else if (action === "open-dismiss-panel") {
+        this.dismissOpen = true;
+        this.dismissSelected = [];
+        this.dismissConfirmPending = false;
+        this.message = "";
+      } else if (action === "close-dismiss-panel") {
+        this.dismissOpen = false;
+        this.dismissSelected = [];
+        this.dismissConfirmPending = false;
+        this.message = "";
+      } else if (action === "clear-dismiss-selection") {
+        this.dismissSelected = [];
+        this.dismissConfirmPending = false;
+        this.message = "";
+      } else if (action === "confirm-dismiss-selected") {
+        if (!this.dismissSelected.length) {
+          this.message = "请先勾选要劝退的替补学生。";
+        } else {
+          const rareCount = this.dismissSelected
+            .map((id) => this.profile.students?.[id]?.aptitude)
+            .filter((aptitude) => aptitude && APTITUDE_ORDER.indexOf(aptitude) >= APTITUDE_ORDER.indexOf("稀有"))
+            .length;
+          if (rareCount > 0 && !this.dismissConfirmPending) {
+            this.dismissConfirmPending = true;
+            this.messageIsError = true;
+            this.message = `所选学生中包含 ${rareCount} 名稀有及以上资质学生，请再次点击「确认劝退」完成批量劝退。`;
+          } else {
+            await this.dismissSelectedStudents();
+          }
+        }
+      } else if (button.dataset.toggleDismiss) {
+        const studentId = button.dataset.toggleDismiss;
+        this.dismissSelected = this.dismissSelected.includes(studentId)
+          ? this.dismissSelected.filter((id) => id !== studentId)
+          : [...this.dismissSelected, studentId];
+        this.dismissConfirmPending = false;
+        this.message = "";
+      } else if (button.dataset.toggleDismissAptitude) {
+        const aptitude = button.dataset.toggleDismissAptitude;
+        const teamIds = new Set(Object.values(this.profile.formation ?? {}).filter(Boolean));
+        const aptitudeIds = Object.values(this.profile.students ?? {})
+          .filter((student) => !teamIds.has(student.id) && student.aptitude === aptitude)
+          .map((student) => student.id);
+        const allSelected = aptitudeIds.every((id) => this.dismissSelected.includes(id));
+        this.dismissSelected = allSelected
+          ? this.dismissSelected.filter((id) => !aptitudeIds.includes(id))
+          : [...new Set([...this.dismissSelected, ...aptitudeIds])];
+        this.dismissConfirmPending = false;
         this.message = "";
       } else if (action === "daily-check-in") {
         await this.dailyCheckIn();
@@ -652,6 +708,19 @@ export class AppRouter {
     this.detailStudentId = null;
     this.detailNameEditing = false;
     this.message = "学生已劝退，获得 1 份学生培养材料。";
+  }
+
+  async dismissSelectedStudents() {
+    const studentIds = [...this.dismissSelected];
+    const result = await this.client.post("/progression/students/dismiss-batch", { studentIds });
+    this.profile = result.profile;
+    const count = result.dismissal?.studentIds?.length ?? studentIds.length;
+    const quantity = result.dismissal?.quantity ?? count;
+    this.dismissOpen = false;
+    this.dismissSelected = [];
+    this.dismissConfirmPending = false;
+    this.messageIsError = false;
+    this.message = `已劝退 ${count} 名学生，共获得 ${quantity} 份学生培养材料。`;
   }
 
   async recruit() {

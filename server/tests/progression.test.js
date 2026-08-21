@@ -144,6 +144,33 @@ try {
   assert.equal(starterDismissal.json().profile.students.planner, undefined);
   assert.equal(starterDismissal.json().profile.inventory["student-training-material"], 1);
 
+  const benchGraphist = await request(app, {
+    method: "PUT", url: "/api/v1/profile", cookies: auth,
+    payload: { version: starterDismissal.json().profile.version, formation: { A1: "structurer", A2: null, A3: null } },
+  });
+  assert.equal(benchGraphist.statusCode, 200);
+  const secondTicket = await request(app, { method: "POST", url: "/api/v1/progression/shop/purchases", cookies: auth, payload: { offerId: "recruitment-right" } });
+  assert.equal(secondTicket.statusCode, 200);
+  const secondRecruit = await request(app, { method: "POST", url: "/api/v1/progression/recruitment", cookies: auth, payload: {} });
+  assert.equal(secondRecruit.statusCode, 200);
+  const newRecruitId = secondRecruit.json().student.id;
+  const batchDismissal = await request(app, {
+    method: "POST", url: "/api/v1/progression/students/dismiss-batch", cookies: auth,
+    payload: { studentIds: ["graphist", newRecruitId] },
+  });
+  assert.equal(batchDismissal.statusCode, 200);
+  assert.equal(batchDismissal.json().profile.students.graphist, undefined);
+  assert.equal(batchDismissal.json().profile.students[newRecruitId], undefined);
+  assert.deepEqual(batchDismissal.json().dismissal.studentIds.sort(), [newRecruitId, "graphist"].sort());
+  assert.equal(batchDismissal.json().dismissal.quantity, 2);
+  assert.equal(batchDismissal.json().profile.inventory["student-training-material"], 3);
+  const invalidBatch = await request(app, {
+    method: "POST", url: "/api/v1/progression/students/dismiss-batch", cookies: auth,
+    payload: { studentIds: ["structurer"] },
+  });
+  assert.equal(invalidBatch.statusCode, 400);
+  assert.match(invalidBatch.json().message, /cannot be dismissed/);
+
   const unknownOffer = await request(app, {
     method: "POST", url: "/api/v1/progression/shop/purchases", cookies: auth,
     payload: { offerId: "not-a-real-offer" },
@@ -161,6 +188,9 @@ try {
     ["recruitmentTickets", -1, "recruitment"],
     ["trainingCoins", -100, "specialist-training"],
     ["trainingCoins", 1000, "daily-check-in"],
+    ["trainingCoins", -300, "shop"],
+    ["recruitmentTickets", 1, "shop"],
+    ["recruitmentTickets", -1, "recruitment"],
   ]);
   const inventoryEntries = await app.db.query("SELECT item_id, quantity, source_type FROM inventory_entries ORDER BY id");
   assert.deepEqual(inventoryEntries.rows.map(({ item_id: itemId, quantity, source_type: sourceType }) => [itemId, quantity, sourceType]), [
@@ -168,10 +198,11 @@ try {
     ["specialist-book-dynamicProgramming", 1, "shop"],
     ["student-training-material", 1, "student-dismissal"],
     ["student-training-material", 1, "student-dismissal"],
+    ["student-training-material", 2, "student-dismissal"],
   ]);
   const auditEntries = await app.db.query("SELECT action_type FROM account_audit_log ORDER BY id");
   assert.deepEqual(auditEntries.rows.map(({ action_type: actionType }) => actionType), [
-    "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in", "profile_update", "student_dismissal",
+    "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in", "profile_update", "student_dismissal", "profile_update", "shop_purchase", "student_recruitment", "student_dismissal",
   ]);
 
   const catalogRegistered = await request(app, {

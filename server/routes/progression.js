@@ -1,4 +1,4 @@
-import { SHOP_PURCHASE_DTO_SCHEMA, SPECIALIST_TRAINING_DTO_SCHEMA } from "../../shared/contracts/v1.js";
+import { DISMISS_STUDENTS_DTO_SCHEMA, SHOP_PURCHASE_DTO_SCHEMA, SPECIALIST_TRAINING_DTO_SCHEMA } from "../../shared/contracts/v1.js";
 import { AuthService } from "../services/auth-service.js";
 import { ProgressionError, ProgressionService } from "../services/progression-service.js";
 
@@ -76,6 +76,14 @@ export async function progressionRoutes(app) {
     },
     { type: "object", required: ["studentId"], properties: { studentId: { type: "string", minLength: 1, maxLength: 128 } }, additionalProperties: false },
   ));
+
+  app.post("/students/dismiss-batch", action(DISMISS_STUDENTS_DTO_SCHEMA, async (request, reply) => {
+    try {
+      return await service.dismissStudentsBatch(request.account.id, request.body);
+    } catch (error) {
+      return sendProgressionError(reply, error);
+    }
+  }));
 
   app.post("/recruitment", action({ type: "object", additionalProperties: false }, async (request, reply) => {
     try {

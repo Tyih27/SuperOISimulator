@@ -4,6 +4,7 @@ import {
   applySpecialistTraining,
   createRecruitedStudent,
   dismissStudent,
+  dismissStudents,
   SPECIALIST_TRAINING_COST,
   STUDENT_DISMISSAL_MATERIAL_REWARD,
   STUDENT_TRAINING_MATERIAL_ID,
@@ -241,6 +242,37 @@ export class ProgressionService {
         },
         auditAction: "student_dismissal",
         auditPayload: { studentId: studentId.trim(), itemId: STUDENT_TRAINING_MATERIAL_ID },
+      };
+    });
+  }
+
+  async dismissStudentsBatch(accountId, { studentIds } = {}) {
+    requireString(accountId, "Account is required");
+    if (!Array.isArray(studentIds) || studentIds.length === 0) throw invalid("At least one student must be selected");
+    const normalized = studentIds.map((studentId) => String(studentId).trim());
+    return this.withProfile(accountId, async ({ client, profile }) => {
+      let next;
+      try {
+        next = dismissStudents(profile, { studentIds: normalized });
+      } catch (error) {
+        throw invalid(error.message);
+      }
+      Object.assign(profile, next);
+      await this.ledger.recordInventoryGrant(client, {
+        accountId,
+        itemId: STUDENT_TRAINING_MATERIAL_ID,
+        quantity: STUDENT_DISMISSAL_MATERIAL_REWARD * normalized.length,
+        sourceType: "student-dismissal",
+        sourceId: normalized.join(","),
+      });
+      return {
+        dismissal: {
+          studentIds: normalized,
+          itemId: STUDENT_TRAINING_MATERIAL_ID,
+          quantity: STUDENT_DISMISSAL_MATERIAL_REWARD * normalized.length,
+        },
+        auditAction: "student_dismissal",
+        auditPayload: { studentIds: normalized, itemId: STUDENT_TRAINING_MATERIAL_ID },
       };
     });
   }

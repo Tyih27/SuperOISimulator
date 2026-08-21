@@ -354,6 +354,22 @@ export const SPECIALIST_TRAINING_DTO_SCHEMA = deepFreeze({
   additionalProperties: false,
 });
 
+export const DISMISS_STUDENTS_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/dismiss-students-v1",
+  type: "object",
+  required: ["studentIds"],
+  properties: {
+    studentIds: {
+      type: "array",
+      minItems: 1,
+      maxItems: 50,
+      uniqueItems: true,
+      items: { type: "string", minLength: 1, maxLength: 128 },
+    },
+  },
+  additionalProperties: false,
+});
+
 export const SHOP_PURCHASE_DTO_SCHEMA = deepFreeze({
   $id: "super-oi/shop-purchase-v1",
   type: "object",

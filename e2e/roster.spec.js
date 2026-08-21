@@ -247,6 +247,83 @@ test("bench starter student is dismissible", async ({ page }) => {
   await expect(page.getByText("学生已劝退，获得 1 份学生培养材料。")).toBeVisible();
 });
 
+test("bench sorts by power and batch dismissal confirms rare students", async ({ page }) => {
+  let current = profile();
+  current.students.supporter.abilities = { ...current.students.supporter.abilities, dynamicProgramming: 1200 };
+  current.students.mathematician.abilities = { ...current.students.mathematician.abilities, dynamicProgramming: 1000 };
+  current.students.implementer = { ...current.students.implementer, aptitude: "天才" };
+  let authenticated = false;
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace("/api/v1", "");
+    const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (path === "/auth/session") return authenticated ? json({ account: { id: "roster-account", username: "roster01" } }) : json({ code: "UNAUTHENTICATED" }, 401);
+    if (path === "/auth/register" || path === "/auth/login") { authenticated = true; return json({ account: { id: "roster-account", username: "roster01" } }, path.endsWith("register") ? 201 : 200); }
+    if (path === "/profile" && route.request().method() === "GET") return json(current);
+    if (path.includes("dismiss-batch")) {
+      const body = route.request().postDataJSON();
+      const ids = body.studentIds;
+      for (const id of ids) delete current.students[id];
+      current = { ...current, version: current.version + 1, inventory: { ...current.inventory, "student-training-material": (current.inventory["student-training-material"] ?? 0) + ids.length } };
+      return json({ profile: current, dismissal: { studentIds: ids, itemId: "student-training-material", quantity: ids.length } });
+    }
+    return json({ code: "NOT_FOUND", message: path }, 404);
+  });
+
+  await login(page);
+  await page.getByRole("link", { name: "学生名单" }).click();
+  await expect(page.locator(".bench-pill strong")).toHaveText(["顾宁", "许知", "沈言"]);
+
+  await page.getByRole("button", { name: "批量劝退" }).click();
+  await expect(page.locator(".dismiss-tile")).toHaveCount(3);
+  await expect(page.locator(".dismiss-stat-chip")).toHaveText(["普通 × 2全选", "天才 × 1全选"]);
+
+  await page.locator('[data-toggle-dismiss-aptitude="普通"]').click();
+  await expect(page.locator(".dismiss-footer")).toContainText("已选 2 名");
+  await page.locator('[data-toggle-dismiss-aptitude="普通"]').click();
+  await expect(page.locator(".dismiss-footer")).toContainText("已选 0 名");
+
+  await page.locator('[data-toggle-dismiss="supporter"] strong').click();
+  await expect(page.locator(".dismiss-footer")).toContainText("已选 1 名");
+
+  await page.getByRole("button", { name: "清空选择" }).click();
+  await expect(page.locator(".dismiss-footer")).toContainText("已选 0 名");
+
+  await page.locator('[data-toggle-dismiss="implementer"]').click();
+  await page.locator('[data-toggle-dismiss="supporter"]').click();
+  await expect(page.locator(".dismiss-footer")).toContainText("已选 2 名");
+
+  await page.getByRole("button", { name: "劝退选中" }).click();
+  const benchStrip = page.locator(".bench-strip");
+  await expect(benchStrip.getByRole("alert")).toContainText("稀有及以上资质学生");
+  await expect(benchStrip.locator(".dismiss-footer").getByRole("button").last()).toHaveText("确认劝退");
+
+  await page.getByRole("button", { name: "确认劝退" }).click();
+  await expect(page.getByText("已劝退 2 名学生，共获得 2 份学生培养材料。")).toBeVisible();
+  await expect(page.locator(".dismiss-tile")).toHaveCount(0);
+});
+
+test("replace picker lists bench students by power", async ({ page }) => {
+  let current = profile();
+  current.students.supporter.abilities = { ...current.students.supporter.abilities, dynamicProgramming: 1200 };
+  current.students.mathematician.abilities = { ...current.students.mathematician.abilities, dynamicProgramming: 1000 };
+  let authenticated = false;
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace("/api/v1", "");
+    const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (path === "/auth/session") return authenticated ? json({ account: { id: "roster-account", username: "roster01" } }) : json({ code: "UNAUTHENTICATED" }, 401);
+    if (path === "/auth/register" || path === "/auth/login") { authenticated = true; return json({ account: { id: "roster-account", username: "roster01" } }, path.endsWith("register") ? 201 : 200); }
+    if (path === "/profile") return json(current);
+    return json({ code: "NOT_FOUND", message: path }, 404);
+  });
+
+  await login(page);
+  await page.getByRole("link", { name: "学生名单" }).click();
+  await page.getByRole("button", { name: "替换学生" }).click();
+  await expect(page.locator(".replace-option strong")).toHaveText(["顾宁", "许知", "沈言"]);
+});
+
 // ── Formation validation ─────────────────────────────────────────────────────
 
 test("lineup editor allows fielding fewer than three students", async ({ page }) => {

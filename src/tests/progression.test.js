@@ -4,6 +4,7 @@ import {
   applySpecialistTraining,
   createRecruitedStudent,
   dismissStudent,
+  dismissStudents,
   selectRecruitmentAptitude,
   SPECIALIST_TRAINING_INCREMENTS,
   STUDENT_TRAINING_MATERIAL_ID,
@@ -131,5 +132,22 @@ assert.throws(
   () => dismissStudent({ ...dismissalProfile, formation: { A1: recruit.id, A2: "graphist", A3: "structurer" } }, { studentId: recruit.id }),
   /formation student/,
 );
+
+const batchProfile = createProfile({
+  accountId: "batch-profile",
+  studentIds: ["planner"],
+  formation: { A1: "planner", A2: null, A3: null },
+});
+const rareBatchRecruit = createRecruitedStudent({ studentId: "batch-rare", seed: "b1", namePoolVersion: profile.namePoolVersion, templateId: "graphist", aptitude: "天才" });
+const plainBatchRecruit = createRecruitedStudent({ studentId: "batch-plain", seed: "b2", namePoolVersion: profile.namePoolVersion, templateId: "structurer", aptitude: "普通" });
+batchProfile.students[rareBatchRecruit.id] = rareBatchRecruit;
+batchProfile.students[plainBatchRecruit.id] = plainBatchRecruit;
+assert.throws(() => dismissStudents(batchProfile, { studentIds: [] }), /At least one student/);
+assert.throws(() => dismissStudents(batchProfile, { studentIds: ["batch-rare", "batch-rare"] }), /Duplicate students/);
+assert.throws(() => dismissStudents(batchProfile, { studentIds: ["planner"] }), /cannot be dismissed/);
+assert.throws(() => dismissStudents(batchProfile, { studentIds: ["ghost"] }), /owned by the profile/);
+const batchDismissed = dismissStudents(batchProfile, { studentIds: ["batch-rare", "batch-plain"] });
+assert.deepEqual(Object.keys(batchDismissed.students), ["planner"]);
+assert.equal(batchDismissed.inventory[STUDENT_TRAINING_MATERIAL_ID], 2);
 
 console.log("progression domain tests passed");
