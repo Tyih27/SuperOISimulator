@@ -12,7 +12,7 @@ const level = {
   studentSlots: ["A1", "A2", "A3"],
   focusMax: 1000,
   focusGain: 200,
-  reward: { trainingCoins: 1500, inventory: { "specialist-book-dynamicProgramming": 2, "specialist-book-graphTheory": 2 }, recruitmentTickets: 3 },
+  reward: { trainingCoins: 1500, inventory: { "specialist-book-dynamicProgramming": 2, "specialist-book-graphTheory": 2 }, recruitmentTickets: 3, unlockLevelId: "chapter-2-5" },
 };
 
 export default level;

@@ -168,6 +168,13 @@ npm run test:container
 │   │   ├── chapter-2-2.js
 │   │   ├── chapter-2-3.js
 │   │   ├── chapter-2-4.js
+│   │   ├── chapter-2-5.js      # 额外关卡扩展「冬令营~传奇赛」（40200-99800）
+│   │   ├── chapter-2-6.js
+│   │   ├── chapter-2-7.js
+│   │   ├── chapter-2-8.js
+│   │   ├── chapter-2-9.js
+│   │   ├── chapter-2-10.js
+│   │   ├── chapter-2-11.js
 │   │   └── index.js            # 按顺序聚合关卡
 │   └── rng.js                  # 可复现伪随机数生成器
 └── docs/
