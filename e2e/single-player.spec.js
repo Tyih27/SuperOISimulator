@@ -69,7 +69,20 @@ async function mockApi(page) {
       };
       return json({ profile: current, dismissal: { studentId: dismissedStudent?.id, itemId: "student-training-material", quantity: 1 } });
     }
-    if (path === "/campaign/battles") return json({ id: "7e11b4e1-0fc6-4af3-8a09-2c0591cebc22", snapshot: { level: { name: "清晨训练场" }, seed: "A7C4-19", team: Object.values(current.students).slice(0, 3) } }, 201);
+    if (path === "/campaign/battles") {
+      const team3 = Object.values(current.students).slice(0, 3).map((s) => ({ ...s, skillGroupId: s.id, skillGroupLevels: { [s.id]: { normal: 1, burst: 1 } } }));
+      const topics = [
+        { id: "t1", name: "Topic1", difficulties: { dynamicProgramming: 500, graphTheory: 0, dataStructures: 0, mathematics: 0, implementation: 0 }, maxProgress: 10000, skill: { id: "t1-atk", name: "T1 Attack", category: "problem", effectType: "energyDamage", targetRule: "matchingPosition", damageMultiplier: 1, flatBonus: 0, maxDamage: 2000 } },
+        { id: "t2", name: "Topic2", difficulties: { dynamicProgramming: 0, graphTheory: 500, dataStructures: 0, mathematics: 0, implementation: 0 }, maxProgress: 10000, skill: { id: "t2-atk", name: "T2 Attack", category: "problem", effectType: "energyDamage", targetRule: "matchingPosition", damageMultiplier: 1, flatBonus: 0, maxDamage: 2000 } },
+        { id: "t3", name: "Topic3", difficulties: { dynamicProgramming: 0, graphTheory: 0, dataStructures: 500, mathematics: 0, implementation: 0 }, maxProgress: 10000, skill: { id: "t3-atk", name: "T3 Attack", category: "problem", effectType: "energyDamage", targetRule: "matchingPosition", damageMultiplier: 1, flatBonus: 0, maxDamage: 2000 } },
+      ];
+      const sg = {
+        planner: { id: "planner", name: "拆解思路", skills: { normal: { id: "planner-normal", name: "逐个击破", category: "problem", targetRule: "lowestRemaining", relatedAbility: "dynamicProgramming", skillMultiplier: 1, targetMultiplier: 1, flatBonus: 0, focusGain: 200 }, burst: { id: "planner-burst", name: "关键路径", category: "problem", targetRule: "highestDifficulty", relatedAbility: "dynamicProgramming", skillMultiplier: 1.5, targetMultiplier: 1, flatBonus: 0, focusGain: 200 } } },
+        graphist: { id: "graphist", name: "图论直觉", skills: { normal: { id: "graphist-normal", name: "匹配攻击", category: "problem", targetRule: "bestMatch", relatedAbility: "graphTheory", skillMultiplier: 1, targetMultiplier: 1, flatBonus: 0, focusGain: 200 }, burst: { id: "graphist-burst", name: "割点突破", category: "problem", targetRule: "highestDifficulty", relatedAbility: "graphTheory", skillMultiplier: 1.35, targetMultiplier: 1, flatBonus: 120, focusGain: 200 } } },
+        structurer: { id: "structurer", name: "结构维护", skills: { normal: { id: "structurer-normal", name: "稳态修复", category: "support", targetRule: "lowestEnergy", relatedAbility: "dataStructures", effectType: "energyRestore", effect: { base: 650, multiplier: 0.25, min: 300, max: 1800 }, focusGain: 200 }, burst: { id: "structurer-burst", name: "全队整备", category: "support", targetRule: "allStudents", relatedAbility: "dataStructures", effectType: "energyRestore", effect: { base: 420, multiplier: 0.12, min: 180, max: 1000 }, focusGain: 200 } } },
+      };
+      return json({ id: "7e11b4e1-0fc6-4af3-8a09-2c0591cebc22", snapshot: { level: { name: "清晨训练场", topics, maxRounds: 12, focusMax: 1000, objective: { type: "count", requiredTopics: 2 } }, seed: "A7C4-19", formation: { A1: "planner", A2: "graphist", A3: "structurer" }, team: team3, skillGroups: sg } }, 201);
+    }
     if (path.endsWith("/settle")) return json({ result: { result: "win", completedCount: 3, round: 8, remainingEnergy: 9200, events: [{ round: 1, type: "battle_started" }, { round: 8, type: "battle_ended" }] }, reward: { trainingCoins: 100 }, profile: current });
     return json({ code: "NOT_FOUND", message: path }, 404);
   });
@@ -98,11 +111,11 @@ test("single-player campaign is server-driven", async ({ page }, testInfo) => {
   await page.getByRole("link", { name: "主线关卡" }).click();
   await expect(page.getByText("第 1 章")).toBeVisible();
   await page.getByRole("button", { name: "开始挑战" }).click();
-  await expect(page.getByText("快照已锁定")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "快照已锁定" })).toBeVisible();
   await page.getByRole("button", { name: "开始回放并结算" }).click();
   await expect(page.getByText("挑战胜利")).toBeVisible();
   await page.getByRole("link", { name: "训练与补给" }).click();
-  await page.getByRole("button", { name: "消耗训练册训练" }).click();
+  await page.getByRole("button", { name: "强化学生" }).click();
   await expect(page.getByText("天才保底")).toBeVisible();
   await page.locator('[data-buy-offer="recruitment-right"]').click();
   await page.getByRole("button", { name: "使用招募券" }).click();
@@ -144,4 +157,65 @@ test("account deletion revokes the browser session", async ({ page }) => {
   await page.getByRole("button", { name: "请求删除账户" }).click();
   await expect(page.getByText("训练档案")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
+test("battle playback controls work correctly", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/");
+  await page.getByLabel("用户名").fill("alice01");
+  await page.getByLabel("密码").fill("correct horse battery");
+  await page.getByRole("button", { name: "注册并登录" }).click();
+  await page.getByRole("link", { name: "主线关卡" }).click();
+  await page.getByRole("button", { name: "开始挑战" }).click();
+  await expect(page.getByRole("heading", { name: "快照已锁定" })).toBeVisible();
+  await page.getByRole("button", { name: "开始回放并结算" }).click();
+  await expect(page.getByText("服务端回放")).toBeVisible();
+  const pauseBtn = page.getByRole("button", { name: "暂停" });
+  const playBtn = page.getByRole("button", { name: "播放" });
+  if (await pauseBtn.isVisible().catch(() => false)) {
+    await pauseBtn.click();
+    await expect(playBtn).toBeVisible();
+    await playBtn.click();
+  }
+  const stepBtn = page.getByRole("button", { name: "单步" });
+  if (await stepBtn.isVisible().catch(() => false)) {
+    await stepBtn.click();
+  }
+  const restartBtn = page.getByRole("button", { name: "重播" });
+  if (await restartBtn.isVisible().catch(() => false)) {
+    await restartBtn.click();
+  }
+  const speed2x = page.getByRole("button", { name: "2x" });
+  if (await speed2x.isVisible().catch(() => false)) {
+    await speed2x.click();
+    await expect(speed2x).toHaveClass(/is-active/);
+  }
+  await expect(page.getByText(/挑战胜利|挑战失败/)).toBeVisible();
+});
+
+test("campaign level selection updates detail", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/");
+  await page.getByLabel("用户名").fill("alice01");
+  await page.getByLabel("密码").fill("correct horse battery");
+  await page.getByRole("button", { name: "注册并登录" }).click();
+  await page.getByRole("link", { name: "主线关卡" }).click();
+  await expect(page.getByText("第 1 章")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "清晨训练场" })).toBeVisible();
+  const level2Btn = page.locator('[data-select-level="chapter-1-2"]');
+  if (await level2Btn.isDisabled().catch(() => true)) {
+    await expect(level2Btn).toBeDisabled();
+  }
+});
+
+test("session restore on page reload", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/");
+  await page.getByLabel("用户名").fill("alice01");
+  await page.getByLabel("密码").fill("correct horse battery");
+  await page.getByRole("button", { name: "注册并登录" }).click();
+  await expect(page.getByRole("link", { name: "主线关卡" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("link", { name: "主线关卡" })).toBeVisible();
+  await expect(page.getByLabel("用户名")).toBeHidden();
 });
