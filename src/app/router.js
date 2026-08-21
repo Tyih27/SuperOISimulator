@@ -97,9 +97,11 @@ function renderLiveBattle({ battle, state }) {
   const studentNames = new Map(students.map((student) => [student.id, student.name]));
   const runtimeStudents = state.combat.state?.students ?? {};
   const runtimeProblems = state.combat.state?.problems ?? {};
-  const activeSlots = state.combat.state?.activeProblems ?? {};
   const levelTopics = battle.snapshot.level.topics ?? [];
   const topicsById = new Map(levelTopics.map((topic) => [topic.id, topic]));
+  const activeProblems = Object.entries(state.combat.state?.activeProblems ?? {})
+    .map(([slot, id]) => ({ slot, runtime: id ? runtimeProblems[id] : null, topic: id ? topicsById.get(id) : null }))
+    .filter(({ runtime, topic }) => topic);
   const passedCount = levelTopics.filter(({ id }) => runtimeProblems[id]?.passed).length;
   const objectiveTarget = objectiveTargetFor(battle.snapshot.level);
   const events = state.combat.events ?? [];
@@ -110,15 +112,7 @@ function renderLiveBattle({ battle, state }) {
     <div class="live-battle-grid"><div><h3>我方队伍</h3><div class="live-student-list">${students.map((student) => {
       const runtime = runtimeStudents[student.id] ?? { energy: student.maxEnergy, focus: 0, alive: true };
       return `<article class="live-student ${runtime.alive ? "" : "is-inactive"}"><div class="student-card-head"><strong>${esc(student.name)}</strong><span class="alive-state">${runtime.alive ? "做题中" : "已退场"}</span></div><div class="stat-line"><span>精力</span><strong>${Math.round(runtime.energy)} / ${student.maxEnergy}</strong></div><div class="meter energy"><span style="width:${percent(runtime.energy, student.maxEnergy)}%"></span></div><div class="stat-line"><span>专注</span><strong>${Math.round(runtime.focus ?? 0)} / ${state.combat.state?.focusMax ?? 1000}</strong></div><div class="meter focus"><span style="width:${percent(runtime.focus, state.combat.state?.focusMax ?? 1000)}%"></span></div></article>`;
-    }).join("")}</div></div><div><div class="panel-header"><h3>题目战线</h3><span class="panel-meta">已通过 ${passedCount} / 目标 ${objectiveTarget}</span></div><div class="live-topic-list">${["B1", "B2", "B3"].map((slot) => {
-      const id = activeSlots[slot];
-      const topic = id ? topicsById.get(id) : null;
-      if (!topic) {
-        return `<article class="live-topic is-idle"><div class="topic-name-row"><strong>待命</strong><span class="position-badge">${slot}</span></div><div class="topic-progress-label"><span>暂无更多题目</span><strong>—</strong></div></article>`;
-      }
-      const runtime = runtimeProblems[topic.id] ?? { progress: 0, maxProgress: topic.maxProgress ?? 10000, passed: false };
-      return `<article class="live-topic ${runtime.passed ? "is-complete" : ""}"><div class="topic-name-row"><strong>${esc(topic.name)}</strong><span class="position-badge">${runtime.passed ? "✓" : slot}</span></div><div class="topic-progress-label"><span>${runtime.passed ? "已完成，即将换题" : "推进中"}</span><strong>${Math.round(percent(runtime.progress, runtime.maxProgress))}%</strong></div><div class="topic-progress"><span style="width:${percent(runtime.progress, runtime.maxProgress)}%"></span></div></article>`;
-    }).join("")}</div></div></div>
+    }).join("")}</div></div><div><div class="panel-header"><h3>题目战线</h3><span class="panel-meta">已通过 ${passedCount} / 目标 ${objectiveTarget}</span></div><div class="live-topic-list">${activeProblems.map(({ slot, runtime, topic }) => `<article class="live-topic ${runtime?.passed ? "is-complete" : ""}"><div class="topic-name-row"><strong>${esc(topic.name)}</strong><span class="position-badge">${slot}</span></div><div class="topic-progress-label"><span>${runtime?.passed ? "已完成" : "推进度"}</span><strong>${Math.round(percent(runtime?.progress ?? 0, topic.maxProgress ?? 10000))}%</strong></div><div class="topic-progress"><span style="width:${percent(runtime?.progress ?? 0, topic.maxProgress ?? 10000)}%"></span></div></article>`).join("") || `<p class="empty-state">等待题目进入战线。</p>`}</div></div></div>
     <details class="live-event-log" open><summary>事件记录（${events.length}）</summary><ol class="event-replay">${events.slice(-30).map((event) => `<li><span>${esc(event.round ?? "准备")}</span>${esc(EVENT_LABELS[event.type] ?? event.type)}${event.actor ? ` · ${esc(studentNames.get(event.actor) ?? "未知学生")}` : ""}</li>`).join("")}</ol></details>
   </section>`;
 }
