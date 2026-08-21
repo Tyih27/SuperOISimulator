@@ -3,7 +3,7 @@ const level = {
   name: "全国模拟赛",
   order: 8,
   track: "extra",
-  recommendedTotalPower: 28800,
+  recommendedTotalPower: 28000,
   seed: "J2E8-16",
   maxRounds: 36,
   objective: { type: "all" },

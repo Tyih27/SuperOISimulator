@@ -2,7 +2,7 @@ const level = {
   id: "chapter-1-1",
   name: "清晨训练场",
   order: 1,
-  recommendedAbility: 625,
+  recommendedTotalPower: 1875,
   seed: "A7C4-19",
   maxRounds: 12,
   objective: { type: "count", requiredTopics: 2 },

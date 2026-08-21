@@ -2,7 +2,7 @@ const level = {
   id: "chapter-1-2",
   name: "图论午练",
   order: 2,
-  recommendedAbility: 725,
+  recommendedTotalPower: 2175,
   seed: "B3F8-42",
   maxRounds: 14,
   objective: { type: "count", requiredTopics: 3 },
