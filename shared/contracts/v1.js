@@ -62,9 +62,9 @@ const formation = {
   type: "object",
   required: ["A1", "A2", "A3"],
   properties: {
-    A1: { type: "string", minLength: 1 },
-    A2: { type: "string", minLength: 1 },
-    A3: { type: "string", minLength: 1 },
+    A1: { type: ["string", "null"], minLength: 1 },
+    A2: { type: ["string", "null"], minLength: 1 },
+    A3: { type: ["string", "null"], minLength: 1 },
   },
   additionalProperties: false,
 };
@@ -337,7 +337,7 @@ export const BATTLE_START_DTO_SCHEMA = deepFreeze({
   required: ["levelId", "teamIds", "formation"],
   properties: {
     levelId: { type: "string", minLength: 1, maxLength: 128 },
-    teamIds: { type: "array", minItems: 3, maxItems: 3, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 128 } },
+    teamIds: { type: "array", minItems: 1, maxItems: 3, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 128 } },
     formation,
   },
   additionalProperties: false,
@@ -494,7 +494,7 @@ export const ARENA_DEFENSE_DTO_SCHEMA = deepFreeze({
   required: ["version", "teamIds", "formation"],
   properties: {
     version: positiveInteger,
-    teamIds: { type: "array", minItems: 3, maxItems: 3, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 128 } },
+    teamIds: { type: "array", minItems: 1, maxItems: 3, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 128 } },
     formation,
   },
   additionalProperties: false,

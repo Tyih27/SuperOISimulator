@@ -23,7 +23,6 @@ async function mockApi(page, options = {}) {
   let current = profile();
   let authenticated = false;
   let checkInClaimed = false;
-  let dailyDpBookPurchased = false;
 
   await page.route("**/api/v1/**", async (route) => {
     const url = new URL(route.request().url());
@@ -63,8 +62,6 @@ async function mockApi(page, options = {}) {
     if (path === "/progression/shop/purchases") {
       const body = route.request().postDataJSON();
       if (body.offerId === "daily-dp-book") {
-        if (dailyDpBookPurchased) return json({ code: "SHOP_PURCHASE_LIMIT_REACHED" }, 409);
-        dailyDpBookPurchased = true;
         current = { ...current, version: current.version + 1, currencies: { ...current.currencies, trainingCoins: current.currencies.trainingCoins - 120 }, inventory: { ...current.inventory, "specialist-book-dynamicProgramming": (current.inventory["specialist-book-dynamicProgramming"] ?? 0) + 1 } };
         return json({ profile: current, offer: { id: "daily-dp-book" } });
       }
@@ -133,20 +130,16 @@ test("specialist training via roster dossier consumes book", async ({ page }) =>
   await mockApi(page);
   await login(page);
   await page.getByRole("link", { name: "学生名单" }).click();
-  await expect(page.locator(".roster-tabs")).toBeVisible();
-
-  await page.getByRole("button", { name: "提升" }).click();
-  await expect(page.locator(".enhance-form")).toBeVisible();
-
-  await page.locator('[name="enhance-ability"][value="dynamicProgramming"]').check();
+  await page.getByRole("button", { name: "提升", exact: true }).click();
+  await page.locator('input[name="enhance-ability"][value="dynamicProgramming"]').check();
   await page.getByRole("button", { name: "确认提升" }).click();
 
-  await expect(page.getByText(/学生强化完成/)).toBeVisible();
+  await expect(page.getByText(/学生强化完成，数值 820 → 860/)).toBeVisible();
 });
 
-// ── Shop purchase and daily limit ────────────────────────────────────────────
+// ── Shop purchase ────────────────────────────────────────────────────────────
 
-test("shop purchase and daily limit", async ({ page }) => {
+test("shop offers can be purchased repeatedly", async ({ page }) => {
   await mockApi(page);
   await login(page);
   await page.getByRole("link", { name: "训练与补给" }).click();
@@ -154,6 +147,9 @@ test("shop purchase and daily limit", async ({ page }) => {
   const firstOffer = page.locator(".shop-offer").first();
   await firstOffer.locator("button").click();
   await expect(page.getByText("购买成功")).toBeVisible();
+
+  await page.locator('[data-buy-offer="daily-dp-book"]').click();
+  await expect(page.locator(".app-message").getByText("购买成功")).toBeVisible();
 });
 
 test("recruitment right purchase increases tickets", async ({ page }) => {

@@ -78,7 +78,7 @@ try {
 
   const recruitment = await request(app, { method: "POST", url: "/api/v1/progression/recruitment", cookies: auth, payload: {} });
   assert.equal(recruitment.statusCode, 200);
-  assert.equal(Object.keys(recruitment.json().profile.students).length, 7);
+  assert.equal(Object.keys(recruitment.json().profile.students).length, 4);
   assert.ok(recruitment.json().profile.students[recruitment.json().student.id]);
   assert.equal(recruitment.json().student.aptitude, "天才");
   assert.equal(recruitment.json().profile.recruitment.attemptsSinceGenius, 0);
@@ -127,7 +127,22 @@ try {
     payload: {},
   });
   assert.equal(protectedDismissal.statusCode, 400);
-  assert.match(protectedDismissal.json().message, /Only recruited students/);
+  assert.match(protectedDismissal.json().message, /formation student/);
+
+  const profileForBench = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: auth });
+  assert.equal(profileForBench.statusCode, 200);
+  const savedBench = await request(app, {
+    method: "PUT", url: "/api/v1/profile", cookies: auth,
+    payload: { version: profileForBench.json().version, formation: { A1: "structurer", A2: "graphist", A3: null } },
+  });
+  assert.equal(savedBench.statusCode, 200);
+  const starterDismissal = await request(app, {
+    method: "POST", url: "/api/v1/progression/students/planner/dismiss", cookies: auth,
+    payload: {},
+  });
+  assert.equal(starterDismissal.statusCode, 200);
+  assert.equal(starterDismissal.json().profile.students.planner, undefined);
+  assert.equal(starterDismissal.json().profile.inventory["student-training-material"], 1);
 
   const unknownOffer = await request(app, {
     method: "POST", url: "/api/v1/progression/shop/purchases", cookies: auth,
@@ -153,10 +168,11 @@ try {
     ["specialist-book-dynamicProgramming", 1, "shop"],
     ["specialist-book-dynamicProgramming", 1, "shop"],
     ["student-training-material", 1, "student-dismissal"],
+    ["student-training-material", 1, "student-dismissal"],
   ]);
   const auditEntries = await app.db.query("SELECT action_type FROM account_audit_log ORDER BY id");
   assert.deepEqual(auditEntries.rows.map(({ action_type: actionType }) => actionType), [
-    "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in",
+    "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in", "profile_update", "student_dismissal",
   ]);
 
   const catalogRegistered = await request(app, {

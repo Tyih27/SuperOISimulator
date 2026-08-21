@@ -31,6 +31,7 @@ export async function buildTestApp({ databaseUrl = process.env.DATABASE_URL, con
         environment: "test",
         sessionSecret: "test-session-secret-with-at-least-32-characters",
         allowedOrigins: ["http://localhost:3000"],
+        defaultStarterIds: ["planner", "graphist", "structurer"],
         ...config,
       },
     });

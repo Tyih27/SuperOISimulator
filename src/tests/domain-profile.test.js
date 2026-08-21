@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { serializeBattleResult, serializeEvents } from "../combat/events.js";
 import { CombatEngine } from "../combat/engine.js";
 import { ENGINE_VERSION, RULESET_VERSION, SKILL_GROUPS } from "../data.js";
-import { createProfile, migrateProfile, PROFILE_SCHEMA_VERSION } from "../domain/profile.js";
+import { createProfile, migrateProfile, PROFILE_SCHEMA_VERSION, selectStarterStudentIds, STARTER_STUDENT_IDS } from "../domain/profile.js";
 import { BATTLE_SNAPSHOT_VERSION, createBattleSnapshot } from "../domain/snapshot.js";
 import { renameStudent } from "../domain/student-identity.js";
 import {
@@ -87,12 +87,12 @@ assert.equal(snapshot.team[0].name, nameBeforeRename, "rename must not mutate an
 assert.equal(profile.students.planner.name, "新名字");
 
 assert.throws(
-  () => createBattleSnapshot(profile, { teamIds: studentIds }),
-  /exactly three/,
+  () => createBattleSnapshot(profile, { teamIds: [] }),
+  /one to three/,
 );
 assert.throws(
   () => createBattleSnapshot(profile, { teamIds: ["planner", "planner", "graphist"] }),
-  /exactly three different students/,
+  /one to three different students/,
 );
 assert.throws(
   () => createBattleSnapshot(profile, { teamIds: ["planner", "graphist", "implementer"] }),
@@ -103,7 +103,7 @@ assert.throws(
     teamIds: ["planner", "graphist", "structurer"],
     formation: { A1: "planner", A2: "graphist", A3: "mathematician" },
   }),
-  /selected team/,
+  /distinct slot/,
 );
 assert.throws(
   () => createBattleSnapshot(profile, {
@@ -119,6 +119,34 @@ assert.throws(
   }),
   /string or number/,
 );
+
+const duoSnapshot = createBattleSnapshot(profile, {
+  teamIds: ["planner", "graphist"],
+  formation: { A1: "planner", A2: null, A3: "graphist" },
+  timestamp,
+});
+assert.deepEqual(duoSnapshot.team.map(({ id }) => id), ["planner", "graphist"]);
+assert.deepEqual(duoSnapshot.formation, { A1: "planner", A2: null, A3: "graphist" });
+const soloSnapshot = createBattleSnapshot(profile, { teamIds: ["structurer"], timestamp });
+assert.deepEqual(soloSnapshot.team.map(({ id }) => id), ["structurer"]);
+assert.deepEqual(soloSnapshot.formation, { A1: "structurer", A2: null, A3: null });
+assert.throws(
+  () => createBattleSnapshot(profile, {
+    teamIds: ["planner"],
+    formation: { A1: "planner", A2: "graphist", A3: null },
+  }),
+  /distinct slot/,
+);
+
+for (const seed of ["seed-a", "seed-b", 42, 12345, "acc-1"]) {
+  const picked = selectStarterStudentIds(seed);
+  assert.equal(picked.length, 3);
+  assert.equal(new Set(picked).size, 3, "starter selection must not repeat a template");
+  assert.ok(picked.every((id) => STARTER_STUDENT_IDS.includes(id)));
+  assert.deepEqual(picked, selectStarterStudentIds(seed), "starter selection must be deterministic per seed");
+}
+const variants = new Set(Array.from({ length: 40 }, (_, index) => selectStarterStudentIds(`variety-${index}`).join(",")));
+assert.ok(variants.size > 1, "different seeds must be able to yield different starter rosters");
 
 const orderedEvents = [{ type: "round_start", round: 1 }, { type: "battle_end", round: 1 }];
 const serializedEvents = JSON.parse(serializeEvents(orderedEvents));

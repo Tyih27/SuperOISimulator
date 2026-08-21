@@ -1,7 +1,6 @@
 import {
   ABILITY_KEYS,
   APTITUDE_ABILITY_RANGES,
-  DEFAULT_FORMATION,
   LEVELS,
   SKILL_GROUPS,
 } from "../../src/data.js";
@@ -11,7 +10,7 @@ import {
   DEFAULT_RECRUITMENT_STATE,
   DEFAULT_UNLOCKED_LEVEL_IDS,
   PROFILE_SCHEMA_VERSION,
-  STARTER_STUDENT_IDS,
+  selectStarterStudentIds,
 } from "../../src/domain/profile.js";
 import { normalizeStudentName } from "../../src/domain/student-identity.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
@@ -93,11 +92,16 @@ function validateStudent(studentId, student, ownedStudent) {
 
 function validateFormation(formation, students) {
   requireObject(formation, "Formation is invalid");
-  const ids = FORMATION_SLOTS.map((slot) => formation[slot]);
-  if (Object.keys(formation).length !== FORMATION_SLOTS.length || ids.some((id) => typeof id !== "string")
-    || new Set(ids).size !== FORMATION_SLOTS.length || ids.some((id) => !students[id])) {
-    throw invalid("Formation must contain three different owned students");
+  if (FORMATION_SLOTS.some((slot) => !(slot in formation))) {
+    throw invalid("Formation must include every slot");
   }
+  const ids = FORMATION_SLOTS.map((slot) => formation[slot]);
+  if (ids.some((id) => id !== null && typeof id !== "string")) {
+    throw invalid("Formation slots must be a student id or null");
+  }
+  const placed = ids.filter(Boolean);
+  if (placed.some((id) => !students[id])) throw invalid("Formation students must be owned by the profile");
+  if (new Set(placed).size !== placed.length) throw invalid("Formation must contain different students");
 }
 
 function validateProfile(profile, accountId) {
@@ -180,18 +184,20 @@ function mergeUpdate(profile, update) {
 }
 
 export class ProfileService {
-  constructor(pool) {
+  constructor(pool, { starterStudentIds = null } = {}) {
     this.pool = pool;
     this.repository = new ProfileRepository(pool);
     this.audit = new AuditRepository();
+    this.starterStudentIds = starterStudentIds;
   }
 
   defaultProfile(accountId) {
+    const studentIds = this.starterStudentIds ?? selectStarterStudentIds(accountId);
     return createProfile({
       accountId,
       identitySeed: accountId,
-      studentIds: STARTER_STUDENT_IDS,
-      formation: DEFAULT_FORMATION,
+      studentIds,
+      formation: Object.fromEntries(FORMATION_SLOTS.map((slot, index) => [slot, studentIds[index] ?? null])),
       inventory: {},
       currencies: DEFAULT_CURRENCIES,
       recruitment: DEFAULT_RECRUITMENT_STATE,

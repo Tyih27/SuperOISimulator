@@ -15,7 +15,7 @@ try {
   const aliceProfile = (await app.inject({ method: "GET", url: "/api/v1/profile", cookies: aliceCookie })).json();
   const bobProfile = (await app.inject({ method: "GET", url: "/api/v1/profile", cookies: bobCookie })).json();
   const defense = { version: aliceProfile.version, teamIds: ["planner", "graphist", "structurer"], formation: aliceProfile.formation };
-  const bobDefense = { version: bobProfile.version, teamIds: ["mathematician", "implementer", "supporter"], formation: { A1: "mathematician", A2: "implementer", A3: "supporter" } };
+  const bobDefense = { version: bobProfile.version, teamIds: ["structurer", "graphist", "planner"], formation: { A1: "structurer", A2: "graphist", A3: "planner" } };
   assert.equal((await request(app, { method: "PUT", url: "/api/v1/arena/defense", cookies: aliceCookie, payload: defense })).statusCode, 200);
   assert.equal((await request(app, { method: "PUT", url: "/api/v1/arena/defense", cookies: bobCookie, payload: bobDefense })).statusCode, 200);
   const opponents = await app.inject({ method: "GET", url: "/api/v1/arena/opponents", cookies: aliceCookie });

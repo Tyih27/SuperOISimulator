@@ -1,4 +1,5 @@
 import { NAME_POOL_VERSION, SKILL_GROUPS, STUDENTS } from "../data.js";
+import { createRng } from "../rng.js";
 import {
   aptitudeForAbilities,
   createStudentIdentity,
@@ -12,6 +13,7 @@ export { renameStudent } from "./student-identity.js";
 export const LEGACY_PROFILE_SCHEMA_VERSION = 1;
 export const PROFILE_SCHEMA_VERSION = 3;
 export const STARTER_STUDENT_IDS = Object.freeze(STUDENTS.map(({ id }) => id));
+export const STARTER_STUDENT_COUNT = 3;
 export const DEFAULT_CURRENCIES = Object.freeze({
   trainingCoins: 1_000,
   recruitmentTickets: 1,
@@ -44,6 +46,16 @@ function requireStudentIds(studentIds) {
     if (!studentById.has(studentId)) throw new Error(`Unknown student: ${studentId}`);
   }
   return studentIds;
+}
+
+export function selectStarterStudentIds(seed, count = STARTER_STUDENT_COUNT) {
+  const rng = createRng(seed);
+  const pool = [...STARTER_STUDENT_IDS];
+  const chosen = [];
+  while (chosen.length < count && pool.length > 0) {
+    chosen.push(...pool.splice(Math.floor(rng.next() * pool.length), 1));
+  }
+  return chosen;
 }
 
 function createOwnedStudent(studentId, identitySeed, namePoolVersion) {

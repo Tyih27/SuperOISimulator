@@ -3,7 +3,7 @@ import { LEVELS, SHOP_OFFERS, STUDENTS } from "../../src/data.js";
 import {
   applySpecialistTraining,
   createRecruitedStudent,
-  dismissRecruitedStudent,
+  dismissStudent,
   SPECIALIST_TRAINING_COST,
   STUDENT_DISMISSAL_MATERIAL_REWARD,
   STUDENT_TRAINING_MATERIAL_ID,
@@ -71,12 +71,12 @@ function addShopGrants(profile, grants) {
 }
 
 export class ProgressionService {
-  constructor(pool, { now = () => new Date(), idFactory = randomUUID } = {}) {
+  constructor(pool, { now = () => new Date(), idFactory = randomUUID, starterStudentIds = null } = {}) {
     this.pool = pool;
     this.repository = new ProfileRepository(pool);
     this.ledger = new LedgerRepository();
     this.audit = new AuditRepository();
-    this.profileDefaults = new ProfileService(pool);
+    this.profileDefaults = new ProfileService(pool, { starterStudentIds });
     this.now = now;
     this.idFactory = idFactory;
   }
@@ -219,7 +219,7 @@ export class ProgressionService {
     return this.withProfile(accountId, async ({ client, profile }) => {
       let next;
       try {
-        next = dismissRecruitedStudent(profile, { studentId: studentId.trim() });
+        next = dismissStudent(profile, { studentId: studentId.trim() });
       } catch (error) {
         throw invalid(error.message);
       }

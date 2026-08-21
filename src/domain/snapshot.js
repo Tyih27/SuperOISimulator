@@ -22,8 +22,9 @@ function deepFreeze(value) {
 }
 
 function validateTeam(profile, teamIds) {
-  if (!Array.isArray(teamIds) || teamIds.length !== 3 || new Set(teamIds).size !== 3) {
-    throw new Error("Battle team must contain exactly three different students");
+  if (!Array.isArray(teamIds) || teamIds.length < 1 || teamIds.length > FORMATION_SLOTS.length
+    || new Set(teamIds).size !== teamIds.length) {
+    throw new Error("Battle team must contain one to three different students");
   }
   if (teamIds.some((studentId) => !profile.students?.[studentId])) {
     throw new Error("Every selected student must be owned by the profile");
@@ -33,15 +34,19 @@ function validateTeam(profile, teamIds) {
 function createFormation(teamIds, configuredFormation) {
   const formation = configuredFormation
     ? structuredClone(configuredFormation)
-    : Object.fromEntries(FORMATION_SLOTS.map((slot, index) => [slot, teamIds[index]]));
-  const formationIds = FORMATION_SLOTS.map((slot) => formation[slot]);
+    : Object.fromEntries(FORMATION_SLOTS.map((slot, index) => [slot, teamIds[index] ?? null]));
+  if (FORMATION_SLOTS.some((slot) => !(slot in formation))) {
+    throw new Error("Battle formation must include every slot");
+  }
+  const formationIds = FORMATION_SLOTS.map((slot) => formation[slot] ?? null);
+  const placed = formationIds.filter(Boolean);
 
   if (
-    Object.keys(formation).length !== FORMATION_SLOTS.length
-    || new Set(formationIds).size !== 3
-    || formationIds.some((studentId) => !teamIds.includes(studentId))
+    placed.some((studentId) => !teamIds.includes(studentId))
+    || new Set(placed).size !== placed.length
+    || placed.length !== teamIds.length
   ) {
-    throw new Error("Battle formation must place the selected team in A1, A2 and A3");
+    throw new Error("Battle formation must place every selected student in a distinct slot");
   }
   return formation;
 }

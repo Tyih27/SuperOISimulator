@@ -26,7 +26,8 @@ try {
   const initial = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: { sid: cookie.value } });
   assert.equal(initial.statusCode, 200);
   const initialProfile = initial.json();
-  assert.equal(Object.keys(initialProfile.students).length, 6);
+  assert.equal(Object.keys(initialProfile.students).length, 3);
+  assert.ok(Object.values(initialProfile.students).every(({ aptitude }) => aptitude === "普通"));
   assert.deepEqual(initialProfile.currencies, { trainingCoins: 1000, recruitmentTickets: 1 });
   assert.deepEqual(initialProfile.formation, { A1: "planner", A2: "graphist", A3: "structurer" });
   assert.deepEqual(initialProfile.unlockedLevelIds, ["chapter-1-1"]);
@@ -60,7 +61,7 @@ try {
     cookies: { sid: cookie.value },
     payload: {
       version: initialProfile.version,
-      formation: { A1: "planner", A2: "graphist", A3: "mathematician" },
+      formation: { A1: "structurer", A2: "graphist", A3: "planner" },
       students: { planner: { ...initialProfile.students.planner, name: "  林澈  " } },
     },
   });

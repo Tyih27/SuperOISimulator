@@ -31,10 +31,10 @@ function publicDefense(row) {
 }
 
 export class ArenaService {
-  constructor(pool, { now = () => new Date(), idFactory = randomUUID } = {}) {
+  constructor(pool, { now = () => new Date(), idFactory = randomUUID, starterStudentIds = null } = {}) {
     this.pool = pool; this.now = now; this.idFactory = idFactory;
     this.arena = new ArenaRepository(); this.profiles = new ProfileRepository(pool);
-    this.defaults = new ProfileService(pool); this.ledger = new LedgerRepository(); this.audit = new AuditRepository();
+    this.defaults = new ProfileService(pool, { starterStudentIds }); this.ledger = new LedgerRepository(); this.audit = new AuditRepository();
   }
 
   async setDefense(accountId, { version, teamIds, formation } = {}) {

@@ -3,7 +3,7 @@ import { ABILITY_KEYS, APTITUDE_ABILITY_RANGES, APTITUDE_ORDER, LEVELS, RECRUITM
 import {
   applySpecialistTraining,
   createRecruitedStudent,
-  dismissRecruitedStudent,
+  dismissStudent,
   selectRecruitmentAptitude,
   SPECIALIST_TRAINING_INCREMENTS,
   STUDENT_TRAINING_MATERIAL_ID,
@@ -87,7 +87,7 @@ assert.equal(snapshot.team[2].id, recruit.id, "recruited students must be eligib
 
 const dismissalProfile = structuredClone(profile);
 dismissalProfile.students[recruit.id] = recruit;
-const dismissed = dismissRecruitedStudent(dismissalProfile, { studentId: recruit.id });
+const dismissed = dismissStudent(dismissalProfile, { studentId: recruit.id });
 assert.equal(dismissed.students[recruit.id], undefined);
 assert.equal(dismissed.inventory[STUDENT_TRAINING_MATERIAL_ID], 1);
 const materialTraining = applySpecialistTraining({
@@ -115,9 +115,14 @@ assert.throws(
   () => applySpecialistTraining({ ...profile, inventory: {} }, { studentId: "planner", ability: "dynamicProgramming" }),
   /training book or student training material/,
 );
-assert.throws(() => dismissRecruitedStudent(profile, { studentId: "planner" }), /Only recruited students/);
+assert.throws(() => dismissStudent(profile, { studentId: "planner" }), /formation student/);
+const benchStarterProfile = structuredClone(dismissalProfile);
+benchStarterProfile.formation = { A1: "graphist", A2: "structurer", A3: recruit.id };
+const dismissedStarter = dismissStudent(benchStarterProfile, { studentId: "planner" });
+assert.equal(dismissedStarter.students.planner, undefined, "starter students on the bench must be dismissible");
+assert.equal(dismissedStarter.inventory[STUDENT_TRAINING_MATERIAL_ID], 1);
 assert.throws(
-  () => dismissRecruitedStudent({ ...dismissalProfile, formation: { A1: recruit.id, A2: "graphist", A3: "structurer" } }, { studentId: recruit.id }),
+  () => dismissStudent({ ...dismissalProfile, formation: { A1: recruit.id, A2: "graphist", A3: "structurer" } }, { studentId: recruit.id }),
   /formation student/,
 );
 

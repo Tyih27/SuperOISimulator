@@ -80,13 +80,13 @@ export function runBattleSnapshot(snapshot) {
 }
 
 export class BattleService {
-  constructor(pool, { now = () => new Date(), idFactory = randomUUID } = {}) {
+  constructor(pool, { now = () => new Date(), idFactory = randomUUID, starterStudentIds = null } = {}) {
     this.pool = pool;
     this.now = now;
     this.idFactory = idFactory;
     this.battles = new BattleRepository();
     this.profiles = new ProfileRepository(pool);
-    this.profileDefaults = new ProfileService(pool);
+    this.profileDefaults = new ProfileService(pool, { starterStudentIds });
     this.ledger = new LedgerRepository();
     this.audit = new AuditRepository();
   }

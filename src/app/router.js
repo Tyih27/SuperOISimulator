@@ -34,9 +34,9 @@ function isErrorRateLimited(error) {
 }
 
 function isValidFormationMap(formation, students) {
-  const placed = POSITIONS.map((slot) => formation?.[slot]);
-  return placed.every(Boolean)
-    && new Set(placed).size === POSITIONS.length
+  const placed = POSITIONS.map((slot) => formation?.[slot]).filter(Boolean);
+  return placed.length <= POSITIONS.length
+    && new Set(placed).size === placed.length
     && placed.every((studentId) => Boolean(students?.[studentId]));
 }
 
@@ -229,7 +229,7 @@ export class AppRouter {
     else if (this.route === "arena") content = renderArena({ profile: this.profile, ...this.arena, message: this.message, messageIsError: this.messageIsError });
     else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, message: this.message, messageIsError: this.messageIsError });
     const detailStudent = this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
-    const dismissible = Boolean(detailStudent?.id?.startsWith("recruit-")
+    const dismissible = Boolean(detailStudent
       && !Object.values(this.profile.formation ?? {}).includes(detailStudent.id));
     const lineupDialog = this.lineupOpen && this.route === "roster" ? renderLineupDialog({ profile: this.profile }) : "";
     this.root.innerHTML = renderShell({ account: this.account, route: this.route, content: `${content}${lineupDialog}${renderStudentDetail({ student: detailStudent, editingName: this.detailNameEditing, dismissible })}` });
@@ -324,7 +324,7 @@ export class AppRouter {
       return;
     }
     const action = button.dataset.action;
-    if (!action && !button.dataset.opponentId && !button.dataset.buyOffer && !button.dataset.saveName && !button.dataset.dismissStudent && !button.dataset.playbackSpeed) return;
+    if (!action && !button.dataset.opponentId && !button.dataset.buyOffer && !button.dataset.saveName && !button.dataset.dismissStudent && !button.dataset.benchStudent && !button.dataset.playbackSpeed) return;
     event.preventDefault();
     try {
       if (action === "logout") {
@@ -398,9 +398,14 @@ export class AppRouter {
         this.arena.history = await this.client.get("/arena/matches?limit=20");
         this.message = "比赛历史已刷新。";
       } else if (action === "save-arena-defense") {
-        const saved = await this.client.put("/arena/defense", { version: this.profile.version, teamIds: POSITIONS.map((slot) => this.profile.formation[slot]), formation: this.profile.formation });
-        this.arena.defense = saved.defense;
-        this.message = "防守编队已锁定。";
+        const teamIds = POSITIONS.map((slot) => this.profile.formation[slot]).filter(Boolean);
+        if (!teamIds.length) {
+          this.message = "请先在学生名单安排至少一名上场学生，再保存防守编队。";
+        } else {
+          const saved = await this.client.put("/arena/defense", { version: this.profile.version, teamIds, formation: this.profile.formation });
+          this.arena.defense = saved.defense;
+          this.message = "防守编队已锁定。";
+        }
       } else if (action === "settle-arena") {
         this.arena.replay = await this.client.post(`/arena/matches/${this.arena.match.id}/settle`, {});
         this.profile = this.arena.replay.profile ?? await this.client.get("/profile");
@@ -422,6 +427,17 @@ export class AppRouter {
         await this.buy(button.dataset.buyOffer);
       } else if (button.dataset.dismissStudent) {
         await this.dismissStudent(button.dataset.dismissStudent);
+      } else if (button.dataset.benchStudent) {
+        const formation = { ...this.profile.formation };
+        const slot = POSITIONS.find((position) => formation[position] === button.dataset.benchStudent);
+        if (slot) {
+          formation[slot] = null;
+          try {
+            await this.applyFormation(formation);
+          } catch (error) {
+            this.message = messageFor(error);
+          }
+        }
       } else if (button.dataset.saveName) {
         await this.saveName(button.dataset.saveName);
       }
@@ -521,7 +537,7 @@ export class AppRouter {
   }
 
   async applyFormation(formation) {
-    if (!isValidFormationMap(formation, this.profile.students)) throw new Error("请安排 3 名不同学生到 A1、A2、A3 站位。");
+    if (!isValidFormationMap(formation, this.profile.students)) throw new Error("编队学生必须是名单中未重复的学生。");
     this.lineupSaving = true;
     try {
       this.profile = await this.client.put("/profile", { version: this.profile.version, formation });
@@ -554,9 +570,14 @@ export class AppRouter {
 
   async startBattle() {
     const formation = { ...this.profile.formation };
+    const teamIds = POSITIONS.map((slot) => formation[slot]).filter(Boolean);
+    if (!teamIds.length) {
+      this.message = "请先在学生名单安排至少一名上场学生。";
+      return;
+    }
     const started = await this.client.post("/campaign/battles", {
       levelId: this.selectedLevelId,
-      teamIds: POSITIONS.map((slot) => formation[slot]),
+      teamIds,
       formation,
     });
     this.battle = { ...started, settlement: null, playback: null, playbackState: null };

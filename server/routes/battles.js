@@ -30,7 +30,7 @@ function sendBattleError(reply, error) {
 }
 
 export async function battleRoutes(app) {
-  const service = new BattleService(app.db, { now: app.config.now, idFactory: app.config.idFactory });
+  const service = new BattleService(app.db, { now: app.config.now, idFactory: app.config.idFactory, starterStudentIds: app.config.defaultStarterIds ?? null });
   app.decorate("battleAuthService", new AuthService(app.db, { sessionTtlMs: app.config.sessionTtlMs }));
   const protectedAction = { preHandler: [requireSameOrigin, requireAccount] };
 

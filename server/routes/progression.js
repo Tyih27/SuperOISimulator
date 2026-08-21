@@ -38,7 +38,7 @@ function action(schema, handler, params) {
 }
 
 export async function progressionRoutes(app) {
-  const service = new ProgressionService(app.db, { now: app.config.now, idFactory: app.config.idFactory });
+  const service = new ProgressionService(app.db, { now: app.config.now, idFactory: app.config.idFactory, starterStudentIds: app.config.defaultStarterIds ?? null });
   app.decorate("progressionAuthService", new AuthService(app.db, { sessionTtlMs: app.config.sessionTtlMs }));
 
   app.post("/training/specialist", action(SPECIALIST_TRAINING_DTO_SCHEMA, async (request, reply) => {

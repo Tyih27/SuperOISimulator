@@ -18,14 +18,14 @@ function copyPositions(positions, teamIds) {
 }
 
 function validateFormation(teamIds, positions, studentData = STUDENTS) {
-  if (teamIds.length !== 3 || new Set(teamIds).size !== 3) {
-    throw new Error('A team must contain exactly three different students');
+  if (teamIds.length < 1 || teamIds.length > 3 || new Set(teamIds).size !== teamIds.length) {
+    throw new Error('A team must contain one to three different students');
   }
   const known = new Set(studentData.map((student) => student.id));
   if (teamIds.some((id) => !known.has(id))) throw new Error('Team contains an unknown student');
-  const placed = POSITIONS.map((position) => positions[position]);
-  if (placed.some((id) => !id) || new Set(placed).size !== 3 || placed.some((id) => !teamIds.includes(id))) {
-    throw new Error('A1, A2 and A3 must contain the selected students');
+  const placed = POSITIONS.map((position) => positions[position]).filter(Boolean);
+  if (placed.length !== teamIds.length || new Set(placed).size !== placed.length || placed.some((id) => !teamIds.includes(id))) {
+    throw new Error('Every selected student must occupy a distinct position in A1, A2 or A3');
   }
 }
 

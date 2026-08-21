@@ -118,14 +118,13 @@ export function createRecruitedStudent({ studentId, seed, namePoolVersion, templ
   };
 }
 
-export function dismissRecruitedStudent(profile, { studentId } = {}) {
+export function dismissStudent(profile, { studentId } = {}) {
   requireProfile(profile);
   if (typeof studentId !== "string" || studentId.trim() === "") {
     throw new Error("Student id is required");
   }
   const student = profile.students[studentId];
   if (!student) throw new Error("Student must be owned by the profile");
-  if (!studentId.startsWith("recruit-")) throw new Error("Only recruited students can be dismissed");
   if (Object.values(profile.formation ?? {}).includes(studentId)) {
     throw new Error("A formation student cannot be dismissed");
   }

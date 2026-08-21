@@ -34,7 +34,7 @@ async function requireAccount(request, reply) {
 }
 
 export async function profileRoutes(app) {
-  const service = new ProfileService(app.db);
+  const service = new ProfileService(app.db, { starterStudentIds: app.config.defaultStarterIds ?? null });
   app.decorate("profileAuthService", new AuthService(app.db, { sessionTtlMs: app.config.sessionTtlMs }));
 
   app.get("/", { preHandler: requireAccount }, async (request, reply) => {

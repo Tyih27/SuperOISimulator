@@ -8,7 +8,7 @@ async function account(request, reply) { const value = await request.server.aren
 function action(schema, handler) { return { preHandler: [origin, account], schema: { body: schema }, handler: async (request, reply) => { try { return await handler(request, reply); } catch (error) { if (!(error instanceof ArenaError)) throw error; return reply.code(error.statusCode).send({ code: error.code, message: error.message }); } } }; }
 
 export async function arenaRoutes(app) {
-  const service = new ArenaService(app.db, { now: app.config.now, idFactory: app.config.idFactory });
+  const service = new ArenaService(app.db, { now: app.config.now, idFactory: app.config.idFactory, starterStudentIds: app.config.defaultStarterIds ?? null });
   app.decorate("arenaAuthService", new AuthService(app.db, { sessionTtlMs: app.config.sessionTtlMs }));
   app.get("/defense", { preHandler: account }, async (request) => { const client = await app.db.connect(); try { const row = await service.arena.getDefense(client, request.account.id); const quota = await service.dailyQuota(client, request.account.id); return row ? { defense: { accountId: row.account_id, rating: row.rating, battlesWon: row.battles_won, battlesLost: row.battles_lost }, snapshot: row.snapshot, ...quota } : { defense: null, ...quota }; } finally { client.release(); } });
   app.put("/defense", action(ARENA_DEFENSE_DTO_SCHEMA, (request) => service.setDefense(request.account.id, request.body)));

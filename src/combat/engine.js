@@ -47,12 +47,15 @@ export class CombatEngine {
     this.studentById = Object.fromEntries(this.studentData.map((student) => [student.id, student]));
     this.problemById = Object.fromEntries(this.problemData.map((problem) => [problem.id, problem]));
     this.teamIds = [...(options.teamIds ?? this.studentData.slice(0, 3).map((student) => student.id))];
-    if (this.teamIds.length !== 3 || new Set(this.teamIds).size !== 3 || this.teamIds.some((id) => !this.studentById[id])) {
-      throw new Error('A team must contain exactly three known students');
+    if (this.teamIds.length < 1 || this.teamIds.length > 3 || new Set(this.teamIds).size !== this.teamIds.length || this.teamIds.some((id) => !this.studentById[id])) {
+      throw new Error('A team must contain one to three known students');
     }
-    const configuredPositions = options.positions ?? { A1: this.teamIds[0], A2: this.teamIds[1], A3: this.teamIds[2] };
+    const configuredPositions = options.positions ?? Object.fromEntries(POSITIONS.map((position, index) => [position, this.teamIds[index] ?? null]));
     this.positions = Object.fromEntries(POSITIONS.map((position) => [position, configuredPositions[position] ?? null]));
-    if (new Set(Object.values(this.positions).filter(Boolean)).size !== 3) throw new Error('A1, A2 and A3 must contain different students');
+    const placed = Object.values(this.positions).filter(Boolean);
+    if (placed.length !== this.teamIds.length || new Set(placed).size !== placed.length || placed.some((id) => !this.studentById[id])) {
+      throw new Error('Every team member must occupy a distinct position in A1, A2 or A3');
+    }
 
     const initialIds = options.initialActiveTopicIds ?? options.initialActiveProblemIds ?? level.topicIds.slice(0, 3);
     this.activeProblems = { B1: initialIds[0] ?? null, B2: initialIds[1] ?? null, B3: initialIds[2] ?? null };

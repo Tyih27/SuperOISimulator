@@ -125,14 +125,8 @@ test("profile version conflict shows refresh message", async ({ page }) => {
   await expect(page.getByRole("link", { name: "学生名单" })).toBeVisible();
 
   await page.getByRole("link", { name: "学生名单" }).click();
-  await page.locator('[data-student-detail="planner"]').click();
-  await expect(page.locator(".student-detail-dialog")).toBeVisible();
-
-  await page.getByRole("button", { name: "修改名字" }).click();
-  const input = page.locator("[data-name-input]");
-  await input.clear();
-  await input.fill("冲突测试");
-  await page.locator('[data-save-name="planner"]').click();
+  await page.getByRole("button", { name: "调整阵容" }).click();
+  await page.locator('[data-bench-student="planner"]').click();
   await expect(page.getByText("档案已更新，请刷新后重试")).toBeVisible();
 });
 
