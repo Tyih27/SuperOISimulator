@@ -109,14 +109,12 @@ input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 
 .campaign-formation-grid, .progression-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(250px, 0.8fr); gap: 1rem; }
 .campaign-formation-grid fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .campaign-formation-grid legend { margin-bottom: 0.55rem; color: var(--muted); font-size: 0.7rem; font-weight: 720; }
-.student-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
-.student-choice { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.55rem; align-items: center; min-height: 3.25rem; padding: 0.5rem 0.6rem; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 5px; }
-.student-choice-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem; }
-.student-choice > label { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.5rem; align-items: center; min-width: 0; color: var(--muted); font-size: 0.72rem; }
-.student-choice input { min-height: auto; padding: 0; }
-.student-choice span { display: grid; min-width: 0; }
-.student-choice strong, .student-choice small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.student-choice strong { font-size: 0.74rem; }.student-choice small { color: var(--muted); font-size: 0.65rem; }
+.lineup-overlay { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: clamp(1rem, 4vw, 3rem); background: rgba(23, 23, 23, 0.58); }
+.lineup-dialog { width: min(980px, 100%); max-height: min(92vh, 820px); overflow: auto; padding: clamp(1.15rem, 3vw, 2rem); background: var(--surface); border: 1px solid var(--line-strong); border-top: 4px solid var(--gold); border-radius: 8px; box-shadow: 0 24px 70px rgba(23, 23, 23, 0.25); }
+.lineup-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.lineup-header h2 { font-size: clamp(1.05rem, 2.4vw, 1.35rem); }
+.lineup-slots-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; margin-top: 0.9rem; }
+.bench-card { min-height: 9rem; background: var(--surface-soft); }
 .formation-workbench .formation-actions { justify-content: flex-end; }
 .roster-grid, .shop-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
 .roster-card, .shop-offer { display: grid; gap: 0.7rem; align-content: start; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
@@ -134,11 +132,21 @@ input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 
 .roster-card .student-name-edit .secondary-button, .roster-card .student-name-edit .icon-button { flex: 0 0 auto; min-height: 2.05rem; padding: 0.35rem 0.5rem; font-size: 0.68rem; }
 .roster-card dl { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.6rem; margin: 0; padding-top: 0.7rem; border-top: 1px solid var(--line); }
 .roster-card dl div { display: flex; justify-content: space-between; gap: 0.4rem; color: var(--muted); font-size: 0.63rem; }.roster-card dt, .roster-card dd { margin: 0; }.roster-card dd { color: var(--ink); font-weight: 700; }
-.roster-formation, .roster-team-editor { margin-top: 1.15rem; padding: 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
-.roster-team-grid { margin-top: 0.85rem; }
 .roster-title-row { display: flex; align-items: baseline; gap: 0.7rem; flex-wrap: wrap; }
 .roster-title-row h1 { margin: 0; }
 .roster-overall { color: var(--gold-deep); font-size: 0.78rem; white-space: nowrap; }
+.roster-heading { display: grid; gap: 0.15rem; min-width: 0; }
+.view-heading > .primary-button { flex: 0 0 auto; }
+.roster-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+.roster-tab { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 2.35rem; padding: 0.4rem 0.95rem; color: var(--muted); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 999px; font-size: 0.8rem; font-weight: 720; }
+.roster-tab:hover { color: var(--ink); border-color: var(--ink); }
+.roster-tab.is-active { color: var(--gold-deep); background: var(--gold-wash); border-color: #e3b341; }
+.roster-detail-panel { display: grid; gap: clamp(1rem, 2.5vw, 1.5rem); align-content: start; min-height: min(62vh, 560px); padding: clamp(1.25rem, 3.5vw, 2.5rem); background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--gold); border-radius: var(--radius); box-shadow: var(--shadow); }
+.dossier-head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.7rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
+.dossier-head .roster-slot { font-size: 0.95rem; }
+.dossier-head h2 { margin: 0; font-size: clamp(1.45rem, 3.4vw, 2.15rem); letter-spacing: -0.02em; line-height: 1.1; }
+.hero-tag { padding: 0.28rem 0.65rem; color: var(--muted); background: var(--surface-soft); border: 1px solid var(--line); border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+.hero-tag-skill { color: var(--gold-deep); background: var(--gold-wash); border-color: #f0d48a; }
 .team-member-card { min-height: 16rem; cursor: grab; }
 .team-member-card:active { cursor: grabbing; }
 .team-member-card.is-dragging { opacity: 0.48; }
@@ -147,9 +155,42 @@ input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 
 .roster-slot { color: var(--gold-deep); font-family: "SFMono-Regular", Consolas, monospace; font-size: 0.72rem; font-weight: 800; }
 .drag-hint { color: var(--subtle); font-size: 0.62rem; }
 .student-detail-trigger { flex: 0 0 auto; min-height: 1.65rem; padding: 0.2rem 0.45rem; font-size: 0.65rem; }
-.roster-team-editor { margin-top: 1rem; }
-.roster-team-editor fieldset { margin: 0; padding: 0; border: 0; }
-.roster-team-editor legend { margin-bottom: 0.55rem; color: var(--muted); font-size: 0.7rem; font-weight: 720; }
+.student-page-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.7rem; margin: 0; }
+.student-page-summary div { display: grid; gap: 0.2rem; padding: 0.85rem 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.student-page-summary span { color: var(--muted); font-size: 0.7rem; }
+.student-page-summary strong { font-size: 1.05rem; }
+.enhance-panel { display: grid; gap: 0.6rem; }
+.enhance-panel .panel-header { margin-bottom: 0; }
+.enhance-form { display: grid; gap: 0.8rem; padding-top: 0.6rem; }
+.enhance-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.enhance-form legend { margin-bottom: 0.55rem; color: var(--muted); font-size: 0.7rem; font-weight: 720; }
+.enhance-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; }
+.enhance-option { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.5rem; align-items: center; min-width: 0; padding: 0.6rem 0.65rem; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 5px; cursor: pointer; }
+.enhance-option:hover { border-color: var(--line-strong); }
+.enhance-option input { width: 1rem; height: 1rem; margin: 0; accent-color: var(--gold); }
+.enhance-option span { display: grid; min-width: 0; }
+.enhance-option strong, .enhance-option small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.enhance-option strong { font-size: 0.76rem; }
+.enhance-option small { color: var(--muted); font-size: 0.64rem; }
+.enhance-option:has(input:focus-visible) { outline: 3px solid rgba(161, 98, 7, 0.34); outline-offset: 2px; }
+.enhance-form > .view-subtitle { margin: 0; }
+.enhance-form > .primary-button { justify-self: start; }
+.student-page-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.65rem; }
+.replace-panel { display: grid; gap: 0.6rem; }
+.replace-panel .panel-header { margin-bottom: 0; }
+.replace-options { display: grid; gap: 0.5rem; padding-top: 0.6rem; }
+.replace-option { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem; padding: 0.6rem 0.75rem; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 5px; }
+.replace-info { display: grid; gap: 0.15rem; min-width: 0; }
+.replace-info strong { font-size: 0.8rem; }
+.replace-info small { overflow: hidden; color: var(--muted); font-size: 0.66rem; text-overflow: ellipsis; white-space: nowrap; }
+.replace-actions { display: flex; align-items: center; gap: 0.4rem; }
+.bench-strip { margin-top: 1.15rem; padding: 0.95rem 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.bench-strip h2 { margin-bottom: 0.65rem; font-size: 0.86rem; }
+.bench-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.bench-pill { display: grid; gap: 0.1rem; padding: 0.45rem 0.8rem; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 999px; text-align: left; }
+.bench-pill:hover { border-color: var(--gold); background: var(--gold-wash); }
+.bench-pill strong { font-size: 0.76rem; }
+.bench-pill span { color: var(--muted); font-size: 0.62rem; }
 .campaign-actions { display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1.15rem; }
 .campaign-actions .secondary-button { display: inline-flex; align-items: center; text-decoration: none; }
 .student-detail-overlay { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: clamp(1rem, 4vw, 3rem); background: rgba(23, 23, 23, 0.58); }
@@ -401,7 +442,7 @@ h2 { margin-bottom: 0; font-size: 1.05rem; letter-spacing: -0.02em; line-height:
 .arena-match { margin-top: 1rem; }
 .arena-match details { margin-top: 1rem; }
 .arena-match summary { color: var(--ink); font-size: 0.76rem; font-weight: 700; cursor: pointer; }
-@media (max-width: 760px) { .student-detail-overlay { padding: 0.7rem; }.student-detail-dialog { max-height: 94vh; }.student-detail-skills { grid-template-columns: 1fr; }.arena-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .student-detail-overlay, .lineup-overlay { padding: 0.7rem; }.student-detail-dialog, .lineup-dialog { max-height: 94vh; }.student-detail-skills { grid-template-columns: 1fr; }.arena-grid { grid-template-columns: 1fr; }.lineup-slots-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.enhance-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }.student-page-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 @media (max-width: 1050px) {
   .topbar { align-items: flex-start; }
@@ -413,7 +454,7 @@ h2 { margin-bottom: 0; font-size: 1.05rem; letter-spacing: -0.02em; line-height:
 }
 
 @media (max-width: 760px) {
-  .account-topbar { display: grid; gap: 0.65rem; }.account-topbar nav { order: 3; overflow-x: auto; }.account-actions { position: absolute; top: 1rem; right: 1rem; }.account-actions > span { display: none; }.account-main { padding-top: 1.15rem; }.view-heading { display: grid; gap: 0.45rem; }.view-heading .app-message { text-align: left; }.level-list, .roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.campaign-formation-grid, .progression-grid, .account-control-section { grid-template-columns: 1fr; }.shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .account-topbar { display: grid; gap: 0.65rem; }.account-topbar nav { order: 3; overflow-x: auto; }.account-actions { position: absolute; top: 1rem; right: 1rem; }.account-actions > span { display: none; }.account-main { padding-top: 1.15rem; }.view-heading { display: grid; gap: 0.45rem; }.view-heading .app-message { text-align: left; }.level-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }.campaign-formation-grid, .progression-grid, .account-control-section { grid-template-columns: 1fr; }.shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .topbar { display: grid; gap: 0.8rem; padding-top: 0.85rem; padding-bottom: 0.85rem; }
   .topbar-status { justify-content: flex-start; gap: 0.7rem; }
   .status-divider { height: 1.5rem; }
@@ -444,7 +485,7 @@ h2 { margin-bottom: 0; font-size: 1.05rem; letter-spacing: -0.02em; line-height:
 }
 
 @media (max-width: 420px) {
-  .auth-panel { padding: 1.15rem; }.auth-actions, .level-list, .roster-grid, .student-choices, .shop-grid, .student-detail-summary, .student-detail-abilities { grid-template-columns: 1fr; }.campaign-detail, .battle-summary, .campaign-actions { display: grid; }.reward-summary { padding: 0.7rem 0 0; border-top: 1px solid #3c3c3c; border-left: 0; }.resource-strip { gap: 0.6rem; }.resource-strip div { min-width: 0; padding-right: 0.7rem; }.settled-result dl { gap: 0.8rem; }
+  .auth-panel { padding: 1.15rem; }.auth-actions, .level-list, .shop-grid, .student-detail-summary, .student-detail-abilities { grid-template-columns: 1fr; }.lineup-slots-grid, .enhance-options, .student-page-summary { grid-template-columns: 1fr; }.roster-detail-panel { min-height: 0; }.replace-option { align-items: stretch; flex-direction: column; }.campaign-detail, .battle-summary, .campaign-actions { display: grid; }.reward-summary { padding: 0.7rem 0 0; border-top: 1px solid #3c3c3c; border-left: 0; }.resource-strip { gap: 0.6rem; }.resource-strip div { min-width: 0; padding-right: 0.7rem; }.settled-result dl { gap: 0.8rem; }
   .student-detail-name-editor { grid-template-columns: 1fr; align-items: stretch; }
   .page-content { padding-right: 0.75rem; padding-left: 0.75rem; }
   .briefing-metrics > div { padding: 0 0.45rem; }

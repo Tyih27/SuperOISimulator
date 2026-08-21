@@ -10,7 +10,7 @@ function action(schema, handler) { return { preHandler: [origin, account], schem
 export async function arenaRoutes(app) {
   const service = new ArenaService(app.db, { now: app.config.now, idFactory: app.config.idFactory });
   app.decorate("arenaAuthService", new AuthService(app.db, { sessionTtlMs: app.config.sessionTtlMs }));
-  app.get("/defense", { preHandler: account }, async (request, reply) => { try { const client = await app.db.connect(); try { const row = await service.arena.getDefense(client, request.account.id); return row ? { defense: { accountId: row.account_id, rating: row.rating, battlesWon: row.battles_won, battlesLost: row.battles_lost }, snapshot: row.snapshot } : { defense: null }; } finally { client.release(); } } catch (error) { throw error; } });
+  app.get("/defense", { preHandler: account }, async (request) => { const client = await app.db.connect(); try { const row = await service.arena.getDefense(client, request.account.id); const quota = await service.dailyQuota(client, request.account.id); return row ? { defense: { accountId: row.account_id, rating: row.rating, battlesWon: row.battles_won, battlesLost: row.battles_lost }, snapshot: row.snapshot, ...quota } : { defense: null, ...quota }; } finally { client.release(); } });
   app.put("/defense", action(ARENA_DEFENSE_DTO_SCHEMA, (request) => service.setDefense(request.account.id, request.body)));
   app.get("/opponents", { preHandler: account }, (request) => service.opponents(request.account.id));
   app.get("/matches", { preHandler: account }, (request) => service.history(request.account.id, request.query?.limit));

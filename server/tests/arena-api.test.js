@@ -35,6 +35,21 @@ try {
   const replay = await app.inject({ method: "GET", url: `/api/v1/arena/matches/${match.json().id}`, cookies: bobCookie });
   assert.equal(replay.statusCode, 200);
   assert.equal(replay.json().hashes.attacker, settled.json().replay.attackerEventsHash);
+  for (let i = 0; i < 38; i += 1) {
+    const extra = await request(app, { method: "POST", url: "/api/v1/arena/matches", cookies: aliceCookie, payload: { opponentId: bob.json().account.id } });
+    assert.equal(extra.statusCode, 201);
+    const settledExtra = await request(app, { method: "POST", url: `/api/v1/arena/matches/${extra.json().id}/settle`, cookies: aliceCookie, payload: {} });
+    assert.equal(settledExtra.statusCode, 200);
+  }
+  const pending = await request(app, { method: "POST", url: "/api/v1/arena/matches", cookies: aliceCookie, payload: { opponentId: bob.json().account.id } });
+  assert.equal(pending.statusCode, 201);
+  const defenseInfo = await app.inject({ method: "GET", url: "/api/v1/arena/defense", cookies: aliceCookie });
+  assert.equal(defenseInfo.statusCode, 200);
+  assert.equal(defenseInfo.json().battlesToday, 40);
+  assert.equal(defenseInfo.json().dailyLimit, 40);
+  const blocked = await request(app, { method: "POST", url: "/api/v1/arena/matches", cookies: aliceCookie, payload: { opponentId: bob.json().account.id } });
+  assert.equal(blocked.statusCode, 409);
+  assert.equal(blocked.json().code, "ARENA_DAILY_LIMIT_REACHED");
   console.log("arena API tests passed");
 } finally {
   await app.close();

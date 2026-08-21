@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { ABILITY_KEYS, LEVELS, RECRUITMENT_PITY_LIMIT, SHOP_OFFERS } from "../data.js";
+import { ABILITY_KEYS, APTITUDE_ABILITY_RANGES, APTITUDE_ORDER, LEVELS, RECRUITMENT_PITY_LIMIT, SHOP_OFFERS, STUDENTS } from "../data.js";
 import {
   applySpecialistTraining,
   createRecruitedStudent,
   dismissRecruitedStudent,
   selectRecruitmentAptitude,
-  SPECIALIST_TRAINING_INCREMENT,
+  SPECIALIST_TRAINING_INCREMENTS,
   STUDENT_TRAINING_MATERIAL_ID,
   specialistTrainingBookId,
 } from "../domain/progression.js";
@@ -16,8 +16,33 @@ assert.ok(LEVELS.length >= 3 && LEVELS.length <= 5, "the campaign must ship with
 assert.deepEqual(LEVELS.map((level) => level.order), [...LEVELS.keys()].map((index) => index + 1));
 assert.ok(LEVELS.some((level) => level.objective.type === "count"));
 assert.ok(LEVELS.some((level) => level.objective.type === "all"));
-assert.equal(SHOP_OFFERS.filter((offer) => offer.purchaseLimit?.period === "daily").length, 2);
+assert.equal(SHOP_OFFERS.filter((offer) => offer.purchaseLimit).length, 0);
 assert.equal(SHOP_OFFERS.find((offer) => offer.id === "recruitment-right").grants.recruitmentTickets, 1);
+
+for (const key of ABILITY_KEYS) {
+  for (let index = 1; index < APTITUDE_ORDER.length; index += 1) {
+    const previous = APTITUDE_ABILITY_RANGES[APTITUDE_ORDER[index - 1]][key];
+    const current = APTITUDE_ABILITY_RANGES[APTITUDE_ORDER[index]][key];
+    assert.ok(
+      current[0] >= previous[0] && current[1] > previous[1] && current[0] >= previous[1],
+      `${APTITUDE_ORDER[index]} must dominate ${APTITUDE_ORDER[index - 1]} on ${key}`,
+    );
+  }
+}
+for (const student of STUDENTS) {
+  for (const key of ABILITY_KEYS) {
+    const [minimum, maximum] = APTITUDE_ABILITY_RANGES[student.defaultAptitude][key];
+    const value = student.abilities[key];
+    assert.ok(value >= minimum && value <= maximum, `${student.id} ${key} must sit inside its aptitude range`);
+  }
+}
+assert.deepEqual(Object.keys(SPECIALIST_TRAINING_INCREMENTS), [...APTITUDE_ORDER]);
+for (let index = 1; index < APTITUDE_ORDER.length; index += 1) {
+  assert.ok(
+    SPECIALIST_TRAINING_INCREMENTS[APTITUDE_ORDER[index]] > SPECIALIST_TRAINING_INCREMENTS[APTITUDE_ORDER[index - 1]],
+    "higher aptitudes must train faster",
+  );
+}
 
 assert.equal(selectRecruitmentAptitude({ roll: 0, attemptsSinceGenius: 0 }).aptitude, "普通");
 assert.equal(selectRecruitmentAptitude({ roll: 0.95, attemptsSinceGenius: 0 }).aptitude, "稀有");
@@ -34,8 +59,9 @@ const profile = createProfile({
   currencies: { trainingCoins: 200, recruitmentTickets: 0 },
 });
 const abilityBefore = profile.students.planner.abilities.dynamicProgramming;
+const plannerIncrement = SPECIALIST_TRAINING_INCREMENTS[profile.students.planner.aptitude];
 const trained = applySpecialistTraining(profile, { studentId: "planner", ability: "dynamicProgramming" });
-assert.equal(trained.students.planner.abilities.dynamicProgramming, abilityBefore + SPECIALIST_TRAINING_INCREMENT);
+assert.equal(trained.students.planner.abilities.dynamicProgramming, abilityBefore + plannerIncrement);
 assert.equal(trained.currencies.trainingCoins, 100);
 assert.equal(trained.inventory[specialistTrainingBookId("dynamicProgramming")], 0);
 assert.equal(profile.students.planner.abilities.dynamicProgramming, abilityBefore, "training must not mutate the supplied profile");
@@ -68,8 +94,23 @@ const materialTraining = applySpecialistTraining({
   ...structuredClone(profile),
   inventory: { [STUDENT_TRAINING_MATERIAL_ID]: 1 },
 }, { studentId: "planner", ability: "dynamicProgramming" });
-assert.equal(materialTraining.students.planner.abilities.dynamicProgramming, abilityBefore + SPECIALIST_TRAINING_INCREMENT);
+assert.equal(materialTraining.students.planner.abilities.dynamicProgramming, abilityBefore + plannerIncrement);
 assert.equal(materialTraining.inventory[STUDENT_TRAINING_MATERIAL_ID], 0);
+
+const eliteRecruit = createRecruitedStudent({
+  studentId: "recruit-elite", seed: "elite-seed", namePoolVersion: profile.namePoolVersion,
+  templateId: "planner", aptitude: "天才",
+});
+const eliteProfile = structuredClone(profile);
+eliteProfile.students[eliteRecruit.id] = eliteRecruit;
+eliteProfile.inventory[specialistTrainingBookId("dynamicProgramming")] = 1;
+const eliteAbilityBefore = eliteProfile.students[eliteRecruit.id].abilities.dynamicProgramming;
+const eliteTrained = applySpecialistTraining(eliteProfile, { studentId: eliteRecruit.id, ability: "dynamicProgramming" });
+assert.equal(
+  eliteTrained.students[eliteRecruit.id].abilities.dynamicProgramming,
+  eliteAbilityBefore + SPECIALIST_TRAINING_INCREMENTS["天才"],
+  "training increment must follow the student's own aptitude",
+);
 assert.throws(
   () => applySpecialistTraining({ ...profile, inventory: {} }, { studentId: "planner", ability: "dynamicProgramming" }),
   /training book or student training material/,

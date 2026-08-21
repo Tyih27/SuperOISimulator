@@ -11,8 +11,16 @@ import { createStudentIdentity } from "./student-identity.js";
 import { createRng } from "../rng.js";
 
 export const SPECIALIST_TRAINING_COST = 100;
-export const SPECIALIST_TRAINING_INCREMENT = 40;
-export const MAX_TRAINED_ABILITY = 2_000;
+// Higher aptitudes also grow faster: each specialist training session adds
+// the increment of the student's own aptitude, so aptitude gaps widen over
+// time instead of being trained away.
+export const SPECIALIST_TRAINING_INCREMENTS = Object.freeze({
+  "普通": 15,
+  "优秀": 20,
+  "稀有": 25,
+  "天才": 30,
+  "顶尖": 40,
+});
 export const STUDENT_TRAINING_MATERIAL_ID = "student-training-material";
 export const STUDENT_DISMISSAL_MATERIAL_REWARD = 1;
 
@@ -74,18 +82,17 @@ export function applySpecialistTraining(profile, { studentId, ability } = {}) {
   if (!ABILITY_KEYS.includes(ability)) throw new Error("Unknown ability for specialist training");
   const student = profile.students[studentId];
   if (!student) throw new Error("Student must be owned by the profile");
+  const increment = SPECIALIST_TRAINING_INCREMENTS[student.aptitude];
+  if (!increment) throw new Error("Unknown student aptitude");
   const bookId = specialistTrainingBookId(ability);
   const itemId = (profile.inventory[bookId] ?? 0) > 0 ? bookId : STUDENT_TRAINING_MATERIAL_ID;
   if ((profile.inventory[itemId] ?? 0) < 1) throw new Error("A matching specialist training book or student training material is required");
   if ((profile.currencies.trainingCoins ?? 0) < SPECIALIST_TRAINING_COST) {
     throw new Error("Not enough training coins");
   }
-  if (student.abilities[ability] + SPECIALIST_TRAINING_INCREMENT > MAX_TRAINED_ABILITY) {
-    throw new Error("Ability has reached the training cap");
-  }
 
   const next = structuredClone(profile);
-  next.students[studentId].abilities[ability] += SPECIALIST_TRAINING_INCREMENT;
+  next.students[studentId].abilities[ability] += increment;
   next.currencies.trainingCoins -= SPECIALIST_TRAINING_COST;
   next.inventory[itemId] -= 1;
   return next;

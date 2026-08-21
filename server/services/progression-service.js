@@ -175,11 +175,6 @@ export class ProgressionService {
     return this.withProfile(accountId, async ({ client, profile }) => {
       const price = offer.price.trainingCoins ?? 0;
       if (profile.currencies.trainingCoins < price) throw invalid("Not enough training coins");
-      if (offer.purchaseLimit) {
-        const resetPeriod = offer.purchaseLimit.period === "daily" ? dailyPeriod(this.now()) : "permanent";
-        const claimed = await this.ledger.claimShopPurchase(client, { accountId, offerId: normalizedOfferId, resetPeriod });
-        if (!claimed) throw conflict("SHOP_PURCHASE_LIMIT_REACHED", "Shop purchase limit has been reached");
-      }
       profile.currencies.trainingCoins -= price;
       addShopGrants(profile, offer.grants);
       if (price > 0) await this.ledger.recordCurrency(client, { accountId, currency: "trainingCoins", delta: -price, sourceType: "shop", sourceId: normalizedOfferId });

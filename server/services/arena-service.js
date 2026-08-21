@@ -11,6 +11,7 @@ import { AuditRepository } from "../repositories/audit-repository.js";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const level = LEVELS[0];
+const ARENA_DAILY_BATTLE_LIMIT = 40;
 
 export class ArenaError extends Error {
   constructor(code, statusCode, message) { super(message); this.name = "ArenaError"; this.code = code; this.statusCode = statusCode; }
@@ -18,7 +19,9 @@ export class ArenaError extends Error {
 const invalid = (message) => new ArenaError("INVALID_ARENA_REQUEST", 400, message);
 const notFound = () => new ArenaError("ARENA_NOT_FOUND", 404, "Arena record does not exist");
 const conflict = (message) => new ArenaError("ARENA_CONFLICT", 409, message);
+const dailyLimitReached = () => new ArenaError("ARENA_DAILY_LIMIT_REACHED", 409, "Arena daily battle limit reached");
 const hash = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const resetTimeZone = () => process.env.RESET_TIME_ZONE || "Asia/Shanghai";
 
 function requireAccount(accountId) { if (typeof accountId !== "string" || !accountId.trim()) throw invalid("Account is required"); }
 function ratingDelta(winner) { return winner === "attacker" ? 25 : winner === "defender" ? -25 : 0; }
@@ -58,6 +61,11 @@ export class ArenaService {
     try { return (await this.arena.listOpponents(client, accountId)).map(publicDefense); } finally { client.release(); }
   }
 
+  async dailyQuota(client, accountId) {
+    const battlesToday = await this.arena.countAttackerMatchesOnDay(client, accountId, resetTimeZone());
+    return { battlesToday, dailyLimit: ARENA_DAILY_BATTLE_LIMIT };
+  }
+
   async history(accountId, limit) {
     requireAccount(accountId);
     const client = await this.pool.connect();
@@ -82,6 +90,8 @@ export class ArenaService {
       const defender = await this.arena.getDefense(client, opponentId, true);
       if (!attacker) throw invalid("Set a defensive formation before attacking");
       if (!defender || defender.account_id === accountId) throw notFound();
+      const battlesToday = await this.arena.countAttackerMatchesOnDay(client, accountId, resetTimeZone());
+      if (battlesToday >= ARENA_DAILY_BATTLE_LIMIT) throw dailyLimitReached();
       const matchId = this.idFactory();
       const match = await this.arena.createMatch(client, { id: matchId, attackerId: accountId, defenderId: opponentId, seed: `arena:${matchId}`, attackerSnapshot: attacker.snapshot, defenderSnapshot: defender.snapshot, attackerRatingBefore: attacker.rating, defenderRatingBefore: defender.rating });
       await client.query("COMMIT");

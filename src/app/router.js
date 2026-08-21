@@ -1,7 +1,7 @@
 import { ApiError } from "../api/client.js";
 import { createAuthSession, renderAccountScreen, renderAuthScreen } from "./auth.js";
 import { getLevel, renderCampaign } from "./campaign.js";
-import { renderProgression, renderRoster, renderStudentDetail } from "./progression.js";
+import { renderLineupDialog, renderProgression, renderRoster, renderStudentDetail } from "./progression.js";
 import { renderArena } from "./arena.js";
 import { createPlayback } from "./state.js";
 import { EVENT_LABELS } from "./event-labels.js";
@@ -17,28 +17,22 @@ function messageFor(error) {
   if (error instanceof ApiError) {
     const labels = {
       PROFILE_VERSION_CONFLICT: "档案已更新，请刷新后重试。",
-      SHOP_PURCHASE_LIMIT_REACHED: "该商品今日购买次数已用完。",
       DAILY_CHECK_IN_ALREADY_CLAIMED: "今日签到奖励已领取。",
       BATTLE_ALREADY_SETTLED: "这场战斗已经结算。",
       INVALID_PROGRESSION_REQUEST: "训练请求无效，请检查资源和选择。",
       INVALID_ARENA_REQUEST: "竞技场请求无效，请先保存防守编队。",
+      ARENA_DAILY_LIMIT_REACHED: "今日竞技场对战次数已达上限（40 场），请明天再战。",
     };
     return labels[error.code] ?? error.message;
   }
   return "无法连接到训练服务，请检查服务是否已启动。";
 }
 
-function initialFormation(profile) {
-  return { teamIds: POSITIONS.map((slot) => profile.formation[slot]), formation: { ...profile.formation } };
-}
-
-function isValidFormation(draft) {
-  const placed = POSITIONS.map((slot) => draft.formation[slot]);
-  return draft.teamIds.length === 3
-    && new Set(draft.teamIds).size === 3
-    && placed.every(Boolean)
-    && new Set(placed).size === 3
-    && placed.every((studentId) => draft.teamIds.includes(studentId));
+function isValidFormationMap(formation, students) {
+  const placed = POSITIONS.map((slot) => formation?.[slot]);
+  return placed.every(Boolean)
+    && new Set(placed).size === POSITIONS.length
+    && placed.every((studentId) => Boolean(students?.[studentId]));
 }
 
 function renderShell({ account, route, content }) {
@@ -126,17 +120,19 @@ export class AppRouter {
     this.profile = null;
     this.route = "campaign";
     this.selectedLevelId = null;
-    this.formationDraft = null;
-    this.rosterEditing = false;
+    this.lineupOpen = false;
+    this.lineupSaving = false;
+    this.rosterSelectedId = null;
+    this.enhanceOpen = false;
+    this.replaceOpen = false;
     this.detailStudentId = null;
     this.detailNameEditing = false;
     this.dragStudentId = null;
     this.battle = null;
-    this.arena = { defense: null, opponents: [], history: [], match: null, replay: null };
+    this.arena = { defense: null, opponents: [], history: [], match: null, replay: null, battlesToday: null, dailyLimit: null };
     this.message = "";
     this.root.addEventListener("submit", (event) => this.onSubmit(event));
     this.root.addEventListener("click", (event) => this.onClick(event));
-    this.root.addEventListener("change", (event) => this.onChange(event));
     this.root.addEventListener("keydown", (event) => this.onKeyDown(event));
     this.root.addEventListener("dragstart", (event) => this.onDragStart(event));
     this.root.addEventListener("dragover", (event) => this.onDragOver(event));
@@ -172,8 +168,6 @@ export class AppRouter {
       this.detailNameEditing = false;
     }
     this.selectedLevelId ??= this.profile.unlockedLevelIds[0];
-    this.formationDraft = initialFormation(this.profile);
-    this.rosterEditing = false;
   }
 
   applyHash() {
@@ -181,17 +175,33 @@ export class AppRouter {
     const candidate = globalThis.location?.hash?.slice(1) || "campaign";
     this.route = ROUTES.has(candidate) ? candidate : "campaign";
     if (this.route === "battle" && !this.battle) this.route = "campaign";
+    if (this.route !== "roster") {
+      this.lineupOpen = false;
+      this.rosterSelectedId = null;
+      this.enhanceOpen = false;
+      this.replaceOpen = false;
+      this.detailStudentId = null;
+      this.detailNameEditing = false;
+    }
+    if (this.route === "arena" && this.arena.dailyLimit === null) this.refreshArenaQuota();
     this.render();
   }
 
   navigate(route) {
     if (route !== "battle") this.battle?.playback?.pause();
-    if (route !== "roster") {
-      this.detailStudentId = null;
-      this.detailNameEditing = false;
-    }
     if (globalThis.location) globalThis.location.hash = route;
-    this.route = route;
+    this.applyHash();
+  }
+
+  async refreshArenaQuota() {
+    try {
+      const data = await this.client.get("/arena/defense");
+      this.arena.battlesToday = data.battlesToday ?? 0;
+      this.arena.dailyLimit = data.dailyLimit ?? null;
+      if (data.defense) this.arena.defense = data.defense;
+    } catch (error) {
+      this.message = messageFor(error);
+    }
     this.render();
   }
 
@@ -205,16 +215,17 @@ export class AppRouter {
       return;
     }
     let content;
-    if (this.route === "roster") content = renderRoster({ profile: this.profile, ...this.formationDraft, editing: this.rosterEditing, message: this.message });
+    if (this.route === "roster") content = renderRoster({ profile: this.profile, selectedId: this.rosterSelectedId, enhanceOpen: this.enhanceOpen, replaceOpen: this.replaceOpen, message: this.message });
     else if (this.route === "progression") content = renderProgression({ profile: this.profile, message: this.message });
     else if (this.route === "account") content = renderAccountScreen({ account: this.account, message: this.message });
     else if (this.route === "battle" && this.battle) content = renderBattle({ battle: this.battle, message: this.message });
     else if (this.route === "arena") content = renderArena({ profile: this.profile, ...this.arena, message: this.message });
-    else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, ...this.formationDraft, message: this.message });
-    const detailStudent = this.route === "roster" && this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
+    else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, message: this.message });
+    const detailStudent = this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
     const dismissible = Boolean(detailStudent?.id?.startsWith("recruit-")
       && !Object.values(this.profile.formation ?? {}).includes(detailStudent.id));
-    this.root.innerHTML = renderShell({ account: this.account, route: this.route, content: `${content}${renderStudentDetail({ student: detailStudent, editingName: this.detailNameEditing, dismissible })}` });
+    const lineupDialog = this.lineupOpen && this.route === "roster" ? renderLineupDialog({ profile: this.profile }) : "";
+    this.root.innerHTML = renderShell({ account: this.account, route: this.route, content: `${content}${lineupDialog}${renderStudentDetail({ student: detailStudent, editingName: this.detailNameEditing, dismissible })}` });
     if (detailStudent) {
       const focusTarget = this.detailNameEditing
         ? this.root.querySelector("[data-name-input]")
@@ -224,6 +235,18 @@ export class AppRouter {
   }
 
   async onSubmit(event) {
+    const enhanceForm = event.target.closest("[data-enhance-form]");
+    if (enhanceForm) {
+      event.preventDefault();
+      const ability = new FormData(enhanceForm).get("enhance-ability");
+      try {
+        await this.train(enhanceForm.dataset.studentId, ability);
+      } catch (error) {
+        this.message = messageFor(error);
+      }
+      this.render();
+      return;
+    }
     const form = event.target.closest("[data-auth-form], [data-account-form]");
     if (!form) return;
     event.preventDefault();
@@ -254,6 +277,14 @@ export class AppRouter {
       this.render();
       return;
     }
+    const lineupOverlay = event.target.closest("[data-lineup-overlay]");
+    if (lineupOverlay && event.target === lineupOverlay) {
+      event.preventDefault();
+      this.lineupOpen = false;
+      this.message = "";
+      this.render();
+      return;
+    }
     const button = event.target.closest("button, a[data-action]");
     if (!button) return;
     if (button.matches("[data-student-detail]")) {
@@ -262,6 +293,20 @@ export class AppRouter {
       this.detailStudentId = button.dataset.studentDetail;
       this.detailNameEditing = false;
       this.render();
+      return;
+    }
+    if (button.matches("[data-select-roster-student]")) {
+      event.preventDefault();
+      this.rosterSelectedId = button.dataset.selectRosterStudent;
+      this.enhanceOpen = false;
+      this.replaceOpen = false;
+      this.message = "";
+      this.render();
+      return;
+    }
+    if (button.matches("[data-replace-with]")) {
+      event.preventDefault();
+      await this.replaceStarter(button.dataset.replaceTarget, button.dataset.replaceWith);
       return;
     }
     if (button.matches("[data-select-level]")) {
@@ -280,7 +325,10 @@ export class AppRouter {
         this.profile = null;
         this.battle?.playback?.pause();
         this.battle = null;
-        this.rosterEditing = false;
+        this.lineupOpen = false;
+        this.rosterSelectedId = null;
+        this.enhanceOpen = false;
+        this.replaceOpen = false;
         this.detailStudentId = null;
         this.detailNameEditing = false;
         this.message = "已退出登录。";
@@ -294,15 +342,25 @@ export class AppRouter {
       } else if (action === "cancel-student-rename") {
         this.message = "已取消名称修改。";
         this.detailNameEditing = false;
-      } else if (action === "edit-roster") {
-        this.rosterEditing = true;
-        this.message = "请选择新的三人队伍。";
-      } else if (action === "cancel-roster-edit") {
-        this.formationDraft = initialFormation(this.profile);
-        this.rosterEditing = false;
-        this.message = "已取消队伍调整。";
-      } else if (action === "save-formation") {
-        await this.saveFormation();
+      } else if (action === "open-lineup-editor") {
+        this.lineupOpen = true;
+        this.message = "拖拽卡片即可互换站位，修改即时保存。";
+      } else if (action === "close-lineup-editor") {
+        this.lineupOpen = false;
+        this.message = "";
+      } else if (action === "open-replace") {
+        this.replaceOpen = true;
+        this.enhanceOpen = false;
+        this.message = "";
+      } else if (action === "cancel-replace") {
+        this.replaceOpen = false;
+        this.message = "";
+      } else if (action === "open-enhance") {
+        this.enhanceOpen = true;
+        this.message = "";
+      } else if (action === "cancel-enhance") {
+        this.enhanceOpen = false;
+        this.message = "";
       } else if (action === "daily-check-in") {
         await this.dailyCheckIn();
       } else if (action === "start-battle") {
@@ -326,6 +384,7 @@ export class AppRouter {
         this.message = `播放速度已调整为 ${button.dataset.playbackSpeed}x。`;
       } else if (action === "load-arena-opponents") {
         this.arena.opponents = await this.client.get("/arena/opponents");
+        await this.refreshArenaQuota();
         this.message = "对手列表已刷新。";
       } else if (action === "load-arena-history") {
         this.arena.history = await this.client.get("/arena/matches?limit=20");
@@ -337,8 +396,6 @@ export class AppRouter {
       } else if (action === "settle-arena") {
         this.arena.replay = await this.client.post(`/arena/matches/${this.arena.match.id}/settle`, {});
         this.profile = this.arena.replay.profile ?? await this.client.get("/profile");
-        this.formationDraft = initialFormation(this.profile);
-        this.rosterEditing = false;
         this.message = "竞技场回放已结算。";
       } else if (action === "export-account") {
         const exported = await this.client.get("/account/export");
@@ -351,6 +408,7 @@ export class AppRouter {
       } else if (button.dataset.opponentId) {
         this.arena.match = await this.client.post("/arena/matches", { opponentId: button.dataset.opponentId });
         this.arena.replay = null;
+        if (this.arena.dailyLimit !== null) this.arena.battlesToday = Math.min((this.arena.battlesToday ?? 0) + 1, this.arena.dailyLimit);
         this.message = "比赛快照已锁定。";
       } else if (button.dataset.buyOffer) {
         await this.buy(button.dataset.buyOffer);
@@ -365,38 +423,23 @@ export class AppRouter {
     this.render();
   }
 
-  onChange(event) {
-    const checkbox = event.target.closest("[data-student-toggle]");
-    if (checkbox) {
-      const studentId = checkbox.value;
-      const teamIds = this.formationDraft.teamIds;
-      if (checkbox.checked) {
-        if (teamIds.length >= 3) {
-          checkbox.checked = false;
-          this.message = "每场挑战只能选择 3 名学生。";
-        } else {
-          teamIds.push(studentId);
-          const openSlot = POSITIONS.find((slot) => !this.formationDraft.formation[slot]);
-          if (openSlot) this.formationDraft.formation[openSlot] = studentId;
-        }
-      } else {
-        this.formationDraft.teamIds = teamIds.filter((id) => id !== studentId);
-        for (const slot of POSITIONS) if (this.formationDraft.formation[slot] === studentId) this.formationDraft.formation[slot] = null;
-      }
-      this.render();
-      return;
-    }
-  }
-
   async onKeyDown(event) {
-    if (event.key === "Escape" && this.detailStudentId) {
-      event.preventDefault();
-      if (this.detailNameEditing) {
-        this.detailNameEditing = false;
-      } else {
-        this.detailStudentId = null;
+    if (event.key === "Escape") {
+      if (this.detailStudentId) {
+        event.preventDefault();
+        if (this.detailNameEditing) {
+          this.detailNameEditing = false;
+        } else {
+          this.detailStudentId = null;
+        }
+        this.render();
+        return;
       }
-      this.render();
+      if (this.lineupOpen) {
+        event.preventDefault();
+        this.lineupOpen = false;
+        this.render();
+      }
       return;
     }
     const input = event.target.closest("[data-name-input]");
@@ -417,7 +460,7 @@ export class AppRouter {
       return;
     }
     const card = event.target.closest("[data-drag-student]");
-    if (!card || this.route !== "roster") return;
+    if (!card || !this.lineupOpen || this.route !== "roster" || this.lineupSaving) return;
     this.dragStudentId = card.dataset.dragStudent;
     card.classList.add("is-dragging");
     event.dataTransfer?.setData("text/plain", this.dragStudentId);
@@ -426,7 +469,7 @@ export class AppRouter {
 
   onDragOver(event) {
     const target = event.target.closest("[data-drop-position]");
-    if (!target || !this.dragStudentId || this.route !== "roster") return;
+    if (!target || !this.dragStudentId || !this.lineupOpen || this.lineupSaving) return;
     event.preventDefault();
     target.classList.add("is-drop-target");
     if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
@@ -437,19 +480,27 @@ export class AppRouter {
     if (target && !target.contains(event.relatedTarget)) target.classList.remove("is-drop-target");
   }
 
-  onDrop(event) {
+  async onDrop(event) {
     const target = event.target.closest("[data-drop-position]");
-    if (!target || !this.dragStudentId || this.route !== "roster") return;
+    if (!target || !this.dragStudentId || !this.lineupOpen || this.lineupSaving) return;
     event.preventDefault();
     const targetSlot = target.dataset.dropPosition;
-    const sourceSlot = POSITIONS.find((slot) => this.formationDraft.formation[slot] === this.dragStudentId);
-    if (sourceSlot && targetSlot && sourceSlot !== targetSlot) {
-      const targetStudent = this.formationDraft.formation[targetSlot];
-      this.formationDraft.formation[targetSlot] = this.dragStudentId;
-      this.formationDraft.formation[sourceSlot] = targetStudent ?? null;
-      this.message = "站位已调整，保存后生效。";
-    }
+    const draggedId = this.dragStudentId;
     this.dragStudentId = null;
+    const formation = { ...this.profile.formation };
+    const sourceSlot = POSITIONS.find((slot) => formation[slot] === draggedId);
+    if (!targetSlot || !this.profile.students?.[draggedId] || sourceSlot === targetSlot) {
+      this.render();
+      return;
+    }
+    const displaced = formation[targetSlot] ?? null;
+    formation[targetSlot] = draggedId;
+    if (sourceSlot) formation[sourceSlot] = displaced;
+    try {
+      await this.applyFormation(formation);
+    } catch (error) {
+      this.message = messageFor(error);
+    }
     this.render();
   }
 
@@ -459,12 +510,36 @@ export class AppRouter {
     this.dragStudentId = null;
   }
 
-  async saveFormation() {
-    if (!isValidFormation(this.formationDraft)) throw new Error("请安排 3 名不同学生到 A1、A2、A3 站位。");
-    this.profile = await this.client.put("/profile", { version: this.profile.version, formation: this.formationDraft.formation });
-    this.formationDraft = initialFormation(this.profile);
-    this.rosterEditing = false;
-    this.message = "编队已保存。";
+  async applyFormation(formation) {
+    if (!isValidFormationMap(formation, this.profile.students)) throw new Error("请安排 3 名不同学生到 A1、A2、A3 站位。");
+    this.lineupSaving = true;
+    try {
+      this.profile = await this.client.put("/profile", { version: this.profile.version, formation });
+      this.message = "阵容已调整。";
+      this.rosterSelectedId = null;
+    } finally {
+      this.lineupSaving = false;
+    }
+  }
+
+  async replaceStarter(outgoingId, incomingId) {
+    const formation = { ...this.profile.formation };
+    const slot = POSITIONS.find((position) => formation[position] === outgoingId);
+    const incoming = this.profile.students?.[incomingId];
+    if (!slot || !incoming || Object.values(formation).includes(incomingId)) {
+      this.message = "无法完成替换，请刷新后重试。";
+      this.render();
+      return;
+    }
+    formation[slot] = incomingId;
+    try {
+      await this.applyFormation(formation);
+      this.replaceOpen = false;
+      this.message = `${incoming.name} 已替换上场。`;
+    } catch (error) {
+      this.message = messageFor(error);
+    }
+    this.render();
   }
 
   async startBattle() {
@@ -504,8 +579,6 @@ export class AppRouter {
     this.battle.settlement = await this.client.post(`/campaign/battles/${this.battle.id}/settle`);
     if (this.battle.settlement.profile) {
       this.profile = this.battle.settlement.profile;
-      this.formationDraft = initialFormation(this.profile);
-      this.rosterEditing = false;
     }
     this.message = "服务端结算已完成。";
   }
@@ -513,45 +586,38 @@ export class AppRouter {
   async saveName(studentId) {
     const input = this.root.querySelector(`[data-name-input="${studentId}"]`);
     this.profile = await this.client.put("/profile", { version: this.profile.version, students: { [studentId]: { name: input?.value ?? "" } } });
-    this.formationDraft = initialFormation(this.profile);
-    this.rosterEditing = false;
     this.detailNameEditing = false;
     this.message = "学生名称已保存。";
   }
 
-  async train() {
-    const studentId = this.root.querySelector("#training-student").value;
-    const ability = this.root.querySelector("#training-ability").value;
+  async train(studentId, ability) {
+    if (!studentId || !ability) throw new Error("请选择要提升的能力。");
     const result = await this.client.post("/progression/training/specialist", { studentId, ability });
     this.profile = result.profile;
-    this.formationDraft = initialFormation(this.profile);
-    this.rosterEditing = false;
-    this.message = result.training?.itemId === "student-training-material"
-      ? `学生强化完成，数值 ${result.training.previousValue} → ${result.training.currentValue}，已消耗 1 份学生培养材料。`
-      : `学生强化完成，数值 ${result.training.previousValue} → ${result.training.currentValue}，已消耗对应训练册。`;
+    this.enhanceOpen = true;
+    const training = result.training;
+    this.message = !training
+      ? "学生强化完成。"
+      : training.itemId === "student-training-material"
+        ? `学生强化完成，数值 ${training.previousValue} → ${training.currentValue}，已消耗 1 份学生培养材料。`
+        : `学生强化完成，数值 ${training.previousValue} → ${training.currentValue}，已消耗对应训练册。`;
   }
 
   async dailyCheckIn() {
     const result = await this.client.post("/progression/daily-check-in", {});
     this.profile = result.profile;
-    this.formationDraft = initialFormation(this.profile);
-    this.rosterEditing = false;
     this.message = `签到成功，获得 ${result.reward?.trainingCoins ?? 1000} 训练币。`;
   }
 
   async buy(offerId) {
     const result = await this.client.post("/progression/shop/purchases", { offerId });
     this.profile = result.profile;
-    this.formationDraft = initialFormation(this.profile);
-    this.rosterEditing = false;
     this.message = "购买成功。";
   }
 
   async dismissStudent(studentId) {
     const result = await this.client.post(`/progression/students/${encodeURIComponent(studentId)}/dismiss`, {});
     this.profile = result.profile;
-    this.formationDraft = initialFormation(this.profile);
-    this.rosterEditing = false;
     this.detailStudentId = null;
     this.detailNameEditing = false;
     this.message = "学生已劝退，获得 1 份学生培养材料。";
@@ -560,8 +626,6 @@ export class AppRouter {
   async recruit() {
     const result = await this.client.post("/progression/recruitment", {});
     this.profile = result.profile;
-    this.formationDraft = initialFormation(this.profile);
-    this.rosterEditing = false;
     const aptitude = result.student?.aptitude;
     const pity = Number.isInteger(result.recruitment?.attemptsSinceGenius)
       ? result.recruitment.attemptsSinceGenius

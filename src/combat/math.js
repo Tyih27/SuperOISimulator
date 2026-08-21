@@ -31,32 +31,30 @@ export function calculateAbilityGap(student, topic) {
   return average(relevantAbilityKeys(topic).map((key) => (student.abilities?.[key] ?? 0) - topic.difficulties[key]));
 }
 
-export function calculateBaselineProgress(student, topic, { min = 100, max = 2000 } = {}) {
-  const raw = roundHalfUp(1000 + calculateAbilityGap(student, topic) * 2);
-  return clamp(raw, min, max);
+export function calculateBaselineProgress(student, topic) {
+  return roundHalfUp(1000 + calculateAbilityGap(student, topic) * 2);
 }
 
 export function topicRemainingProgress(topic) {
   return Math.max(0, (topic.maxProgress ?? 0) - (topic.progress ?? 0));
 }
 
-export function calculateSkillProgress({ student, topic, skill, remainingProgress = topicRemainingProgress(topic) }) {
+export function calculateSkillProgress({ student, topic, skill }) {
   const raw = calculateBaselineProgress(student, topic) * (skill.skillMultiplier ?? 1) * (skill.targetMultiplier ?? 1) + (skill.flatBonus ?? 0);
-  return clamp(roundHalfUp(raw), 0, remainingProgress);
+  return roundHalfUp(raw);
 }
 
 export function calculateAverageAbilityShortfall(student, topic) {
   return average(relevantAbilityKeys(topic).map((key) => Math.max(topic.difficulties[key] - (student.abilities?.[key] ?? 0), 0)));
 }
 
-export function calculateEnergyDamage(student, topic, { min = 100, max = 2000 } = {}) {
-  const raw = roundHalfUp(500 + calculateAverageAbilityShortfall(student, topic) * 2);
-  return clamp(raw, min, max);
+export function calculateEnergyDamage(student, topic) {
+  return roundHalfUp(500 + calculateAverageAbilityShortfall(student, topic) * 2);
 }
 
 export function calculateTopicSkillDamage(student, topic, skill = {}) {
   const base = calculateEnergyDamage(student, topic);
-  return clamp(roundHalfUp(base * (skill.damageMultiplier ?? 1) + (skill.flatBonus ?? 0)), 0, skill.maxDamage ?? 2000);
+  return roundHalfUp(base * (skill.damageMultiplier ?? 1) + (skill.flatBonus ?? 0));
 }
 
 export function relatedAbilityValue(student, relatedAbility = "overall") {
@@ -66,7 +64,7 @@ export function relatedAbilityValue(student, relatedAbility = "overall") {
 export function calculateSupportEffect(student, skill) {
   const effect = skill.effect ?? {};
   const raw = (effect.base ?? 0) + relatedAbilityValue(student, skill.relatedAbility) * (effect.multiplier ?? 0);
-  return clamp(roundHalfUp(raw), effect.min ?? 0, effect.max ?? 2000);
+  return roundHalfUp(raw);
 }
 
 export const abilityGap = calculateAbilityGap;

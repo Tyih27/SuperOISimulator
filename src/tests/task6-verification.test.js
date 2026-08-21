@@ -29,18 +29,18 @@ function makeEngine(options = {}) {
   });
 }
 
-// Formula behavior is integer-safe and always clamps to the declared bounds.
+// Formula behavior is integer-safe with no artificial bounds on outputs.
 assert.equal(roundHalfUp(1.5), 2);
 assert.equal(roundHalfUp(1.49), 1);
 assert.equal(clamp(12, 0, 10), 10);
 const student = makeEngine().studentById.planner;
 const topic = makeEngine().problems.one;
-assert.equal(calculateBaselineProgress(student, topic, { min: 100, max: 2000 }), 2000);
+assert.equal(calculateBaselineProgress(student, topic), 2238);
 assert.equal(calculateSkillProgress({
   student,
   topic: { ...topic, progress: 99990 },
   skill: { skillMultiplier: 2, targetMultiplier: 1, flatBonus: 999 },
-}), 10, "skill progress cannot exceed remaining progress");
+}), 5475, "skill progress is no longer capped by remaining progress");
 assert.equal(calculateTopicSkillDamage(student, topic, { damageMultiplier: 1.5, flatBonus: 5 }), 755);
 
 // Equal target scores use slot order, making target selection replay-safe.
