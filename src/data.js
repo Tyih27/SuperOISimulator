@@ -36,21 +36,24 @@ export const STUDENT_NAME_POOLS = Object.freeze({
   }),
 });
 
+// Adjacent aptitude bands never overlap: every higher tier's minimum equals
+// or exceeds the previous tier's maximum for each ability, so a higher
+// aptitude always dominates every lower one before any training.
 export const APTITUDE_ABILITY_RANGES = Object.freeze({
   "普通": Object.freeze({
     dynamicProgramming: Object.freeze([450, 650]), graphTheory: Object.freeze([450, 650]), dataStructures: Object.freeze([500, 700]), mathematics: Object.freeze([350, 550]), implementation: Object.freeze([800, 1000]),
   }),
   "优秀": Object.freeze({
-    dynamicProgramming: Object.freeze([450, 900]), graphTheory: Object.freeze([450, 900]), dataStructures: Object.freeze([450, 900]), mathematics: Object.freeze([400, 900]), implementation: Object.freeze([600, 900]),
+    dynamicProgramming: Object.freeze([650, 800]), graphTheory: Object.freeze([650, 800]), dataStructures: Object.freeze([700, 850]), mathematics: Object.freeze([550, 700]), implementation: Object.freeze([1000, 1150]),
   }),
   "稀有": Object.freeze({
-    dynamicProgramming: Object.freeze([500, 950]), graphTheory: Object.freeze([500, 950]), dataStructures: Object.freeze([500, 950]), mathematics: Object.freeze([450, 950]), implementation: Object.freeze([550, 950]),
+    dynamicProgramming: Object.freeze([800, 950]), graphTheory: Object.freeze([800, 950]), dataStructures: Object.freeze([850, 1000]), mathematics: Object.freeze([700, 850]), implementation: Object.freeze([1150, 1300]),
   }),
   "天才": Object.freeze({
-    dynamicProgramming: Object.freeze([500, 1000]), graphTheory: Object.freeze([500, 1000]), dataStructures: Object.freeze([500, 1000]), mathematics: Object.freeze([500, 1000]), implementation: Object.freeze([500, 1000]),
+    dynamicProgramming: Object.freeze([950, 1100]), graphTheory: Object.freeze([950, 1100]), dataStructures: Object.freeze([1000, 1150]), mathematics: Object.freeze([850, 1000]), implementation: Object.freeze([1300, 1450]),
   }),
   "顶尖": Object.freeze({
-    dynamicProgramming: Object.freeze([800, 1000]), graphTheory: Object.freeze([800, 1000]), dataStructures: Object.freeze([800, 1000]), mathematics: Object.freeze([800, 1000]), implementation: Object.freeze([800, 1000]),
+    dynamicProgramming: Object.freeze([1100, 1300]), graphTheory: Object.freeze([1100, 1300]), dataStructures: Object.freeze([1150, 1350]), mathematics: Object.freeze([1000, 1200]), implementation: Object.freeze([1450, 1650]),
   }),
 });
 
@@ -89,7 +92,7 @@ const supportSkill = (skill) => ({
   category: "support",
   focusGain: 200,
   relatedAbility: "overall",
-  effect: { base: 0, multiplier: 0, min: 0, max: 2000 },
+  effect: { base: 0, multiplier: 0 },
   ...skill
 });
 
@@ -99,7 +102,6 @@ const topicSkill = (skill) => ({
   targetRule: "matchingPosition",
   damageMultiplier: 1,
   flatBonus: 0,
-  maxDamage: 2000,
   ...skill
 });
 
@@ -128,8 +130,8 @@ export const SKILL_GROUPS = freeze({
     id: "structurer",
     name: "结构维护",
     skills: {
-      normal: supportSkill({ id: "structurer-normal", name: "稳态修复", targetRule: "lowestEnergy", effectType: "energyRestore", effect: { base: 650, multiplier: 0.25, min: 300, max: 1800 } }),
-      burst: supportSkill({ id: "structurer-burst", name: "全队整备", targetRule: "allStudents", effectType: "energyRestore", effect: { base: 420, multiplier: 0.12, min: 180, max: 1000 } })
+      normal: supportSkill({ id: "structurer-normal", name: "稳态修复", targetRule: "lowestEnergy", effectType: "energyRestore", effect: { base: 650, multiplier: 0.25 } }),
+      burst: supportSkill({ id: "structurer-burst", name: "全队整备", targetRule: "allStudents", effectType: "energyRestore", effect: { base: 420, multiplier: 0.12 } })
     }
   },
   mathematician: {
@@ -152,8 +154,8 @@ export const SKILL_GROUPS = freeze({
     id: "supporter",
     name: "团队协作",
     skills: {
-      normal: supportSkill({ id: "supporter-normal", name: "专注鼓舞", targetRule: "lowestFocus", effectType: "focusGain", effect: { base: 120, multiplier: 0.1, min: 80, max: 300 } }),
-      burst: supportSkill({ id: "supporter-burst", name: "集体增益", targetRule: "allStudents", effectType: "focusGain", effect: { base: 180, multiplier: 0.16, min: 120, max: 500 } })
+      normal: supportSkill({ id: "supporter-normal", name: "专注鼓舞", targetRule: "lowestFocus", effectType: "focusGain", effect: { base: 120, multiplier: 0.1 } }),
+      burst: supportSkill({ id: "supporter-burst", name: "集体增益", targetRule: "allStudents", effectType: "focusGain", effect: { base: 180, multiplier: 0.16 } })
     }
   }
 });
@@ -162,7 +164,7 @@ export const STUDENTS = freeze([
   {
     id: "planner",
     defaultAptitude: "普通",
-    abilities: { dynamicProgramming: 820, graphTheory: 540, dataStructures: 610, mathematics: 420, implementation: 760 },
+    abilities: { dynamicProgramming: 620, graphTheory: 540, dataStructures: 610, mathematics: 420, implementation: 880 },
     maxEnergy: 5200,
     skillGroupId: "planner",
     skillGroupLevels: { planner: { normal: 1, burst: 1 } }
@@ -170,7 +172,7 @@ export const STUDENTS = freeze([
   {
     id: "graphist",
     defaultAptitude: "普通",
-    abilities: { dynamicProgramming: 520, graphTheory: 860, dataStructures: 640, mathematics: 580, implementation: 700 },
+    abilities: { dynamicProgramming: 520, graphTheory: 630, dataStructures: 640, mathematics: 500, implementation: 840 },
     maxEnergy: 5000,
     skillGroupId: "graphist",
     skillGroupLevels: { graphist: { normal: 1, burst: 1 } }
@@ -178,7 +180,7 @@ export const STUDENTS = freeze([
   {
     id: "structurer",
     defaultAptitude: "普通",
-    abilities: { dynamicProgramming: 580, graphTheory: 610, dataStructures: 900, mathematics: 500, implementation: 650 },
+    abilities: { dynamicProgramming: 580, graphTheory: 560, dataStructures: 680, mathematics: 460, implementation: 860 },
     maxEnergy: 5600,
     skillGroupId: "structurer",
     skillGroupLevels: { structurer: { normal: 1, burst: 1 } }
@@ -186,7 +188,7 @@ export const STUDENTS = freeze([
   {
     id: "mathematician",
     defaultAptitude: "普通",
-    abilities: { dynamicProgramming: 600, graphTheory: 570, dataStructures: 560, mathematics: 920, implementation: 620 },
+    abilities: { dynamicProgramming: 540, graphTheory: 500, dataStructures: 560, mathematics: 530, implementation: 820 },
     maxEnergy: 4700,
     skillGroupId: "mathematician",
     skillGroupLevels: { mathematician: { normal: 1, burst: 1 } }
@@ -194,7 +196,7 @@ export const STUDENTS = freeze([
   {
     id: "implementer",
     defaultAptitude: "普通",
-    abilities: { dynamicProgramming: 570, graphTheory: 600, dataStructures: 620, mathematics: 480, implementation: 900 },
+    abilities: { dynamicProgramming: 500, graphTheory: 540, dataStructures: 600, mathematics: 420, implementation: 950 },
     maxEnergy: 5100,
     skillGroupId: "implementer",
     skillGroupLevels: { implementer: { normal: 1, burst: 1 } }
@@ -202,7 +204,7 @@ export const STUDENTS = freeze([
   {
     id: "supporter",
     defaultAptitude: "普通",
-    abilities: { dynamicProgramming: 640, graphTheory: 650, dataStructures: 620, mathematics: 610, implementation: 680 },
+    abilities: { dynamicProgramming: 560, graphTheory: 570, dataStructures: 610, mathematics: 480, implementation: 850 },
     maxEnergy: 5400,
     skillGroupId: "supporter",
     skillGroupLevels: { supporter: { normal: 1, burst: 1 } }
@@ -233,8 +235,8 @@ export const BALANCE_BASELINES = freeze({
 
 export const SHOP_OFFERS = freeze([
   { id: "recruitment-right", name: "招募权", price: { trainingCoins: 300 }, grants: { recruitmentTickets: 1 } },
-  { id: "daily-dp-book", name: "动态规划专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-dynamicProgramming": 1 }, purchaseLimit: { period: "daily", count: 1 } },
-  { id: "daily-graph-book", name: "图论专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-graphTheory": 1 }, purchaseLimit: { period: "daily", count: 1 } },
+  { id: "daily-dp-book", name: "动态规划专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-dynamicProgramming": 1 } },
+  { id: "daily-graph-book", name: "图论专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-graphTheory": 1 } },
   { id: "data-book", name: "数据结构专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-dataStructures": 1 } },
   { id: "math-book", name: "数学专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-mathematics": 1 } },
   { id: "implementation-book", name: "代码实现专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-implementation": 1 } },

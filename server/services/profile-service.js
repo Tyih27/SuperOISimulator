@@ -61,11 +61,12 @@ function validateStudent(studentId, student, ownedStudent) {
   if (abilityKeys.length !== ABILITY_KEYS.length || abilityKeys.some((key) => !ABILITY_KEYS.includes(key))) {
     throw invalid("Student abilities must contain every ability type");
   }
+  // Aptitude ranges only govern initial generation; training and legacy
+  // profiles may hold any non-negative integer ability value.
   for (const key of ABILITY_KEYS) {
     const value = student.abilities[key];
-    const [minimum] = ranges[key];
-    if (!Number.isInteger(value) || value < minimum || value > 2_000) {
-      throw invalid("Student abilities must be within the aptitude range or trained cap");
+    if (!Number.isInteger(value) || value < 0) {
+      throw invalid("Student abilities must be non-negative integers");
     }
   }
   if (!Number.isInteger(student.maxEnergy) || student.maxEnergy < 1) {

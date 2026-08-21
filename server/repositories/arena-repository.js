@@ -12,6 +12,16 @@ export class ArenaRepository {
     return result.rows;
   }
 
+  async countAttackerMatchesOnDay(client, accountId, timeZone) {
+    const result = await client.query(
+      `SELECT count(*)::int AS total FROM arena_matches
+        WHERE attacker_id = $1
+          AND (created_at AT TIME ZONE $2)::date = (now() AT TIME ZONE $2)::date`,
+      [accountId, timeZone],
+    );
+    return result.rows[0]?.total ?? 0;
+  }
+
   async getDefense(client, accountId, lock = false) {
     const result = await client.query(
       `SELECT account_id, profile_version, snapshot, rating, battles_won, battles_lost, updated_at

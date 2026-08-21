@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { SHOP_OFFERS } from "../../src/data.js";
+import { SPECIALIST_TRAINING_INCREMENTS } from "../../src/domain/progression.js";
 import { buildTestApp } from "./helpers.js";
 
 const ORIGIN = "http://localhost:3000";
@@ -48,7 +49,7 @@ try {
     payload: { studentId: "planner", ability: "dynamicProgramming" },
   });
   assert.equal(training.statusCode, 200);
-  assert.equal(training.json().profile.students.planner.abilities.dynamicProgramming, abilityBefore + 40);
+  assert.equal(training.json().profile.students.planner.abilities.dynamicProgramming, abilityBefore + SPECIALIST_TRAINING_INCREMENTS[before.students.planner.aptitude]);
   assert.equal(training.json().profile.inventory["specialist-book-dynamicProgramming"], 0);
 
   const purchase = await request(app, {
@@ -56,16 +57,22 @@ try {
     payload: { offerId: " daily-dp-book " },
   });
   assert.equal(purchase.statusCode, 200);
-  const limited = await request(app, {
+  const coinsAfterFirstPurchase = purchase.json().profile.currencies.trainingCoins;
+  assert.equal(purchase.json().profile.inventory["specialist-book-dynamicProgramming"], 1);
+
+  const repeatPurchase = await request(app, {
     method: "POST", url: "/api/v1/progression/shop/purchases", cookies: auth,
     payload: { offerId: "daily-dp-book" },
   });
-  assert.equal(limited.statusCode, 409);
-  assert.equal(limited.json().code, "SHOP_PURCHASE_LIMIT_REACHED");
+  assert.equal(repeatPurchase.statusCode, 200, "shop offers can be purchased without limits");
+  assert.equal(repeatPurchase.json().profile.currencies.trainingCoins, coinsAfterFirstPurchase - 120);
+  assert.equal(repeatPurchase.json().profile.inventory["specialist-book-dynamicProgramming"], 2);
+  const dpOffer = SHOP_OFFERS.find((offer) => offer.id === "daily-dp-book");
+  assert.equal(dpOffer.purchaseLimit, undefined);
 
   const recruitmentRight = await request(app, { method: "POST", url: "/api/v1/progression/shop/purchases", cookies: auth, payload: { offerId: "recruitment-right" } });
   assert.equal(recruitmentRight.statusCode, 200);
-  assert.equal(recruitmentRight.json().profile.currencies.trainingCoins, 1480);
+  assert.equal(recruitmentRight.json().profile.currencies.trainingCoins, repeatPurchase.json().profile.currencies.trainingCoins - 300);
   assert.equal(recruitmentRight.json().profile.currencies.recruitmentTickets, 2);
   await app.db.query("UPDATE player_profiles SET payload = jsonb_set(payload, '{recruitment,attemptsSinceGenius}', '29'::jsonb) WHERE account_id = $1", [before.accountId]);
 
@@ -93,9 +100,9 @@ try {
   assert.equal(materialTraining.statusCode, 200);
   assert.equal(materialTraining.json().training.itemId, "student-training-material");
   assert.equal(materialTraining.json().training.previousValue, graphistAbilityBefore);
-  assert.equal(materialTraining.json().training.currentValue, graphistAbilityBefore + 40);
-  assert.equal(materialTraining.json().training.increment, 40);
-  assert.equal(materialTraining.json().profile.students.graphist.abilities.graphTheory, graphistAbilityBefore + 40);
+  assert.equal(materialTraining.json().training.currentValue, graphistAbilityBefore + SPECIALIST_TRAINING_INCREMENTS.普通);
+  assert.equal(materialTraining.json().training.increment, SPECIALIST_TRAINING_INCREMENTS.普通);
+  assert.equal(materialTraining.json().profile.students.graphist.abilities.graphTheory, graphistAbilityBefore + SPECIALIST_TRAINING_INCREMENTS.普通);
   assert.equal(materialTraining.json().profile.inventory["student-training-material"], 0);
   const failedTraining = await request(app, {
     method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
@@ -107,11 +114,13 @@ try {
   assert.equal(afterFailedTraining.json().version, materialTraining.json().profile.version);
 
   now = new Date("2026-08-20T16:01:00.000Z");
+  const profileBeforeCheckIn = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: auth });
+  const coinsBeforeCheckIn = profileBeforeCheckIn.json().currencies.trainingCoins;
   const nextDayCheckIn = await request(app, {
     method: "POST", url: "/api/v1/progression/daily-check-in", cookies: auth, payload: {},
   });
   assert.equal(nextDayCheckIn.statusCode, 200);
-  assert.equal(nextDayCheckIn.json().profile.currencies.trainingCoins, 2380);
+  assert.equal(nextDayCheckIn.json().profile.currencies.trainingCoins, coinsBeforeCheckIn + 1000);
 
   const protectedDismissal = await request(app, {
     method: "POST", url: "/api/v1/progression/students/planner/dismiss", cookies: auth,
@@ -132,6 +141,7 @@ try {
     ["trainingCoins", 1000, "daily-check-in"],
     ["trainingCoins", -100, "specialist-training"],
     ["trainingCoins", -120, "shop"],
+    ["trainingCoins", -120, "shop"],
     ["trainingCoins", -300, "shop"],
     ["recruitmentTickets", 1, "shop"],
     ["recruitmentTickets", -1, "recruitment"],
@@ -141,11 +151,12 @@ try {
   const inventoryEntries = await app.db.query("SELECT item_id, quantity, source_type FROM inventory_entries ORDER BY id");
   assert.deepEqual(inventoryEntries.rows.map(({ item_id: itemId, quantity, source_type: sourceType }) => [itemId, quantity, sourceType]), [
     ["specialist-book-dynamicProgramming", 1, "shop"],
+    ["specialist-book-dynamicProgramming", 1, "shop"],
     ["student-training-material", 1, "student-dismissal"],
   ]);
   const auditEntries = await app.db.query("SELECT action_type FROM account_audit_log ORDER BY id");
   assert.deepEqual(auditEntries.rows.map(({ action_type: actionType }) => actionType), [
-    "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in",
+    "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in",
   ]);
 
   const catalogRegistered = await request(app, {
