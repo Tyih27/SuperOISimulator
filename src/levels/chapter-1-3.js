@@ -2,7 +2,7 @@ const level = {
   id: "chapter-1-3",
   name: "专题测验",
   order: 3,
-  recommendedAbility: 750,
+  recommendedAbility: 825,
   seed: "C9D2-71",
   maxRounds: 16,
   objective: { type: "all" },

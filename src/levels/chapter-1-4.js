@@ -2,7 +2,7 @@ const level = {
   id: "chapter-1-4",
   name: "黄昏模拟赛",
   order: 4,
-  recommendedAbility: 850,
+  recommendedAbility: 1350,
   seed: "D5A6-88",
   maxRounds: 18,
   objective: { type: "all" },
