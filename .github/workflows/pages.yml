@@ -1,0 +1,55 @@
+name: Pages Build
+
+on:
+  workflow_run:
+    workflows: ["Check"]
+    types:
+      - completed
+
+# Only run if the workflow_run is for the default branch and the Check workflow succeeded
+# and limit to push events (not PR) to avoid duplicate deployments
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Only run if the Check workflow succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Verify the build output (static frontend assets are served from the repo root)
+      - name: Build pages
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp -r src _site/src
+          cp -r styles _site/styles
+          cp -r assets _site/assets
+          cp -r shared _site/shared
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
