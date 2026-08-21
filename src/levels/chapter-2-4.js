@@ -2,6 +2,7 @@ const level = {
   id: "chapter-2-4",
   name: "全国模拟赛",
   order: 8,
+  track: "extra",
   recommendedTotalPower: 30000,
   seed: "J2E8-16",
   maxRounds: 36,

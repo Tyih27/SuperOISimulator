@@ -2,6 +2,7 @@ const level = {
   id: "chapter-2-2",
   name: "周末集训",
   order: 6,
+  track: "extra",
   recommendedTotalPower: 10000,
   seed: "G6C4-74",
   maxRounds: 32,

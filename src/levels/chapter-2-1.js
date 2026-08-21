@@ -2,6 +2,7 @@ const level = {
   id: "chapter-2-1",
   name: "午夜加练",
   order: 5,
+  track: "extra",
   recommendedTotalPower: 5000,
   seed: "F4B2-53",
   maxRounds: 30,

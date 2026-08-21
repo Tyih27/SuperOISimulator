@@ -2,6 +2,7 @@ const level = {
   id: "chapter-2-3",
   name: "季度大考",
   order: 7,
+  track: "extra",
   recommendedTotalPower: 20000,
   seed: "H8D6-95",
   maxRounds: 34,
