@@ -185,7 +185,7 @@ try {
     payload: {},
   });
   assert.equal(energyBoost.statusCode, 200);
-  assert.equal(energyBoost.json().energy.currentValue, energyBoost.json().energy.previousValue + 500);
+  assert.equal(energyBoost.json().energy.currentValue, energyBoost.json().energy.previousValue + 50);
   assert.equal(energyBoost.json().profile.students.structurer.maxEnergy, energyBoost.json().energy.currentValue);
   assert.equal(energyBoost.json().profile.inventory["energy-tonic"], 0);
 

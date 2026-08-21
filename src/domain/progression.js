@@ -24,7 +24,8 @@ export const SPECIALIST_TRAINING_INCREMENTS = Object.freeze({
 export const STUDENT_TRAINING_MATERIAL_ID = "student-training-material";
 export const STUDENT_DISMISSAL_MATERIAL_REWARD = 1;
 export const ENERGY_TONIC_ID = "energy-tonic";
-export const ENERGY_TONIC_MAX_ENERGY_GAIN = 500;
+export const ENERGY_TONIC_MAX_ENERGY_GAIN = 50;
+export const ENERGY_TONIC_MAX_ENERGY_CAP = 10000;
 
 function requireRoll(roll) {
   if (typeof roll !== "number" || !Number.isFinite(roll) || roll < 0 || roll >= 1) {
@@ -109,9 +110,15 @@ export function applyEnergyTonic(profile, { studentId } = {}) {
   if ((profile.inventory[ENERGY_TONIC_ID] ?? 0) < 1) {
     throw new Error("An energy tonic is required");
   }
+  if (profile.students[studentId].maxEnergy >= ENERGY_TONIC_MAX_ENERGY_CAP) {
+    throw new Error(`Student max energy has reached the cap of ${ENERGY_TONIC_MAX_ENERGY_CAP}`);
+  }
 
   const next = structuredClone(profile);
-  next.students[studentId].maxEnergy += ENERGY_TONIC_MAX_ENERGY_GAIN;
+  next.students[studentId].maxEnergy = Math.min(
+    next.students[studentId].maxEnergy + ENERGY_TONIC_MAX_ENERGY_GAIN,
+    ENERGY_TONIC_MAX_ENERGY_CAP,
+  );
   next.inventory[ENERGY_TONIC_ID] -= 1;
   return next;
 }

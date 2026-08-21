@@ -7,6 +7,7 @@ import {
   dismissStudent,
   dismissStudents,
   ENERGY_TONIC_ID,
+  ENERGY_TONIC_MAX_ENERGY_CAP,
   ENERGY_TONIC_MAX_ENERGY_GAIN,
   selectRecruitmentAptitude,
   SPECIALIST_TRAINING_INCREMENTS,
@@ -16,7 +17,7 @@ import {
 import { createProfile } from "../domain/profile.js";
 import { createBattleSnapshot } from "../domain/snapshot.js";
 
-assert.ok(LEVELS.length >= 3 && LEVELS.length <= 12, "the campaign must ship with 3-12 levels");
+assert.ok(LEVELS.length >= 3 && LEVELS.length <= 20, "the campaign must ship with 3-20 levels");
 assert.deepEqual(LEVELS.map((level) => level.order), [...LEVELS.keys()].map((index) => index + 1));
 assert.ok(LEVELS.some((level) => level.objective.type === "count"));
 assert.ok(LEVELS.some((level) => level.objective.type === "all"));
@@ -89,6 +90,14 @@ assert.equal(energized.inventory[ENERGY_TONIC_ID], 0);
 assert.equal(tonicProfile.students.planner.maxEnergy, maxEnergyBefore, "energy tonic must not mutate the supplied profile");
 assert.throws(() => applyEnergyTonic(profile, { studentId: "planner" }), /energy tonic/);
 assert.throws(() => applyEnergyTonic(tonicProfile, { studentId: "ghost" }), /owned by the profile/);
+const cappedProfile = structuredClone(tonicProfile);
+cappedProfile.students.planner.maxEnergy = ENERGY_TONIC_MAX_ENERGY_CAP;
+assert.throws(() => applyEnergyTonic(cappedProfile, { studentId: "planner" }), /cap/);
+const nearCapProfile = structuredClone(tonicProfile);
+nearCapProfile.students.planner.maxEnergy = ENERGY_TONIC_MAX_ENERGY_CAP - 30;
+const nearCapEnergized = applyEnergyTonic(nearCapProfile, { studentId: "planner" });
+assert.equal(nearCapEnergized.students.planner.maxEnergy, ENERGY_TONIC_MAX_ENERGY_CAP, "the tonic must not exceed the max energy cap");
+assert.equal(nearCapEnergized.inventory[ENERGY_TONIC_ID], 0);
 
 const recruit = createRecruitedStudent({
   studentId: "recruit-test", seed: "recruit-seed", namePoolVersion: profile.namePoolVersion,

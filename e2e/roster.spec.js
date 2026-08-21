@@ -376,8 +376,8 @@ test("energy tonic raises a student's max energy", async ({ page }) => {
     }
     if (path === "/students/planner/energy" || path.endsWith("/planner/energy")) {
       const previousValue = current.students.planner.maxEnergy;
-      current = { ...current, version: current.version + 1, students: { ...current.students, planner: { ...current.students.planner, maxEnergy: previousValue + 500 } }, inventory: { ...current.inventory, "energy-tonic": (current.inventory["energy-tonic"] ?? 1) - 1 } };
-      return json({ profile: current, energy: { studentId: "planner", itemId: "energy-tonic", previousValue, currentValue: previousValue + 500, gain: 500 } });
+      current = { ...current, version: current.version + 1, students: { ...current.students, planner: { ...current.students.planner, maxEnergy: previousValue + 50 } }, inventory: { ...current.inventory, "energy-tonic": (current.inventory["energy-tonic"] ?? 1) - 1 } };
+      return json({ profile: current, energy: { studentId: "planner", itemId: "energy-tonic", previousValue, currentValue: previousValue + 50, gain: 50 } });
     }
     return json({ code: "NOT_FOUND", message: path }, 404);
   });
