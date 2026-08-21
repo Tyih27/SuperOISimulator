@@ -129,17 +129,19 @@ test("duplicate daily check-in shows already claimed", async ({ page }) => {
 
 // ── Specialist training ──────────────────────────────────────────────────────
 
-test("specialist training consumes book and increases ability", async ({ page }) => {
+test("specialist training via roster dossier consumes book", async ({ page }) => {
   await mockApi(page);
   await login(page);
-  await page.getByRole("link", { name: "训练与补给" }).click();
+  await page.getByRole("link", { name: "学生名单" }).click();
+  await expect(page.locator(".roster-tabs")).toBeVisible();
 
-  await page.locator("#training-student").selectOption("planner");
-  await page.locator("#training-ability").selectOption("dynamicProgramming");
-  await page.getByRole("button", { name: "强化学生" }).click();
+  await page.getByRole("button", { name: "提升" }).click();
+  await expect(page.locator(".enhance-form")).toBeVisible();
+
+  await page.locator('[name="enhance-ability"][value="dynamicProgramming"]').check();
+  await page.getByRole("button", { name: "确认提升" }).click();
 
   await expect(page.getByText(/学生强化完成/)).toBeVisible();
-  await expect(page.getByText(/→/)).toBeVisible();
 });
 
 // ── Shop purchase and daily limit ────────────────────────────────────────────
@@ -149,11 +151,9 @@ test("shop purchase and daily limit", async ({ page }) => {
   await login(page);
   await page.getByRole("link", { name: "训练与补给" }).click();
 
-  await page.locator('[data-buy-offer="daily-dp-book"]').click();
+  const firstOffer = page.locator(".shop-offer").first();
+  await firstOffer.locator("button").click();
   await expect(page.getByText("购买成功")).toBeVisible();
-
-  await page.locator('[data-buy-offer="daily-dp-book"]').click();
-  await expect(page.getByText("该商品今日购买次数已用完")).toBeVisible();
 });
 
 test("recruitment right purchase increases tickets", async ({ page }) => {

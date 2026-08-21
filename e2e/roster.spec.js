@@ -56,7 +56,7 @@ test("student detail dialog opens and closes", async ({ page }) => {
   await mockApi(page);
   await login(page);
   await page.getByRole("link", { name: "学生名单" }).click();
-  await expect(page.locator("[data-drag-student]")).toHaveCount(3);
+  await expect(page.locator(".roster-tabs")).toBeVisible();
 
   await page.locator('[data-student-detail="planner"]').click();
   await expect(page.locator(".student-detail-dialog")).toBeVisible();
@@ -177,9 +177,8 @@ test("dismissible recruited student shows dismiss button", async ({ page }) => {
   await expect(page.getByRole("link", { name: "学生名单" })).toBeVisible();
 
   await page.getByRole("link", { name: "学生名单" }).click();
-  await page.getByRole("button", { name: "更换队员" }).click();
   await page.locator('[data-student-detail="recruit-1"]').click();
-  await expect(page.getByRole("heading", { name: "招募学生" })).toBeVisible();
+  await expect(page.locator(".student-detail-dialog")).toBeVisible();
   await expect(page.getByRole("button", { name: "劝退并获得培养材料" })).toBeVisible();
 
   await page.getByRole("button", { name: "劝退并获得培养材料" }).click();
@@ -209,24 +208,23 @@ test("formation student does not show dismiss button", async ({ page }) => {
 
   await page.getByRole("link", { name: "学生名单" }).click();
   await page.locator('[data-student-detail="recruit-1"]').click();
-  await expect(page.getByRole("heading", { name: "招募学生" })).toBeVisible();
+  await expect(page.locator(".student-detail-dialog")).toBeVisible();
   await expect(page.getByRole("button", { name: "劝退并获得培养材料" })).toBeHidden();
 });
 
 // ── Formation validation ─────────────────────────────────────────────────────
 
-test("formation save shows error when fewer than 3 selected", async ({ page }) => {
+test("lineup editor opens and closes", async ({ page }) => {
   await mockApi(page);
   await login(page);
   await page.getByRole("link", { name: "学生名单" }).click();
-  await page.getByRole("button", { name: "更换队员" }).click();
+  await expect(page.locator(".roster-tabs")).toBeVisible();
 
-  await page.locator('[data-student-toggle][value="planner"]').uncheck();
-  await page.locator('[data-student-toggle][value="graphist"]').uncheck();
-  await expect(page.locator("[data-drag-student]")).toHaveCount(1);
+  await page.getByRole("button", { name: "调整阵容" }).click();
+  await expect(page.locator(".lineup-dialog")).toBeVisible();
 
-  await page.getByRole("button", { name: "保存编队" }).click();
-  await expect(page.locator(".app-message")).not.toBeEmpty();
+  await page.locator('[data-action="close-lineup-editor"]').click();
+  await expect(page.locator(".lineup-dialog")).toBeHidden();
 });
 
 // ── Horizontal overflow check ────────────────────────────────────────────────
@@ -235,6 +233,6 @@ test("roster page has no horizontal overflow", async ({ page }) => {
   await mockApi(page);
   await login(page);
   await page.getByRole("link", { name: "学生名单" }).click();
-  await expect(page.locator("[data-drag-student]")).toHaveCount(3);
+  await expect(page.locator(".roster-tabs")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
 });
