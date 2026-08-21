@@ -62,13 +62,19 @@ const abilityBefore = profile.students.planner.abilities.dynamicProgramming;
 const plannerIncrement = SPECIALIST_TRAINING_INCREMENTS[profile.students.planner.aptitude];
 const trained = applySpecialistTraining(profile, { studentId: "planner", ability: "dynamicProgramming" });
 assert.equal(trained.students.planner.abilities.dynamicProgramming, abilityBefore + plannerIncrement);
-assert.equal(trained.currencies.trainingCoins, 100);
+assert.equal(trained.currencies.trainingCoins, 200, "training with a specialist book must not charge training coins");
 assert.equal(trained.inventory[specialistTrainingBookId("dynamicProgramming")], 0);
 assert.equal(profile.students.planner.abilities.dynamicProgramming, abilityBefore, "training must not mutate the supplied profile");
 assert.throws(
-  () => applySpecialistTraining({ ...profile, currencies: { trainingCoins: 0, recruitmentTickets: 0 } }, { studentId: "planner", ability: "dynamicProgramming" }),
+  () => applySpecialistTraining({ ...profile, inventory: { [STUDENT_TRAINING_MATERIAL_ID]: 1 }, currencies: { trainingCoins: 50, recruitmentTickets: 0 } }, { studentId: "planner", ability: "dynamicProgramming" }),
   /training coins/,
 );
+const materialTrained = applySpecialistTraining(
+  { ...structuredClone(profile), inventory: { [STUDENT_TRAINING_MATERIAL_ID]: 1 } },
+  { studentId: "planner", ability: "dynamicProgramming" },
+);
+assert.equal(materialTrained.currencies.trainingCoins, 100, "material-based training must still charge training coins");
+assert.equal(materialTrained.inventory[STUDENT_TRAINING_MATERIAL_ID], 0);
 
 const recruit = createRecruitedStudent({
   studentId: "recruit-test", seed: "recruit-seed", namePoolVersion: profile.namePoolVersion,

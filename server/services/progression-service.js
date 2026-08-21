@@ -152,13 +152,15 @@ export class ProgressionService {
         ? bookId
         : STUDENT_TRAINING_MATERIAL_ID;
       Object.assign(profile, next);
-      await this.ledger.recordCurrency(client, {
-        accountId,
-        currency: "trainingCoins",
-        delta: -SPECIALIST_TRAINING_COST,
-        sourceType: "specialist-training",
-        sourceId: `${studentId}:${ability}`,
-      });
+      if (itemId === STUDENT_TRAINING_MATERIAL_ID) {
+        await this.ledger.recordCurrency(client, {
+          accountId,
+          currency: "trainingCoins",
+          delta: -SPECIALIST_TRAINING_COST,
+          sourceType: "specialist-training",
+          sourceId: `${studentId}:${ability}`,
+        });
+      }
       return {
         training: { studentId, ability, itemId, previousValue, currentValue, increment: currentValue - previousValue },
         auditAction: "specialist_training",

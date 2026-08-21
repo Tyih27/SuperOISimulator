@@ -105,7 +105,7 @@ function enhanceForm(student, inventory) {
   return `<form class="enhance-form" data-enhance-form data-student-id="${esc(student.id)}"><fieldset><legend>选择要提升的能力</legend><div class="enhance-options">${ABILITY_KEYS.map((ability) => {
     const bookCount = inventory[specialistTrainingBookId(ability)] ?? 0;
     return `<label class="enhance-option"><input type="radio" name="enhance-ability" value="${esc(ability)}" required><span><strong>${abilityLabels[ability]}</strong><small>${abilityLabels[ability]}专项训练册 ×${esc(bookCount)}</small></span></label>`;
-  }).join("")}</div></fieldset><p class="view-subtitle">优先消耗对应专项训练册；没有训练册时自动消耗 1 份学生培养材料（当前持有 ${esc(materialCount)} 份）。</p><button type="submit" class="primary-button">确认提升</button></form>`;
+  }).join("")}</div></fieldset><p class="view-subtitle">优先消耗对应专项训练册，使用训练册强化免费；没有训练册时自动消耗 1 份学生培养材料和 100 训练币（当前持有 ${esc(materialCount)} 份材料）。</p><button type="submit" class="primary-button">确认提升</button></form>`;
 }
 
 function renderStudentName(student, editingName) {

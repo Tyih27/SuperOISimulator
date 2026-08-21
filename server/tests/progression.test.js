@@ -154,7 +154,6 @@ try {
   const currencyEntries = await app.db.query("SELECT currency, delta, source_type FROM currency_ledger ORDER BY id");
   assert.deepEqual(currencyEntries.rows.map(({ currency, delta, source_type: sourceType }) => [currency, delta, sourceType]), [
     ["trainingCoins", 1000, "daily-check-in"],
-    ["trainingCoins", -100, "specialist-training"],
     ["trainingCoins", -120, "shop"],
     ["trainingCoins", -120, "shop"],
     ["trainingCoins", -300, "shop"],

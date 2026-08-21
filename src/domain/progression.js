@@ -85,15 +85,16 @@ export function applySpecialistTraining(profile, { studentId, ability } = {}) {
   const increment = SPECIALIST_TRAINING_INCREMENTS[student.aptitude];
   if (!increment) throw new Error("Unknown student aptitude");
   const bookId = specialistTrainingBookId(ability);
-  const itemId = (profile.inventory[bookId] ?? 0) > 0 ? bookId : STUDENT_TRAINING_MATERIAL_ID;
+  const usesBook = (profile.inventory[bookId] ?? 0) > 0;
+  const itemId = usesBook ? bookId : STUDENT_TRAINING_MATERIAL_ID;
   if ((profile.inventory[itemId] ?? 0) < 1) throw new Error("A matching specialist training book or student training material is required");
-  if ((profile.currencies.trainingCoins ?? 0) < SPECIALIST_TRAINING_COST) {
+  if (!usesBook && (profile.currencies.trainingCoins ?? 0) < SPECIALIST_TRAINING_COST) {
     throw new Error("Not enough training coins");
   }
 
   const next = structuredClone(profile);
   next.students[studentId].abilities[ability] += increment;
-  next.currencies.trainingCoins -= SPECIALIST_TRAINING_COST;
+  if (!usesBook) next.currencies.trainingCoins -= SPECIALIST_TRAINING_COST;
   next.inventory[itemId] -= 1;
   return next;
 }
