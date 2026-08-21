@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
+import { createAntiScriptHook } from "./middleware/anti-script.js";
 import { readFile } from "node:fs/promises";
 import { extname, isAbsolute, join, normalize, resolve } from "node:path";
 import { authRoutes } from "./routes/auth.js";
@@ -102,6 +103,7 @@ export function buildApp({ pool, config = {} } = {}) {
       hook: "onRequest",
     });
     await api.register(rateLimit, { global: false });
+    api.addHook("onRequest", createAntiScriptHook({ thresholdMs: config.antiScriptThresholdMs ?? 30 }));
     await api.register(authRoutes, { prefix: "/api/v1/auth" });
     await api.register(accountDataRoutes, { prefix: "/api/v1/account" });
     await api.register(profileRoutes, { prefix: "/api/v1/profile" });
