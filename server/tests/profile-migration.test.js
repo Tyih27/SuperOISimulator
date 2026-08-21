@@ -23,7 +23,7 @@ const legacy = {
 const before = structuredClone(legacy);
 const migrated = migrateProfile(legacy, { seed: "migration-seed" });
 assert.equal(migrated.schemaVersion, CURRENT_PROFILE_SCHEMA_VERSION);
-assert.deepEqual(migrated.recruitment, { attemptsSinceGenius: 0 });
+assert.deepEqual(migrated.recruitment, { attemptsSinceGenius: 0, templateIndex: 0 });
 assert.deepEqual(migrated.formation, { A1: "planner", A2: "graphist", A3: "structurer" });
 assert.equal(migrated.students.planner.name, "自定义名");
 assert.equal(migrated.students.graphist.name, generateStudentName({ studentId: "graphist", seed: "migration-seed" }));
@@ -48,7 +48,7 @@ v2.students.planner.skillLevels = { normal: 4, burst: 5 };
 const v2Before = structuredClone(v2);
 const migratedV2 = migrateProfile(v2, { seed: "v2-seed" });
 assert.equal(migratedV2.schemaVersion, CURRENT_PROFILE_SCHEMA_VERSION);
-assert.deepEqual(migratedV2.recruitment, { attemptsSinceGenius: 12 });
+assert.deepEqual(migratedV2.recruitment, { attemptsSinceGenius: 12, templateIndex: 0 });
 assert.equal(migratedV2.students.planner.id, "planner");
 assert.equal(migratedV2.students.planner.name, "已有名称");
 assert.equal(migratedV2.students.planner.aptitude, "优秀");

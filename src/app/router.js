@@ -171,8 +171,7 @@ export class AppRouter {
       this.detailStudentId = null;
       this.detailNameEditing = false;
     }
-    const rememberedLevel = globalThis.localStorage?.getItem("super-oi:selected-level");
-    this.selectedLevelId ??= this.profile.unlockedLevelIds.includes(rememberedLevel) ? rememberedLevel : this.profile.unlockedLevelIds[0];
+    this.selectedLevelId ??= this.profile.unlockedLevelIds[0];
     this.formationDraft = initialFormation(this.profile);
     this.rosterEditing = false;
   }
@@ -267,7 +266,6 @@ export class AppRouter {
     }
     if (button.matches("[data-select-level]")) {
       this.selectedLevelId = button.dataset.selectLevel;
-      globalThis.localStorage?.setItem("super-oi:selected-level", this.selectedLevelId);
       this.message = "";
       this.render();
       return;
