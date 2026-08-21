@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { LEVELS, SHOP_OFFERS, STUDENTS } from "../../src/data.js";
 import {
+  applyEnergyTonic,
   applySpecialistTraining,
   createRecruitedStudent,
   dismissStudent,
   dismissStudents,
+  ENERGY_TONIC_ID,
+  ENERGY_TONIC_MAX_ENERGY_GAIN,
   SPECIALIST_TRAINING_COST,
   STUDENT_DISMISSAL_MATERIAL_REWARD,
   STUDENT_TRAINING_MATERIAL_ID,
@@ -273,6 +276,32 @@ export class ProgressionService {
         },
         auditAction: "student_dismissal",
         auditPayload: { studentIds: normalized, itemId: STUDENT_TRAINING_MATERIAL_ID },
+      };
+    });
+  }
+
+  async useEnergyTonic(accountId, { studentId } = {}) {
+    requireString(accountId, "Account is required");
+    requireString(studentId, "Student id is required");
+    return this.withProfile(accountId, async ({ profile }) => {
+      let next;
+      try {
+        next = applyEnergyTonic(profile, { studentId: studentId.trim() });
+      } catch (error) {
+        throw invalid(error.message);
+      }
+      const previousValue = profile.students[studentId.trim()].maxEnergy;
+      Object.assign(profile, next);
+      return {
+        energy: {
+          studentId: studentId.trim(),
+          itemId: ENERGY_TONIC_ID,
+          previousValue,
+          currentValue: next.students[studentId.trim()].maxEnergy,
+          gain: ENERGY_TONIC_MAX_ENERGY_GAIN,
+        },
+        auditAction: "energy_tonic",
+        auditPayload: { studentId: studentId.trim(), itemId: ENERGY_TONIC_ID },
       };
     });
   }

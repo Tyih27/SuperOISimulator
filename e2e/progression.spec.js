@@ -70,6 +70,10 @@ async function mockApi(page, options = {}) {
         current = { ...current, version: current.version + 1, currencies: { ...current.currencies, trainingCoins: current.currencies.trainingCoins - 300, recruitmentTickets: current.currencies.recruitmentTickets + 1 } };
         return json({ profile: current, offer: { id: "recruitment-right" } });
       }
+      if (body.offerId === "energy-tonic") {
+        current = { ...current, version: current.version + 1, currencies: { ...current.currencies, trainingCoins: current.currencies.trainingCoins - 150 }, inventory: { ...current.inventory, "energy-tonic": (current.inventory["energy-tonic"] ?? 0) + 1 } };
+        return json({ profile: current, offer: { id: "energy-tonic" } });
+      }
       return json({ code: "INVALID_PROGRESSION_REQUEST", message: "Unknown shop offer" }, 400);
     }
 

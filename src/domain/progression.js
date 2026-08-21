@@ -23,6 +23,8 @@ export const SPECIALIST_TRAINING_INCREMENTS = Object.freeze({
 });
 export const STUDENT_TRAINING_MATERIAL_ID = "student-training-material";
 export const STUDENT_DISMISSAL_MATERIAL_REWARD = 1;
+export const ENERGY_TONIC_ID = "energy-tonic";
+export const ENERGY_TONIC_MAX_ENERGY_GAIN = 500;
 
 function requireRoll(roll) {
   if (typeof roll !== "number" || !Number.isFinite(roll) || roll < 0 || roll >= 1) {
@@ -96,6 +98,21 @@ export function applySpecialistTraining(profile, { studentId, ability } = {}) {
   next.students[studentId].abilities[ability] += increment;
   if (!usesBook) next.currencies.trainingCoins -= SPECIALIST_TRAINING_COST;
   next.inventory[itemId] -= 1;
+  return next;
+}
+
+export function applyEnergyTonic(profile, { studentId } = {}) {
+  requireProfile(profile);
+  if (typeof studentId !== "string" || !profile.students[studentId]) {
+    throw new Error("Student must be owned by the profile");
+  }
+  if ((profile.inventory[ENERGY_TONIC_ID] ?? 0) < 1) {
+    throw new Error("An energy tonic is required");
+  }
+
+  const next = structuredClone(profile);
+  next.students[studentId].maxEnergy += ENERGY_TONIC_MAX_ENERGY_GAIN;
+  next.inventory[ENERGY_TONIC_ID] -= 1;
   return next;
 }
 

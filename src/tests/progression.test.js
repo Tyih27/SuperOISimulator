@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { ABILITY_KEYS, APTITUDE_ABILITY_RANGES, APTITUDE_ORDER, LEVELS, RECRUITMENT_PITY_LIMIT, SHOP_OFFERS, STUDENTS } from "../data.js";
 import {
+  applyEnergyTonic,
   applySpecialistTraining,
   createRecruitedStudent,
   dismissStudent,
   dismissStudents,
+  ENERGY_TONIC_ID,
+  ENERGY_TONIC_MAX_ENERGY_GAIN,
   selectRecruitmentAptitude,
   SPECIALIST_TRAINING_INCREMENTS,
   STUDENT_TRAINING_MATERIAL_ID,
@@ -76,6 +79,16 @@ const materialTrained = applySpecialistTraining(
 );
 assert.equal(materialTrained.currencies.trainingCoins, 100, "material-based training must still charge training coins");
 assert.equal(materialTrained.inventory[STUDENT_TRAINING_MATERIAL_ID], 0);
+
+const tonicProfile = structuredClone(profile);
+tonicProfile.inventory[ENERGY_TONIC_ID] = 1;
+const maxEnergyBefore = tonicProfile.students.planner.maxEnergy;
+const energized = applyEnergyTonic(tonicProfile, { studentId: "planner" });
+assert.equal(energized.students.planner.maxEnergy, maxEnergyBefore + ENERGY_TONIC_MAX_ENERGY_GAIN);
+assert.equal(energized.inventory[ENERGY_TONIC_ID], 0);
+assert.equal(tonicProfile.students.planner.maxEnergy, maxEnergyBefore, "energy tonic must not mutate the supplied profile");
+assert.throws(() => applyEnergyTonic(profile, { studentId: "planner" }), /energy tonic/);
+assert.throws(() => applyEnergyTonic(tonicProfile, { studentId: "ghost" }), /owned by the profile/);
 
 const recruit = createRecruitedStudent({
   studentId: "recruit-test", seed: "recruit-seed", namePoolVersion: profile.namePoolVersion,

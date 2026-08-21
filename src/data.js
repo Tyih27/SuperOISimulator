@@ -277,12 +277,13 @@ export const BALANCE_BASELINES = freeze({
 });
 
 export const SHOP_OFFERS = freeze([
-  { id: "recruitment-right", name: "招募权", price: { trainingCoins: 300 }, grants: { recruitmentTickets: 1 } },
+  { id: "recruitment-right", name: "招募券", price: { trainingCoins: 300 }, grants: { recruitmentTickets: 1 } },
   { id: "daily-dp-book", name: "动态规划专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-dynamicProgramming": 1 } },
   { id: "daily-graph-book", name: "图论专项训练册", price: { trainingCoins: 120 }, grants: { "specialist-book-graphTheory": 1 } },
   { id: "data-book", name: "数据结构专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-dataStructures": 1 } },
   { id: "math-book", name: "数学专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-mathematics": 1 } },
   { id: "implementation-book", name: "代码实现专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-implementation": 1 } },
+  { id: "energy-tonic", name: "精力药剂", price: { trainingCoins: 150 }, grants: { "energy-tonic": 1 } },
 ]);
 
 export const DEFAULT_FORMATION = freeze({ A1: "planner", A2: "graphist", A3: "structurer" });

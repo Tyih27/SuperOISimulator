@@ -85,6 +85,18 @@ export async function progressionRoutes(app) {
     }
   }));
 
+  app.post("/students/:studentId/energy", action(
+    { type: "object", additionalProperties: false },
+    async (request, reply) => {
+      try {
+        return await service.useEnergyTonic(request.account.id, request.params);
+      } catch (error) {
+        return sendProgressionError(reply, error);
+      }
+    },
+    { type: "object", required: ["studentId"], properties: { studentId: { type: "string", minLength: 1, maxLength: 128 } }, additionalProperties: false },
+  ));
+
   app.post("/recruitment", action({ type: "object", additionalProperties: false }, async (request, reply) => {
     try {
       return await service.recruitStudent(request.account.id);

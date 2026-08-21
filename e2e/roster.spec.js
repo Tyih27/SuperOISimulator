@@ -360,6 +360,39 @@ test("replace picker lists bench students by power", async ({ page }) => {
   await expect(page.locator(".replace-option strong")).toHaveText(["顾宁", "许知", "沈言"]);
 });
 
+test("energy tonic raises a student's max energy", async ({ page }) => {
+  let current = profile();
+  let authenticated = false;
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace("/api/v1", "");
+    const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (path === "/auth/session") return authenticated ? json({ account: { id: "roster-account", username: "roster01" } }) : json({ code: "UNAUTHENTICATED" }, 401);
+    if (path === "/auth/register" || path === "/auth/login") { authenticated = true; return json({ account: { id: "roster-account", username: "roster01" } }, path.endsWith("register") ? 201 : 200); }
+    if (path === "/profile" && route.request().method() === "GET") return json(current);
+    if (path === "/progression/shop/purchases") {
+      current = { ...current, version: current.version + 1, currencies: { ...current.currencies, trainingCoins: current.currencies.trainingCoins - 150 }, inventory: { ...current.inventory, "energy-tonic": (current.inventory["energy-tonic"] ?? 0) + 1 } };
+      return json({ profile: current, offer: { id: "energy-tonic" } });
+    }
+    if (path === "/students/planner/energy" || path.endsWith("/planner/energy")) {
+      const previousValue = current.students.planner.maxEnergy;
+      current = { ...current, version: current.version + 1, students: { ...current.students, planner: { ...current.students.planner, maxEnergy: previousValue + 500 } }, inventory: { ...current.inventory, "energy-tonic": (current.inventory["energy-tonic"] ?? 1) - 1 } };
+      return json({ profile: current, energy: { studentId: "planner", itemId: "energy-tonic", previousValue, currentValue: previousValue + 500, gain: 500 } });
+    }
+    return json({ code: "NOT_FOUND", message: path }, 404);
+  });
+
+  await login(page);
+  await page.getByRole("link", { name: "训练与补给" }).click();
+  await page.locator('[data-buy-offer="energy-tonic"]').click();
+  await expect(page.getByText("购买成功")).toBeVisible();
+
+  await page.getByRole("link", { name: "学生名单", exact: true }).click();
+  await expect(page.locator(".energy-panel")).toContainText("持有 1 份");
+  await page.getByRole("button", { name: "使用精力药剂" }).click();
+  await expect(page.getByText(/精力上限已提升：\d+ → \d+，已消耗 1 份精力药剂。/)).toBeVisible();
+});
+
 // ── Formation validation ─────────────────────────────────────────────────────
 
 test("lineup editor allows fielding fewer than three students", async ({ page }) => {

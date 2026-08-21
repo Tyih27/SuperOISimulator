@@ -177,6 +177,18 @@ try {
   assert.equal(oversizedBatch.statusCode, 400);
   assert.match(oversizedBatch.json().message, /owned by the profile/, "batches beyond 50 students must still reach domain validation");
 
+  const tonicPurchase = await request(app, { method: "POST", url: "/api/v1/progression/shop/purchases", cookies: auth, payload: { offerId: "energy-tonic" } });
+  assert.equal(tonicPurchase.statusCode, 200);
+  assert.equal(tonicPurchase.json().profile.inventory["energy-tonic"], 1);
+  const energyBoost = await request(app, {
+    method: "POST", url: "/api/v1/progression/students/structurer/energy", cookies: auth,
+    payload: {},
+  });
+  assert.equal(energyBoost.statusCode, 200);
+  assert.equal(energyBoost.json().energy.currentValue, energyBoost.json().energy.previousValue + 500);
+  assert.equal(energyBoost.json().profile.students.structurer.maxEnergy, energyBoost.json().energy.currentValue);
+  assert.equal(energyBoost.json().profile.inventory["energy-tonic"], 0);
+
   const unknownOffer = await request(app, {
     method: "POST", url: "/api/v1/progression/shop/purchases", cookies: auth,
     payload: { offerId: "not-a-real-offer" },
@@ -197,6 +209,7 @@ try {
     ["trainingCoins", -300, "shop"],
     ["recruitmentTickets", 1, "shop"],
     ["recruitmentTickets", -1, "recruitment"],
+    ["trainingCoins", -150, "shop"],
   ]);
   const inventoryEntries = await app.db.query("SELECT item_id, quantity, source_type FROM inventory_entries ORDER BY id");
   assert.deepEqual(inventoryEntries.rows.map(({ item_id: itemId, quantity, source_type: sourceType }) => [itemId, quantity, sourceType]), [
@@ -205,10 +218,11 @@ try {
     ["student-training-material", 1, "student-dismissal"],
     ["student-training-material", 1, "student-dismissal"],
     ["student-training-material", 2, "student-dismissal"],
+    ["energy-tonic", 1, "shop"],
   ]);
   const auditEntries = await app.db.query("SELECT action_type FROM account_audit_log ORDER BY id");
   assert.deepEqual(auditEntries.rows.map(({ action_type: actionType }) => actionType), [
-    "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in", "profile_update", "student_dismissal", "profile_update", "shop_purchase", "student_recruitment", "student_dismissal",
+    "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in", "profile_update", "student_dismissal", "profile_update", "shop_purchase", "student_recruitment", "student_dismissal", "shop_purchase", "energy_tonic",
   ]);
 
   const catalogRegistered = await request(app, {
