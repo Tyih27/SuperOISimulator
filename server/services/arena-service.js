@@ -4,6 +4,7 @@ import { LEVELS } from "../../src/data.js";
 import { createBattleSnapshot } from "../../src/domain/snapshot.js";
 import { runArena } from "../../src/combat/arena-engine.js";
 import { calculateOverallPower } from "../../src/combat/math.js";
+import { createArenaLevel, withArenaLevel } from "../../src/combat/arena-content.js";
 import { LedgerRepository } from "../repositories/ledger-repository.js";
 import { ArenaRepository } from "../repositories/arena-repository.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
@@ -30,6 +31,10 @@ function ratingDelta(winner) { return winner === "attacker" ? 25 : winner === "d
 function defensePower(row) {
   const team = Array.isArray(row.snapshot?.team) ? row.snapshot.team : [];
   return team.reduce((sum, student) => sum + Math.round(calculateOverallPower(student)), 0);
+}
+
+function snapshotPower(snapshot) {
+  return (snapshot?.team ?? []).reduce((sum, student) => sum + Math.round(calculateOverallPower(student)), 0);
 }
 
 function publicDefense(row) {
@@ -108,7 +113,12 @@ export class ArenaService {
       const battlesToday = await this.arena.countAttackerMatchesOnDay(client, accountId, resetTimeZone());
       if (battlesToday >= ARENA_DAILY_BATTLE_LIMIT) throw dailyLimitReached();
       const matchId = this.idFactory();
-      const match = await this.arena.createMatch(client, { id: matchId, attackerId: accountId, defenderId: opponentId, seed: `arena:${matchId}`, attackerSnapshot: attacker.snapshot, defenderSnapshot: defender.snapshot, attackerRatingBefore: attacker.rating, defenderRatingBefore: defender.rating });
+      const seed = `arena:${matchId}`;
+      const averagePower = (snapshotPower(attacker.snapshot) + snapshotPower(defender.snapshot)) / 2;
+      const level = createArenaLevel({ seed, targetPower: averagePower });
+      const attackerSnapshot = withArenaLevel(attacker.snapshot, level, `${seed}:attacker`);
+      const defenderSnapshot = withArenaLevel(defender.snapshot, level, `${seed}:defender`);
+      const match = await this.arena.createMatch(client, { id: matchId, attackerId: accountId, defenderId: opponentId, seed, attackerSnapshot, defenderSnapshot, attackerRatingBefore: attacker.rating, defenderRatingBefore: defender.rating });
       await client.query("COMMIT");
       return { id: match.id, seed: match.seed, attacker: { accountId }, defender: { accountId: opponentId, rating: defender.rating }, snapshots: { attacker: match.attacker_snapshot, defender: match.defender_snapshot } };
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
