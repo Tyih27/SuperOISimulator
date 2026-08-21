@@ -3,7 +3,7 @@ const level = {
   name: "季度大考",
   order: 7,
   track: "extra",
-  recommendedTotalPower: 20000,
+  recommendedTotalPower: 18800,
   seed: "H8D6-95",
   maxRounds: 34,
   objective: { type: "all" },

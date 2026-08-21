@@ -164,7 +164,7 @@ npm run test:container
 │   │   ├── chapter-1-2.js
 │   │   ├── chapter-1-3.js
 │   │   ├── chapter-1-4.js
-│   │   ├── chapter-2-1.js      # 额外关卡「竞赛进阶」（推荐总战力 5000-30000）
+│   │   ├── chapter-2-1.js      # 额外关卡「竞赛进阶」（推荐总战力 4800-28800）
 │   │   ├── chapter-2-2.js
 │   │   ├── chapter-2-3.js
 │   │   ├── chapter-2-4.js

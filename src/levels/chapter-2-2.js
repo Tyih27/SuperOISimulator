@@ -3,7 +3,7 @@ const level = {
   name: "周末集训",
   order: 6,
   track: "extra",
-  recommendedTotalPower: 10000,
+  recommendedTotalPower: 9400,
   seed: "G6C4-74",
   maxRounds: 32,
   objective: { type: "all" },

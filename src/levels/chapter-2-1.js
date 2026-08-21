@@ -3,7 +3,7 @@ const level = {
   name: "午夜加练",
   order: 5,
   track: "extra",
-  recommendedTotalPower: 5000,
+  recommendedTotalPower: 4800,
   seed: "F4B2-53",
   maxRounds: 30,
   objective: { type: "all" },
