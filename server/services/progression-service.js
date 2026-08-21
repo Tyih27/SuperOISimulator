@@ -7,7 +7,6 @@ import {
   dismissStudent,
   dismissStudents,
   ENERGY_TONIC_ID,
-  SPECIALIST_TRAINING_COST,
   STUDENT_DISMISSAL_MATERIAL_REWARD,
   STUDENT_TRAINING_MATERIAL_ID,
   specialistTrainingBookId,
@@ -155,15 +154,6 @@ export class ProgressionService {
         ? bookId
         : STUDENT_TRAINING_MATERIAL_ID;
       Object.assign(profile, next);
-      if (itemId === STUDENT_TRAINING_MATERIAL_ID) {
-        await this.ledger.recordCurrency(client, {
-          accountId,
-          currency: "trainingCoins",
-          delta: -SPECIALIST_TRAINING_COST,
-          sourceType: "specialist-training",
-          sourceId: `${studentId}:${ability}`,
-        });
-      }
       return {
         training: { studentId, ability, itemId, previousValue, currentValue, increment: currentValue - previousValue },
         auditAction: "specialist_training",

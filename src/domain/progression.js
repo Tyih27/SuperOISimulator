@@ -10,7 +10,7 @@ import {
 import { createStudentIdentity } from "./student-identity.js";
 import { createRng } from "../rng.js";
 
-export const SPECIALIST_TRAINING_COST = 100;
+export const STUDENT_TRAINING_MATERIAL_ID = "student-training-material";
 // Higher aptitudes also grow faster: each specialist training session adds
 // the increment of the student's own aptitude, so aptitude gaps widen over
 // time instead of being trained away.
@@ -21,7 +21,6 @@ export const SPECIALIST_TRAINING_INCREMENTS = Object.freeze({
   "天才": 30,
   "顶尖": 40,
 });
-export const STUDENT_TRAINING_MATERIAL_ID = "student-training-material";
 export const STUDENT_DISMISSAL_MATERIAL_REWARD = 1;
 export const ENERGY_TONIC_ID = "energy-tonic";
 export const ENERGY_TONIC_MAX_ENERGY_GAIN = 50;
@@ -91,13 +90,9 @@ export function applySpecialistTraining(profile, { studentId, ability } = {}) {
   const usesBook = (profile.inventory[bookId] ?? 0) > 0;
   const itemId = usesBook ? bookId : STUDENT_TRAINING_MATERIAL_ID;
   if ((profile.inventory[itemId] ?? 0) < 1) throw new Error("A matching specialist training book or student training material is required");
-  if (!usesBook && (profile.currencies.trainingCoins ?? 0) < SPECIALIST_TRAINING_COST) {
-    throw new Error("Not enough training coins");
-  }
 
   const next = structuredClone(profile);
   next.students[studentId].abilities[ability] += increment;
-  if (!usesBook) next.currencies.trainingCoins -= SPECIALIST_TRAINING_COST;
   next.inventory[itemId] -= 1;
   return next;
 }

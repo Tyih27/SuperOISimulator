@@ -21,6 +21,8 @@ try {
   const opponents = await app.inject({ method: "GET", url: "/api/v1/arena/opponents", cookies: aliceCookie });
   assert.equal(opponents.statusCode, 200);
   assert.equal(opponents.json().length, 1);
+  assert.equal(typeof opponents.json()[0].power, "number", "opponent list must include defense power");
+  assert.ok(opponents.json()[0].power > 0);
   const match = await request(app, { method: "POST", url: "/api/v1/arena/matches", cookies: aliceCookie, payload: { opponentId: bob.json().account.id } });
   assert.equal(match.statusCode, 201);
   assert.equal(match.json().snapshots.defender.team.length, 3);

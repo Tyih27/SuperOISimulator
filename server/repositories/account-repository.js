@@ -81,13 +81,8 @@ export class AccountRepository {
     );
   }
 
-  async queueDeletion(client, { accountId, deleteAfter }) {
-    await client.query(
-      `INSERT INTO account_deletion_requests (account_id, delete_after)
-       VALUES ($1, $2)
-       ON CONFLICT (account_id) DO UPDATE SET delete_after = EXCLUDED.delete_after, status = 'queued'`,
-      [accountId, deleteAfter],
-    );
+  async deleteAccount(client, accountId) {
+    await client.query("DELETE FROM accounts WHERE id = $1", [accountId]);
   }
 
   async exportData(client, accountId) {

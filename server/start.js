@@ -21,14 +21,6 @@ function required(name) {
   return value;
 }
 
-function retentionDays(value) {
-  const days = Number.parseInt(value ?? "30", 10);
-  if (!Number.isInteger(days) || days < 1 || days > 3_650) {
-    throw new Error("ACCOUNT_DELETION_RETENTION_DAYS must be an integer from 1 to 3650");
-  }
-  return days;
-}
-
 const databaseUrl = required("DATABASE_URL");
 const sessionSecret = required("SESSION_SECRET");
 const environment = process.env.NODE_ENV ?? "development";
@@ -61,7 +53,6 @@ const app = buildApp({
     sessionSecret,
     secureCookies: secureCookies === "true",
     allowedOrigins,
-    accountDeletionRetentionDays: retentionDays(process.env.ACCOUNT_DELETION_RETENTION_DAYS),
     staticDir: projectRoot,
   },
 });

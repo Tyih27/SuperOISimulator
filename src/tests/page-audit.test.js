@@ -19,7 +19,7 @@ assert.match(authSource, /<label>用户名<input/);
 assert.match(authSource, /<label>密码<input/);
 assert.match(authSource, /注册并登录/);
 assert.match(authSource, /导出训练数据/);
-assert.match(authSource, /请求删除账户/);
+assert.match(authSource, /删除账户/);
 assert.doesNotMatch(progressionSource, /data-student-toggle/);
 assert.match(progressionSource, /data-drag-student/);
 assert.match(progressionSource, /data-drop-position/);

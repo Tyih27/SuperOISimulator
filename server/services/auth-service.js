@@ -144,7 +144,7 @@ export class AuthService {
     }
   }
 
-  async queueDeletion(accountId, password, { retentionDays = 30 } = {}) {
+  async deleteAccount(accountId, password) {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
@@ -152,12 +152,9 @@ export class AuthService {
       const matches = account && typeof password === "string"
         ? await argon2.verify(account.password_hash, password) : false;
       if (!matches) throw new AuthError("INVALID_CURRENT_PASSWORD", 400, "Current password is incorrect");
-      const deleteAfter = new Date(Date.now() + Math.max(1, retentionDays) * 24 * 60 * 60 * 1000);
-      await this.repository.queueDeletion(client, { accountId, deleteAfter });
-      await this.repository.revokeAllSessions(client, accountId);
-      await this.audit.append(client, { accountId, actionType: "account_deletion_requested", payload: { deleteAfter: deleteAfter.toISOString() } });
+      await this.repository.deleteAccount(client, accountId);
       await client.query("COMMIT");
-      return { deleteAfter: deleteAfter.toISOString() };
+      return { deleted: true };
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;

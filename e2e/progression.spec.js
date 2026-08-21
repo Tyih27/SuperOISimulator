@@ -50,10 +50,8 @@ async function mockApi(page, options = {}) {
       const hasBook = (current.inventory[bookId] ?? 0) > 0;
       const hasMaterial = (current.inventory["student-training-material"] ?? 0) > 0;
       if (!hasBook && !hasMaterial) return json({ code: "INVALID_PROGRESSION_REQUEST", message: "A matching specialist training book or student training material is required" }, 400);
-      if (!hasBook && current.currencies.trainingCoins < 100) return json({ code: "INVALID_PROGRESSION_REQUEST", message: "Not enough training coins" }, 400);
       const prev = student.abilities[body.ability];
-      const coinCost = hasBook ? 0 : 100;
-      const next = { ...current, version: current.version + 1, students: { ...current.students, [body.studentId]: { ...student, abilities: { ...student.abilities, [body.ability]: prev + 40 } } }, currencies: { ...current.currencies, trainingCoins: current.currencies.trainingCoins - coinCost } };
+      const next = { ...current, version: current.version + 1, students: { ...current.students, [body.studentId]: { ...student, abilities: { ...student.abilities, [body.ability]: prev + 40 } } } };
       if (hasBook) next.inventory = { ...next.inventory, [bookId]: (next.inventory[bookId] ?? 1) - 1 };
       else next.inventory = { ...next.inventory, "student-training-material": (next.inventory["student-training-material"] ?? 1) - 1 };
       current = next;

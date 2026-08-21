@@ -58,7 +58,7 @@ async function mockApiWithErrors(page, options = {}) {
       return route.fulfill({ status: 204 });
     }
     if (path === "/account/export") return json({ exportedAt: new Date().toISOString(), account: { id: "err-account" }, data: {} });
-    if (path === "/account" && method === "DELETE") { authenticated = false; return json({ status: "queued", deleteAfter: "2026-09-18T00:00:00.000Z" }); }
+    if (path === "/account" && method === "DELETE") { authenticated = false; return json({ status: "deleted" }); }
     if (path.includes("/daily-check-in")) return json({ code: "DAILY_CHECK_IN_ALREADY_CLAIMED" }, 409);
     return json({ code: "NOT_FOUND", message: path }, 404);
   });
@@ -157,7 +157,7 @@ test("delete button requires confirmation checkbox", async ({ page }) => {
 
   await page.getByRole("link", { name: "账户与数据" }).click();
   await page.getByLabel("账户密码").fill("correct horse battery");
-  await expect(page.getByRole("button", { name: "请求删除账户" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "删除账户" })).toBeVisible();
 });
 
 // ── Wrong password for password change ───────────────────────────────────────

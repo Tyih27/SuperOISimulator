@@ -29,7 +29,7 @@ async function mockApi(page) {
     if (path === "/auth/logout") { authenticated = false; return route.fulfill({ status: 204 }); }
     if (path === "/account/export") return json({ exportedAt: "2026-08-19T12:00:00.000Z", account: { id: "account-1", username: "alice01" }, data: { profile: current, audit: [] } });
     if (path === "/account/password" && route.request().method() === "POST") { authenticated = false; return route.fulfill({ status: 204 }); }
-    if (path === "/account" && route.request().method() === "DELETE") { authenticated = false; return json({ status: "queued", deleteAfter: "2026-09-18T12:00:00.000Z" }); }
+    if (path === "/account" && route.request().method() === "DELETE") { authenticated = false; return json({ status: "deleted" }); }
     if (path === "/profile" && route.request().method() === "GET") return json(current);
     if (path === "/profile" && route.request().method() === "PUT") {
       const update = route.request().postDataJSON();
@@ -182,8 +182,8 @@ test("account deletion revokes the browser session", async ({ page }) => {
   await page.getByRole("button", { name: "注册并登录" }).click();
   await page.getByRole("link", { name: "账户与数据" }).click();
   await page.getByLabel("账户密码").fill("correct horse battery");
-  await page.getByLabel("我理解此操作会请求删除我的账户").check();
-  await page.getByRole("button", { name: "请求删除账户" }).click();
+  await page.getByLabel("我理解此操作会立即永久删除我的账户").check();
+  await page.getByRole("button", { name: "删除账户" }).click();
   await expect(page.getByText("训练档案")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
 });

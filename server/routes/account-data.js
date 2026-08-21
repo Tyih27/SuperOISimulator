@@ -75,11 +75,9 @@ export async function accountDataRoutes(app) {
     preHandler: [sameOrigin, requireAccount], schema: { body: ACCOUNT_DELETE_DTO_SCHEMA },
   }, async (request, reply) => {
     try {
-      const result = await auth.queueDeletion(request.account.id, request.body.password, {
-        retentionDays: app.config.accountDeletionRetentionDays ?? 30,
-      });
+      await auth.deleteAccount(request.account.id, request.body.password);
       clearCookie(reply, app.config);
-      return reply.send({ status: "queued", deleteAfter: result.deleteAfter });
+      return reply.send({ status: "deleted" });
     } catch (error) {
       return sendError(reply, error);
     }

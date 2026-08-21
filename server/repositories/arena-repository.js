@@ -43,9 +43,9 @@ export class ArenaRepository {
     return result.rows[0];
   }
 
-  async listOpponents(client, accountId, limit = 10) {
+  async listOpponents(client, accountId, limit = 100) {
     const result = await client.query(
-      `SELECT d.account_id, a.username, d.rating, d.battles_won, d.battles_lost, d.updated_at
+      `SELECT d.account_id, a.username, d.rating, d.battles_won, d.battles_lost, d.snapshot, d.updated_at
          FROM arena_defenses d JOIN accounts a ON a.id = d.account_id
         WHERE d.account_id <> $1
         ORDER BY abs(d.rating - COALESCE((SELECT rating FROM arena_defenses WHERE account_id = $1), 1000)), d.account_id

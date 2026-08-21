@@ -74,29 +74,23 @@ try {
     method: "DELETE", url: "/api/v1/account", cookies: currentAuth, payload: { password: NEW_PASSWORD },
   });
   assert.equal(deletion.statusCode, 200);
-  assert.equal(deletion.json().status, "queued");
-  const deletionRequest = await app.db.query(
-    "SELECT status, delete_after FROM account_deletion_requests WHERE account_id = $1",
-    [profile.accountId],
-  );
-  assert.equal(deletionRequest.rows[0].status, "queued");
-  assert.ok(deletionRequest.rows[0].delete_after > new Date());
+  assert.equal(deletion.json().status, "deleted");
+  const deletedAccount = await app.db.query("SELECT count(*)::int AS total FROM accounts WHERE id = $1", [profile.accountId]);
+  assert.equal(deletedAccount.rows[0].total, 0);
+  const deletedProfile = await app.db.query("SELECT count(*)::int AS total FROM player_profiles WHERE account_id = $1", [profile.accountId]);
+  assert.equal(deletedProfile.rows[0].total, 0);
   const deletionRevoked = await app.inject({ method: "GET", url: "/api/v1/auth/session", cookies: currentAuth });
   assert.equal(deletionRevoked.statusCode, 401);
-  const queuedLogin = await request(app, {
+  const deletedLogin = await request(app, {
     method: "POST", url: "/api/v1/auth/login", payload: { username: "account01", password: NEW_PASSWORD },
   });
-  assert.equal(queuedLogin.statusCode, 401);
+  assert.equal(deletedLogin.statusCode, 401);
 
-  const audit = await app.db.query(
-    "SELECT action_type, payload_hash::text AS payload_hash FROM account_audit_log WHERE account_id = $1 ORDER BY id",
+  const auditAfterDeletion = await app.db.query(
+    "SELECT count(*)::int AS total FROM account_audit_log WHERE account_id = $1",
     [profile.accountId],
   );
-  assert.deepEqual(audit.rows.map(({ action_type: actionType }) => actionType), [
-    "student_rename", "password_change", "account_deletion_requested",
-  ]);
-  assert.ok(audit.rows.every(({ payload_hash: payloadHash }) => /^[a-f0-9]{64}$/.test(payloadHash)));
-  assert.doesNotMatch(JSON.stringify(audit.rows), /correct horse battery|new correct horse battery/i);
+  assert.equal(auditAfterDeletion.rows[0].total, 0, "audit rows must be cascade-deleted with the account");
 
   console.log("account data API tests passed");
 } finally {

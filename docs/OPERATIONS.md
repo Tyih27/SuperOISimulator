@@ -2,7 +2,7 @@
 
 ## 配置
 
-服务启动前必须设置 `DATABASE_URL`、至少 32 字符的 `SESSION_SECRET` 和同源 `APP_ORIGIN`。`APP_ORIGIN` 可配置为逗号分隔的完整 HTTP(S) 来源白名单，例如 `http://localhost:3000,http://127.0.0.1:3000`；不能包含路径。生产环境还必须明确设置 `SECURE_COOKIES=true` 或 `SECURE_COOKIES=false`；开发环境未设置时默认为 `false`。`ACCOUNT_DELETION_RETENTION_DAYS` 是删除请求的保留天数，默认 `30`，可设置为 `1` 至 `3650`。
+服务启动前必须设置 `DATABASE_URL`、至少 32 字符的 `SESSION_SECRET` 和同源 `APP_ORIGIN`。`APP_ORIGIN` 可配置为逗号分隔的完整 HTTP(S) 来源白名单，例如 `http://localhost:3000,http://127.0.0.1:3000`；不能包含路径。生产环境还必须明确设置 `SECURE_COOKIES=true` 或 `SECURE_COOKIES=false`；开发环境未设置时默认为 `false`。
 
 ```bash
 docker compose up -d postgres
@@ -43,6 +43,6 @@ npm run dev
 
 密码变更必须提交当前密码，成功后会撤销该账户所有会话。玩家使用新密码登录后即可在其他设备恢复同一份服务端档案。
 
-删除请求也必须提交当前密码。请求会撤销全部会话、阻止新的登录，并写入 `account_deletion_requests`；保留期结束前，运维人员应按备份和合规策略核验请求。当前服务只负责排队，不会自行物理删除账户。完成经批准的删除时，应在事务中删除 `accounts` 对应行；外键会级联删除档案、记录、会话、删除请求和审计记录。执行前保留经批准的数据库备份。
+删除账户也必须提交当前密码。删除会立即生效：服务在事务中删除 `accounts` 对应行并撤销全部会话，外键会级联删除档案、记录、竞技场防守和审计数据，无法恢复。执行前应按备份与合规策略确认操作；如需审计留痕，请依赖删除前的数据库备份。
 
 审计表 `account_audit_log` 仅保存账户 ID、动作类型、SHA-256 载荷摘要和时间。不要向该表或应用日志写入密码、Argon2 哈希、会话令牌或完整导出内容。

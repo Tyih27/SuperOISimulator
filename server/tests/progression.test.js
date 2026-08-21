@@ -204,7 +204,6 @@ try {
     ["trainingCoins", -300, "shop"],
     ["recruitmentTickets", 1, "shop"],
     ["recruitmentTickets", -1, "recruitment"],
-    ["trainingCoins", -100, "specialist-training"],
     ["trainingCoins", 1000, "daily-check-in"],
     ["trainingCoins", -300, "shop"],
     ["recruitmentTickets", 1, "shop"],

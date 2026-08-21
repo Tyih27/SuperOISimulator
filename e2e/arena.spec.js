@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { SKILL_GROUPS } from "../src/data.js";
 
 const profile = {
   schemaVersion: 3, version: 1, accountId: "arena-account", identitySeed: "arena", namePoolVersion: 1,
@@ -6,6 +7,26 @@ const profile = {
     id, name: ["林澈", "周岚", "程野"][index], aptitude: "普通", abilities: { dynamicProgramming: 600, graphTheory: 600, dataStructures: 600, mathematics: 600, implementation: 600 }, maxEnergy: 5000, skillGroupId: id, skillGroupLevels: { [id]: { normal: 1, burst: 1 } },
   }])),
   formation: { A1: "planner", A2: "graphist", A3: "structurer" }, inventory: {}, currencies: { trainingCoins: 1000, recruitmentTickets: 1 }, unlockedLevelIds: ["chapter-1-1"],
+};
+
+const attackerSnapshot = {
+  snapshotVersion: 3, engineVersion: 3, rulesetVersion: 3, profileVersion: 1, namePoolVersion: 1,
+  seed: "arena-e2e-seed",
+  timestamp: "2026-08-21T12:00:00.000Z",
+  team: Object.values(profile.students),
+  skillGroups: structuredClone(SKILL_GROUPS),
+  formation: { ...profile.formation },
+  level: {
+    id: "chapter-1-1", name: "清晨训练场", maxRounds: 6,
+    objective: { type: "all" },
+    topicIds: ["t1", "t2", "t3"], activeTopicSlots: ["B1", "B2", "B3"], studentSlots: ["A1", "A2", "A3"],
+    focusMax: 1000, focusGain: 200, seed: "level-e2e-seed",
+    topics: ["t1", "t2", "t3"].map((id, index) => ({
+      id, name: ["模拟", "排序", "搜索"][index],
+      difficulties: { dynamicProgramming: 120, graphTheory: 120, dataStructures: 120, mathematics: 120, implementation: 120 },
+      maxProgress: 1000,
+    })),
+  },
 };
 
 test("arena defense, replay, and historical view are server-driven", async ({ page }) => {
@@ -20,9 +41,9 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
     if (path === "/profile") return json(profile);
     if (path === "/arena/defense" && route.request().method() === "PUT") { defense = { accountId: profile.accountId, rating: 1000, battlesWon: 0, battlesLost: 0 }; return json({ defense, snapshot: { team: Object.values(profile.students) } }); }
     if (path === "/arena/defense") return json({ defense, snapshot: { team: Object.values(profile.students) }, battlesToday: 0, dailyLimit: 40 });
-    if (path === "/arena/opponents") return json([{ accountId: "opponent-account", rating: 1000, battlesWon: 4, battlesLost: 2 }]);
-    if (path === "/arena/matches" && route.request().method() === "POST") { match = { id: "11111111-1111-4111-8111-111111111111", seed: "arena-seed", snapshots: { attacker: {}, defender: {} } }; return json(match, 201); }
-    if (path.endsWith("/settle")) { profile.currencies.trainingCoins += 25; return json({ id: match.id, result: { winner: "attacker" }, rating: { attackerBefore: 1000, attackerAfter: 1025 }, reward: { trainingCoins: 25 }, replay: { attackerEventsHash: "hash-a", defenderEventsHash: "hash-d" } }); }
+    if (path === "/arena/opponents") return json([{ accountId: "opponent-account", rating: 1000, battlesWon: 4, battlesLost: 2, power: 2460 }]);
+    if (path === "/arena/matches" && route.request().method() === "POST") { match = { id: "11111111-1111-4111-8111-111111111111", seed: "arena-seed", snapshots: { attacker: attackerSnapshot, defender: {} } }; return json(match, 201); }
+    if (path.endsWith("/settle")) { profile.currencies.trainingCoins += 25; return json({ id: match.id, result: { winner: "attacker" }, rating: { attackerBefore: 1000, attackerAfter: 1025 }, reward: { trainingCoins: 25 }, replay: { attackerEventsHash: "hash-a", defenderEventsHash: "hash-d" }, events: { attacker: [], defender: [] } }); }
     return json({ message: path }, 404);
   });
 
@@ -33,10 +54,13 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
   await page.getByRole("link", { name: "异步竞技场" }).click();
   await page.getByRole("button", { name: "保存当前编队" }).click();
   await page.getByRole("button", { name: "刷新列表" }).click();
+  await expect(page.getByText("战力 2460")).toBeVisible();
   await page.getByRole("button", { name: "挑战" }).click();
   await expect(page.getByText("比赛 11111111-1111-4111-8111-111111111111")).toBeVisible();
   await expect(page.getByText("今日剩余挑战次数 39 / 40")).toBeVisible();
-  await page.getByRole("button", { name: "开始回放并结算" }).click();
+  await expect(page.locator(".live-battle")).toBeVisible();
+  await expect(page.getByText(/已通过 \d+ \/ 目标 3/)).toBeVisible();
+  await page.getByRole("button", { name: "开始结算并查看结果" }).click();
   await expect(page.getByText("挑战胜利")).toBeVisible();
   await expect(page.getByText("获得 25 训练币。")).toBeVisible();
   await page.getByRole("link", { name: "训练与补给" }).click();
@@ -76,7 +100,7 @@ test("arena loss shows no reward", async ({ page }) => {
   await page.getByRole("button", { name: "保存当前编队" }).click();
   await page.getByRole("button", { name: "刷新列表" }).click();
   await page.getByRole("button", { name: "挑战" }).click();
-  await page.getByRole("button", { name: "开始回放并结算" }).click();
+  await page.getByRole("button", { name: "开始结算并查看结果" }).click();
   await expect(page.getByText("挑战失败")).toBeVisible();
   await expect(page.getByText("获得 25 训练币")).toBeHidden();
 });

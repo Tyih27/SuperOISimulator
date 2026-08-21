@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { LEVELS } from "../../src/data.js";
 import { createBattleSnapshot } from "../../src/domain/snapshot.js";
 import { runArena } from "../../src/combat/arena-engine.js";
+import { calculateOverallPower } from "../../src/combat/math.js";
 import { LedgerRepository } from "../repositories/ledger-repository.js";
 import { ArenaRepository } from "../repositories/arena-repository.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
@@ -26,8 +27,22 @@ const resetTimeZone = () => process.env.RESET_TIME_ZONE || "Asia/Shanghai";
 function requireAccount(accountId) { if (typeof accountId !== "string" || !accountId.trim()) throw invalid("Account is required"); }
 function ratingDelta(winner) { return winner === "attacker" ? 25 : winner === "defender" ? -25 : 0; }
 
+function defensePower(row) {
+  const team = Array.isArray(row.snapshot?.team) ? row.snapshot.team : [];
+  return team.reduce((sum, student) => sum + Math.round(calculateOverallPower(student)), 0);
+}
+
 function publicDefense(row) {
-  return { accountId: row.account_id, username: row.username, rating: row.rating, battlesWon: row.battles_won, battlesLost: row.battles_lost, updatedAt: row.updated_at };
+  const hasSnapshot = row.snapshot !== undefined && row.snapshot !== null;
+  return {
+    accountId: row.account_id,
+    username: row.username,
+    rating: row.rating,
+    battlesWon: row.battles_won,
+    battlesLost: row.battles_lost,
+    ...(hasSnapshot ? { power: defensePower(row) } : {}),
+    updatedAt: row.updated_at,
+  };
 }
 
 export class ArenaService {

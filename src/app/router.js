@@ -242,7 +242,13 @@ export class AppRouter {
     else if (this.route === "progression") content = renderProgression({ profile: this.profile, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "account") content = renderAccountScreen({ account: this.account, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "battle" && this.battle) content = renderBattle({ battle: this.battle, message: this.message, messageIsError: this.messageIsError });
-    else if (this.route === "arena") content = renderArena({ profile: this.profile, ...this.arena, message: this.message, messageIsError: this.messageIsError });
+    else if (this.route === "arena") {
+      let liveHtml = "";
+      if (this.arena.match && this.arena.playbackState && !this.arena.replay) {
+        liveHtml = renderLiveBattle({ battle: { snapshot: this.arena.match.snapshots.attacker }, state: this.arena.playbackState });
+      }
+      content = renderArena({ profile: this.profile, ...this.arena, liveHtml, message: this.message, messageIsError: this.messageIsError });
+    }
     else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, message: this.message, messageIsError: this.messageIsError });
     const detailStudent = this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
     const dismissible = Boolean(detailStudent
@@ -452,19 +458,19 @@ export class AppRouter {
       } else if (action === "settle-battle") {
         await this.settleBattle();
       } else if (action === "start-live-battle") {
-        this.battle?.playback?.start();
+        (this.battle?.playback ?? this.arena?.playback)?.start();
         this.message = "正在播放本局对战。";
       } else if (action === "pause-live-battle") {
-        this.battle?.playback?.pause();
+        (this.battle?.playback ?? this.arena?.playback)?.pause();
         this.message = "对战播放已暂停。";
       } else if (action === "step-live-battle") {
-        this.battle?.playback?.step();
+        (this.battle?.playback ?? this.arena?.playback)?.step();
         this.message = "已推进一个对战阶段。";
       } else if (action === "restart-live-battle") {
-        this.battle?.playback?.restart();
+        (this.battle?.playback ?? this.arena?.playback)?.restart();
         this.message = "已使用本局 seed 重播。";
       } else if (button.dataset.playbackSpeed) {
-        this.battle?.playback?.setSpeed(button.dataset.playbackSpeed);
+        (this.battle?.playback ?? this.arena?.playback)?.setSpeed(button.dataset.playbackSpeed);
         this.message = `播放速度已调整为 ${button.dataset.playbackSpeed}x。`;
       } else if (action === "load-arena-opponents") {
         this.arena.opponents = await this.client.get("/arena/opponents");
@@ -484,8 +490,9 @@ export class AppRouter {
         }
       } else if (action === "settle-arena") {
         this.arena.replay = await this.client.post(`/arena/matches/${this.arena.match.id}/settle`, {});
+        this.arena.playback?.pause();
         this.profile = this.arena.replay.profile ?? await this.client.get("/profile");
-        this.message = "竞技场回放已结算。";
+        this.message = "竞技场对战已结算。";
       } else if (action === "export-account") {
         const exported = await this.client.get("/account/export");
         downloadJson(exported, `super-oi-${this.account.id}.json`);
@@ -498,7 +505,25 @@ export class AppRouter {
         this.arena.match = await this.client.post("/arena/matches", { opponentId: button.dataset.opponentId });
         this.arena.replay = null;
         if (this.arena.dailyLimit !== null) this.arena.battlesToday = Math.min((this.arena.battlesToday ?? 0) + 1, this.arena.dailyLimit);
-        this.message = "比赛快照已锁定。";
+        this.arena.playback = null;
+        this.arena.playbackState = null;
+        try {
+          const playback = createBattlePlayback(this.arena.match.snapshots.attacker);
+          if (playback) {
+            this.arena.playback = playback;
+            this.arena.playbackState = playback.getState();
+            playback.subscribe((state) => {
+              if (this.arena?.playback === playback) {
+                this.arena.playbackState = state;
+                this.render();
+              }
+            });
+            playback.start();
+          }
+        } catch (error) {
+          // Playback is a visual aid; server settlement remains authoritative.
+        }
+        this.message = "比赛快照已锁定，对战过程播放中。";
       } else if (button.dataset.buyOffer) {
         await this.buy(button.dataset.buyOffer);
       } else if (button.dataset.dismissStudent) {
