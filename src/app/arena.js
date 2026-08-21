@@ -9,11 +9,11 @@ function skillGroupName(student) {
   return SKILL_GROUPS[student?.skillGroupId]?.name ?? student?.skillGroupId ?? "未配置";
 }
 
-export function renderArena({ profile, defense, opponents = [], history = [], match, replay, message = "" } = {}) {
+export function renderArena({ profile, defense, opponents = [], history = [], match, replay, message = "", messageIsError = false } = {}) {
   const formation = profile?.formation ?? {};
   const students = Object.values(profile?.students ?? {});
   return `<section class="app-view arena-view" aria-labelledby="arena-title">
-    <div class="view-heading"><div><p class="eyebrow">异步竞技场</p><h1 id="arena-title">镜像挑战</h1></div><p class="app-message" role="status" aria-live="polite">${esc(message)}</p></div>
+    <div class="view-heading"><div><p class="eyebrow">异步竞技场</p><h1 id="arena-title">镜像挑战</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div>
     <div class="arena-grid">
       <section class="panel"><div class="panel-header"><h2>防守编队</h2><span class="panel-meta">积分 ${esc(defense?.rating ?? 1000)}</span></div>
         <p class="arena-copy">服务器保存三名学生的能力、技能组和站位快照，进攻时不会读取对手当前档案。</p>

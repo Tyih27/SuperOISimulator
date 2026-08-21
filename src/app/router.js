@@ -16,6 +16,7 @@ function esc(value) {
 function messageFor(error) {
   if (error instanceof ApiError) {
     const labels = {
+      REQUEST_TOO_FREQUENT: "操作过于频繁，请稍后再试。",
       PROFILE_VERSION_CONFLICT: "档案已更新，请刷新后重试。",
       SHOP_PURCHASE_LIMIT_REACHED: "该商品今日购买次数已用完。",
       DAILY_CHECK_IN_ALREADY_CLAIMED: "今日签到奖励已领取。",
@@ -26,6 +27,10 @@ function messageFor(error) {
     return labels[error.code] ?? error.message;
   }
   return "无法连接到训练服务，请检查服务是否已启动。";
+}
+
+function isErrorRateLimited(error) {
+  return error instanceof ApiError && error.status === 429;
 }
 
 function initialFormation(profile) {
@@ -108,12 +113,12 @@ function renderLiveBattle({ battle, state }) {
   </section>`;
 }
 
-function renderBattle({ battle, message }) {
+function renderBattle({ battle, message, messageIsError = false }) {
   const result = battle.settlement?.result;
   const reward = battle.settlement?.reward ?? {};
   const studentNames = new Map((battle.snapshot.team ?? []).map((student) => [student.id, student.name]));
   const liveState = battle.playbackState;
-  return `<section class="app-view battle-replay" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">服务端战斗记录</p><h1 id="battle-title">${esc(battle.snapshot.level.name)}</h1></div><p class="app-message" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><span>战斗编号</span><strong class="mono">${esc(battle.id)}</strong></div><div><span>本局 seed</span><strong>${esc(battle.snapshot.seed)}</strong></div><div><span>队伍</span><strong>${battle.snapshot.team.map((student) => esc(student.name)).join(" / ")}</strong></div></div>${liveState ? renderLiveBattle({ battle, state: liveState }) : ""}${result ? `<section class="settled-result ${result.result === "win" ? "is-win" : "is-lose"}"><h2>${result.result === "win" ? "挑战胜利" : "挑战失败"}</h2><p>${result.result === "win" ? `获得 ${reward.trainingCoins ?? 0} 训练币。` : "本次未获得关卡奖励。"}</p><dl><div><dt>完成题目</dt><dd>${result.completedCount}</dd></div><div><dt>结束回合</dt><dd>${result.round}</dd></div><div><dt>剩余精力</dt><dd>${result.remainingEnergy}</dd></div></dl></section><section class="event-replay"><h2>服务端回放</h2><ol>${result.events.map((event) => `<li><span>${esc(event.round ?? "准备")}</span>${esc(EVENT_LABELS[event.type] ?? event.type)}${event.actor ? ` · ${esc(studentNames.get(event.actor) ?? "未知学生")}` : ""}</li>`).join("")}</ol></section>` : `<section class="battle-ready"><h2>快照已锁定</h2><p>队伍、关卡和本局 seed 已由服务端记录。结算与回放始终使用这份不可变快照。</p><button class="primary-button" type="button" data-action="settle-battle">开始回放并结算</button></section>`}</section>`;
+  return `<section class="app-view battle-replay" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">服务端战斗记录</p><h1 id="battle-title">${esc(battle.snapshot.level.name)}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><span>战斗编号</span><strong class="mono">${esc(battle.id)}</strong></div><div><span>本局 seed</span><strong>${esc(battle.snapshot.seed)}</strong></div><div><span>队伍</span><strong>${battle.snapshot.team.map((student) => esc(student.name)).join(" / ")}</strong></div></div>${liveState ? renderLiveBattle({ battle, state: liveState }) : ""}${result ? `<section class="settled-result ${result.result === "win" ? "is-win" : "is-lose"}"><h2>${result.result === "win" ? "挑战胜利" : "挑战失败"}</h2><p>${result.result === "win" ? `获得 ${reward.trainingCoins ?? 0} 训练币。` : "本次未获得关卡奖励。"}</p><dl><div><dt>完成题目</dt><dd>${result.completedCount}</dd></div><div><dt>结束回合</dt><dd>${result.round}</dd></div><div><dt>剩余精力</dt><dd>${result.remainingEnergy}</dd></div></dl></section><section class="event-replay"><h2>服务端回放</h2><ol>${result.events.map((event) => `<li><span>${esc(event.round ?? "准备")}</span>${esc(EVENT_LABELS[event.type] ?? event.type)}${event.actor ? ` · ${esc(studentNames.get(event.actor) ?? "未知学生")}` : ""}</li>`).join("")}</ol></section>` : `<section class="battle-ready"><h2>快照已锁定</h2><p>队伍、关卡和本局 seed 已由服务端记录。结算与回放始终使用这份不可变快照。</p><button class="primary-button" type="button" data-action="settle-battle">开始回放并结算</button></section>`}</section>`;
 }
 
 export class AppRouter {
@@ -134,6 +139,7 @@ export class AppRouter {
     this.battle = null;
     this.arena = { defense: null, opponents: [], history: [], match: null, replay: null };
     this.message = "";
+    this.messageIsError = false;
     this.root.addEventListener("submit", (event) => this.onSubmit(event));
     this.root.addEventListener("click", (event) => this.onClick(event));
     this.root.addEventListener("change", (event) => this.onChange(event));
@@ -155,13 +161,14 @@ export class AppRouter {
       this.applyHash();
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        this.account = null;
-        this.render();
-        return;
-      }
       this.account = null;
-      this.message = messageFor(error);
       this.render();
+      return;
+    }
+    this.account = null;
+    this.message = messageFor(error);
+    this.messageIsError = isErrorRateLimited(error);
+    this.render();
     }
   }
 
@@ -205,12 +212,12 @@ export class AppRouter {
       return;
     }
     let content;
-    if (this.route === "roster") content = renderRoster({ profile: this.profile, ...this.formationDraft, editing: this.rosterEditing, message: this.message });
-    else if (this.route === "progression") content = renderProgression({ profile: this.profile, message: this.message });
-    else if (this.route === "account") content = renderAccountScreen({ account: this.account, message: this.message });
-    else if (this.route === "battle" && this.battle) content = renderBattle({ battle: this.battle, message: this.message });
-    else if (this.route === "arena") content = renderArena({ profile: this.profile, ...this.arena, message: this.message });
-    else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, ...this.formationDraft, message: this.message });
+    if (this.route === "roster") content = renderRoster({ profile: this.profile, ...this.formationDraft, editing: this.rosterEditing, message: this.message, messageIsError: this.messageIsError });
+    else if (this.route === "progression") content = renderProgression({ profile: this.profile, message: this.message, messageIsError: this.messageIsError });
+    else if (this.route === "account") content = renderAccountScreen({ account: this.account, message: this.message, messageIsError: this.messageIsError });
+    else if (this.route === "battle" && this.battle) content = renderBattle({ battle: this.battle, message: this.message, messageIsError: this.messageIsError });
+    else if (this.route === "arena") content = renderArena({ profile: this.profile, ...this.arena, message: this.message, messageIsError: this.messageIsError });
+    else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, ...this.formationDraft, message: this.message, messageIsError: this.messageIsError });
     const detailStudent = this.route === "roster" && this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
     const dismissible = Boolean(detailStudent?.id?.startsWith("recruit-")
       && !Object.values(this.profile.formation ?? {}).includes(detailStudent.id));
@@ -241,6 +248,7 @@ export class AppRouter {
       this.navigate("campaign");
     } catch (error) {
       this.message = messageFor(error);
+      this.messageIsError = isErrorRateLimited(error);
       this.render();
     }
   }
@@ -361,6 +369,7 @@ export class AppRouter {
       }
     } catch (error) {
       this.message = messageFor(error);
+      this.messageIsError = isErrorRateLimited(error);
     }
     this.render();
   }
@@ -406,6 +415,7 @@ export class AppRouter {
       await this.saveName(input.dataset.nameInput);
     } catch (error) {
       this.message = messageFor(error);
+      this.messageIsError = isErrorRateLimited(error);
     }
     this.render();
   }
@@ -593,6 +603,7 @@ export class AppRouter {
       }
     } catch (error) {
       this.message = messageFor(error);
+      this.messageIsError = isErrorRateLimited(error);
     }
     this.render();
   }

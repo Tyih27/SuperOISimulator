@@ -10,10 +10,10 @@ export function getLevel(levelId) {
   return levelById.get(levelId) ?? LEVELS[0];
 }
 
-export function renderCampaign({ profile, selectedLevelId, message }) {
+export function renderCampaign({ profile, selectedLevelId, message, messageIsError = false }) {
   const selectedLevel = getLevel(selectedLevelId);
   return `<section class="app-view campaign-view" aria-labelledby="campaign-title">
-    <div class="view-heading"><div><p class="eyebrow">主线关卡</p><h1 id="campaign-title">第 1 章</h1></div><p class="app-message" role="status" aria-live="polite">${esc(message)}</p></div>
+    <div class="view-heading"><div><p class="eyebrow">主线关卡</p><h1 id="campaign-title">第 1 章</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div>
     <div class="level-list" aria-label="主线关卡">${LEVELS.map((level) => {
       const unlocked = profile.unlockedLevelIds.includes(level.id);
       const selected = selectedLevel.id === level.id;
