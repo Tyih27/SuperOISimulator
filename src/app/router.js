@@ -706,7 +706,7 @@ export class AppRouter {
     this.message = !training
       ? "学生强化完成。"
       : training.itemId === "student-training-material"
-        ? `学生强化完成，数值 ${training.previousValue} → ${training.currentValue}，已消耗 1 份学生培养材料和 100 训练币。`
+        ? `学生强化完成，数值 ${training.previousValue} → ${training.currentValue}，已消耗 1 份学生培养材料。`
         : `学生强化完成，数值 ${training.previousValue} → ${training.currentValue}，已消耗对应训练册。`;
   }
 
@@ -744,7 +744,7 @@ export class AppRouter {
   }
 
   async useEnergyTonic(studentId) {
-    if (!studentId) throw new Error("请先选择要使用KFC的学生。");
+    if (!studentId) throw new Error("请先选择要食用KFC的学生。");
     const result = await this.client.post(`/progression/students/${encodeURIComponent(studentId)}/energy`, {});
     this.profile = result.profile;
     const energy = result.energy;

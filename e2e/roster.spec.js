@@ -389,7 +389,7 @@ test("energy tonic raises a student's max energy", async ({ page }) => {
 
   await page.getByRole("link", { name: "学生名单", exact: true }).click();
   await expect(page.locator(".energy-panel")).toContainText("持有 1 份");
-  await page.getByRole("button", { name: "使用KFC" }).click();
+  await page.getByRole("button", { name: "食用KFC" }).click();
   await expect(page.getByText(/精力上限已提升：\d+ → \d+，已消耗 1 份 KFC。/)).toBeVisible();
 });
 
