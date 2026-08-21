@@ -744,12 +744,12 @@ export class AppRouter {
   }
 
   async useEnergyTonic(studentId) {
-    if (!studentId) throw new Error("请先选择要使用精力药剂的学生。");
+    if (!studentId) throw new Error("请先选择要使用KFC的学生。");
     const result = await this.client.post(`/progression/students/${encodeURIComponent(studentId)}/energy`, {});
     this.profile = result.profile;
     const energy = result.energy;
     this.message = energy
-      ? `精力上限已提升：${energy.previousValue} → ${energy.currentValue}，已消耗 1 份精力药剂。`
+      ? `精力上限已提升：${energy.previousValue} → ${energy.currentValue}，已消耗 1 份 KFC。`
       : "精力上限已提升。";
   }
 

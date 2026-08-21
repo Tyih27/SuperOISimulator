@@ -356,7 +356,7 @@ export const SHOP_OFFERS = freeze([
   { id: "data-book", name: "数据结构专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-dataStructures": 1 } },
   { id: "math-book", name: "数学专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-mathematics": 1 } },
   { id: "implementation-book", name: "代码实现专项训练册", price: { trainingCoins: 100 }, grants: { "specialist-book-implementation": 1 } },
-  { id: "energy-tonic", name: "精力药剂", price: { trainingCoins: 150 }, grants: { "energy-tonic": 1 } },
+  { id: "energy-tonic", name: "KFC", price: { trainingCoins: 150 }, grants: { "energy-tonic": 1 } },
 ]);
 
 export const DEFAULT_FORMATION = freeze({ A1: "planner", A2: "graphist", A3: "structurer" });
