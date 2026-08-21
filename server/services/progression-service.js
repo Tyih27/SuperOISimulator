@@ -41,7 +41,10 @@ function requireString(value, message) {
 }
 
 function dailyPeriod(now) {
-  return now.toISOString().slice(0, 10);
+  const timeZone = process.env.RESET_TIME_ZONE || "Asia/Shanghai";
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const values = Object.fromEntries(parts.filter(({ type }) => type !== "literal").map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function addInventory(profile, grants) {
@@ -250,7 +253,8 @@ export class ProgressionService {
     return this.withProfile(accountId, async ({ client, profile }) => {
       if (profile.currencies.recruitmentTickets < 1) throw invalid("Not enough recruitment tickets");
       const studentId = `recruit-${this.idFactory()}`;
-      const template = STUDENTS[Object.keys(profile.students).length % STUDENTS.length];
+      const templateIndex = profile.recruitment.templateIndex ?? 0;
+      const template = STUDENTS[templateIndex % STUDENTS.length];
       const recruitment = rollRecruitmentAptitude({
         seed: `${profile.identitySeed}:${studentId}`,
         attemptsSinceGenius: profile.recruitment.attemptsSinceGenius,
@@ -265,6 +269,7 @@ export class ProgressionService {
       profile.students[studentId] = student;
       profile.currencies.recruitmentTickets -= 1;
       profile.recruitment.attemptsSinceGenius = recruitment.attemptsSinceGenius;
+      profile.recruitment.templateIndex = templateIndex + 1;
       await this.ledger.recordCurrency(client, { accountId, currency: "recruitmentTickets", delta: -1, sourceType: "recruitment", sourceId: studentId });
       return {
         student,

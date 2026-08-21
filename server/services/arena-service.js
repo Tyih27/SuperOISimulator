@@ -24,7 +24,7 @@ function requireAccount(accountId) { if (typeof accountId !== "string" || !accou
 function ratingDelta(winner) { return winner === "attacker" ? 25 : winner === "defender" ? -25 : 0; }
 
 function publicDefense(row) {
-  return { accountId: row.account_id, rating: row.rating, battlesWon: row.battles_won, battlesLost: row.battles_lost, updatedAt: row.updated_at };
+  return { accountId: row.account_id, username: row.username, rating: row.rating, battlesWon: row.battles_won, battlesLost: row.battles_lost, updatedAt: row.updated_at };
 }
 
 export class ArenaService {
@@ -56,6 +56,20 @@ export class ArenaService {
   async opponents(accountId) {
     requireAccount(accountId); const client = await this.pool.connect();
     try { return (await this.arena.listOpponents(client, accountId)).map(publicDefense); } finally { client.release(); }
+  }
+
+  async history(accountId, limit) {
+    requireAccount(accountId);
+    const client = await this.pool.connect();
+    try {
+      return (await this.arena.listMatches(client, accountId, limit)).map((row) => ({
+        id: row.id, attackerId: row.attacker_id, defenderId: row.defender_id, seed: row.seed,
+        status: row.status, result: row.result, rating: {
+          attackerBefore: row.attacker_rating_before, defenderBefore: row.defender_rating_before,
+          attackerAfter: row.attacker_rating_after, defenderAfter: row.defender_rating_after,
+        }, createdAt: row.created_at, settledAt: row.settled_at,
+      }));
+    } finally { client.release(); }
   }
 
   async start(accountId, { opponentId } = {}) {

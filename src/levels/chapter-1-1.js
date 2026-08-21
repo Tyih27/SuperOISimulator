@@ -5,7 +5,7 @@ const level = {
   recommendedAbility: 550,
   seed: "A7C4-19",
   maxRounds: 12,
-  objective: { type: "count", requiredTopics: 3 },
+  objective: { type: "count", requiredTopics: 2 },
   topicIds: ["treeKnapsack", "maxFlow", "persistentSegmentTree", "combinatorics", "computationalGeometry", "compilerOptimization", "dynamicConnectivity", "matrixPower"],
   activeTopicSlots: ["B1", "B2", "B3"],
   studentSlots: ["A1", "A2", "A3"],

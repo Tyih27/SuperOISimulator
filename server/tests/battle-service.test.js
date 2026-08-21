@@ -68,7 +68,11 @@ try {
     method: "POST", url: "/api/v1/campaign/battles", cookies: auth, payload: battleRequest(),
   });
   assert.equal(second.statusCode, 201);
-  assert.deepEqual(second.json().snapshot, first.json().snapshot);
+  const firstSnapshot = structuredClone(first.json().snapshot);
+  const secondSnapshot = structuredClone(second.json().snapshot);
+  delete firstSnapshot.seed;
+  delete secondSnapshot.seed;
+  assert.deepEqual(secondSnapshot, firstSnapshot);
 
   const settled = await request(app, {
     method: "POST", url: `/api/v1/campaign/battles/${first.json().id}/settle`, cookies: auth, payload: {},
@@ -97,7 +101,7 @@ try {
     method: "POST", url: `/api/v1/campaign/battles/${second.json().id}/settle`, cookies: auth, payload: {},
   });
   assert.equal(settledSecond.statusCode, 200);
-  assert.equal(settledSecond.json().eventLogHash, settled.json().eventLogHash);
+  assert.notEqual(settledSecond.json().eventLogHash, settled.json().eventLogHash);
 
   const other = await request(app, {
     method: "POST", url: "/api/v1/auth/register", payload: { username: "battle02", password: PASSWORD },

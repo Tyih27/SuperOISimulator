@@ -45,6 +45,8 @@ export async function battleRoutes(app) {
     }
   });
 
+  app.get("/campaign/battles", { preHandler: requireAccount }, async (request) => service.history(request.account.id, request.query));
+
   app.post("/campaign/battles/:id/settle", {
     ...protectedAction,
     schema: { body: EMPTY_DTO_SCHEMA },

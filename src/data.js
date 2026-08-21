@@ -225,8 +225,8 @@ export const LEVELS = freeze(LEVEL_DEFINITIONS);
 export const BALANCE_BASELINE_TOLERANCE = 0.10;
 
 export const BALANCE_BASELINES = freeze({
-  "chapter-1-1": { seeds: [1, 2, 3, 4, 5], winRate: 0 },
-  "chapter-1-2": { seeds: [1, 2, 3, 4, 5], winRate: 0.058333333333333334 },
+  "chapter-1-1": { seeds: [1, 2, 3, 4, 5], winRate: 0.3433333333333333 },
+  "chapter-1-2": { seeds: [1, 2, 3, 4, 5], winRate: 0.011666666666666667 },
   "chapter-1-3": { seeds: [1, 2, 3, 4, 5], winRate: 0 },
   "chapter-1-4": { seeds: [1, 2, 3, 4, 5], winRate: 0 },
 });

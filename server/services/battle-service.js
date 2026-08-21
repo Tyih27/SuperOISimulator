@@ -54,6 +54,14 @@ function addReward(profile, reward) {
   }
 }
 
+function rewardForAttempt(level, firstClear) {
+  if (firstClear) return structuredClone(level.reward);
+  const reward = structuredClone(level.reward);
+  reward.trainingCoins = Math.floor((reward.trainingCoins ?? 0) * 0.2);
+  delete reward.unlockLevelId;
+  return reward;
+}
+
 async function recordReward(ledger, client, accountId, reward, battleId) {
   for (const currency of ["trainingCoins", "recruitmentTickets"]) {
     const delta = reward[currency] ?? 0;
@@ -154,6 +162,8 @@ export class BattleService {
       });
       profile = profileFromRow(profileRow, accountId);
       if (result.result === "win") {
+        const firstClear = await this.battles.claimFirstClear(client, { accountId, levelId: battle.level_id });
+        Object.assign(reward, rewardForAttempt(levelById.get(battle.level_id), firstClear));
         addReward(profile, reward);
         profile.version = profileRow.version + 1;
         const saved = await this.profiles.update(client, { accountId, version: profile.version, profile });
@@ -182,5 +192,20 @@ export class BattleService {
     } finally {
       client.release();
     }
+  }
+
+  async history(accountId, { id, limit } = {}) {
+    requireAccountId(accountId);
+    const client = await this.pool.connect();
+    try {
+      const rows = id
+        ? [await this.battles.findForAccount(client, accountId, id)].filter(Boolean)
+        : await this.battles.listForAccount(client, accountId, limit);
+      return rows.map((row) => ({
+        id: row.id, levelId: row.level_id, status: row.status, snapshot: row.snapshot,
+        result: row.result, events: row.event_log, eventLogHash: row.event_log_hash?.trim?.() ?? row.event_log_hash,
+        createdAt: row.created_at, settledAt: row.settled_at,
+      }));
+    } finally { client.release(); }
   }
 }

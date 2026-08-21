@@ -1,5 +1,8 @@
 export const CONTRACT_VERSION = 1;
 
+// The original v1/v2 payload schemas below are retained for archived clients.
+// Current API payloads use the v3 schemas exported at the end of this module.
+
 function deepFreeze(value) {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.values(value).forEach(deepFreeze);
@@ -437,7 +440,10 @@ export const PROFILE_V3_DTO_SCHEMA = deepFreeze({
     recruitment: {
       type: "object",
       required: ["attemptsSinceGenius"],
-      properties: { attemptsSinceGenius: { type: "integer", minimum: 0, maximum: 29 } },
+      properties: {
+        attemptsSinceGenius: { type: "integer", minimum: 0, maximum: 29 },
+        templateIndex: { type: "integer", minimum: 0 },
+      },
       additionalProperties: false,
     },
     unlockedLevelIds: {

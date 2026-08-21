@@ -1,4 +1,17 @@
 export class ArenaRepository {
+  async listMatches(client, accountId, limit = 20) {
+    const result = await client.query(
+      `SELECT id, attacker_id, defender_id, seed, status, result,
+              attacker_rating_before, defender_rating_before, attacker_rating_after, defender_rating_after,
+              created_at, settled_at
+         FROM arena_matches
+        WHERE attacker_id = $1 OR defender_id = $1
+        ORDER BY created_at DESC LIMIT $2`,
+      [accountId, Math.min(Math.max(Number(limit) || 20, 1), 100)],
+    );
+    return result.rows;
+  }
+
   async getDefense(client, accountId, lock = false) {
     const result = await client.query(
       `SELECT account_id, profile_version, snapshot, rating, battles_won, battles_lost, updated_at
@@ -22,9 +35,10 @@ export class ArenaRepository {
 
   async listOpponents(client, accountId, limit = 10) {
     const result = await client.query(
-      `SELECT account_id, rating, battles_won, battles_lost, updated_at
-         FROM arena_defenses WHERE account_id <> $1
-        ORDER BY abs(rating - COALESCE((SELECT rating FROM arena_defenses WHERE account_id = $1), 1000)), account_id
+      `SELECT d.account_id, a.username, d.rating, d.battles_won, d.battles_lost, d.updated_at
+         FROM arena_defenses d JOIN accounts a ON a.id = d.account_id
+        WHERE d.account_id <> $1
+        ORDER BY abs(d.rating - COALESCE((SELECT rating FROM arena_defenses WHERE account_id = $1), 1000)), d.account_id
         LIMIT $2`,
       [accountId, limit],
     );

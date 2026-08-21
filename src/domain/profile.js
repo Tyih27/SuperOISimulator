@@ -121,7 +121,7 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
       formation: structuredClone(profile.formation ?? { A1: "planner", A2: "graphist", A3: "structurer" }),
       inventory: structuredClone(profile.inventory ?? {}),
       currencies: structuredClone(profile.currencies ?? DEFAULT_CURRENCIES),
-      recruitment: structuredClone(profile.recruitment ?? DEFAULT_RECRUITMENT_STATE),
+      recruitment: { ...DEFAULT_RECRUITMENT_STATE, templateIndex: 0, ...structuredClone(profile.recruitment ?? {}) },
       unlockedLevelIds: structuredClone(profile.unlockedLevelIds ?? DEFAULT_UNLOCKED_LEVEL_IDS),
     };
   }
@@ -173,7 +173,7 @@ export function migrateProfile(profile, { seed = profile?.identitySeed ?? profil
     formation: structuredClone(profile.formation ?? { A1: "planner", A2: "graphist", A3: "structurer" }),
     inventory: structuredClone(profile.inventory ?? {}),
     currencies: structuredClone(profile.currencies ?? DEFAULT_CURRENCIES),
-    recruitment: structuredClone(profile.recruitment ?? DEFAULT_RECRUITMENT_STATE),
+    recruitment: { ...DEFAULT_RECRUITMENT_STATE, templateIndex: 0, ...structuredClone(profile.recruitment ?? {}) },
     unlockedLevelIds: structuredClone(profile.unlockedLevelIds ?? DEFAULT_UNLOCKED_LEVEL_IDS),
   };
 }

@@ -106,12 +106,12 @@ try {
   const afterFailedTraining = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: auth });
   assert.equal(afterFailedTraining.json().version, materialTraining.json().profile.version);
 
-  now = new Date("2026-08-20T00:01:00.000Z");
+  now = new Date("2026-08-20T16:01:00.000Z");
   const nextDayCheckIn = await request(app, {
     method: "POST", url: "/api/v1/progression/daily-check-in", cookies: auth, payload: {},
   });
   assert.equal(nextDayCheckIn.statusCode, 200);
-  assert.equal(nextDayCheckIn.json().profile.currencies.trainingCoins, 2480);
+  assert.equal(nextDayCheckIn.json().profile.currencies.trainingCoins, 2380);
 
   const protectedDismissal = await request(app, {
     method: "POST", url: "/api/v1/progression/students/planner/dismiss", cookies: auth,
@@ -131,11 +131,11 @@ try {
   assert.deepEqual(currencyEntries.rows.map(({ currency, delta, source_type: sourceType }) => [currency, delta, sourceType]), [
     ["trainingCoins", 1000, "daily-check-in"],
     ["trainingCoins", -100, "specialist-training"],
-    ["trainingCoins", -100, "specialist-training"],
     ["trainingCoins", -120, "shop"],
     ["trainingCoins", -300, "shop"],
     ["recruitmentTickets", 1, "shop"],
     ["recruitmentTickets", -1, "recruitment"],
+    ["trainingCoins", -100, "specialist-training"],
     ["trainingCoins", 1000, "daily-check-in"],
   ]);
   const inventoryEntries = await app.db.query("SELECT item_id, quantity, source_type FROM inventory_entries ORDER BY id");

@@ -124,10 +124,12 @@ function validateProfile(profile, accountId) {
     throw invalid("Currencies are invalid");
   }
   requireObject(profile.recruitment, "Recruitment state is invalid");
-  if (Object.keys(profile.recruitment).length !== 1
+  if (Object.keys(profile.recruitment).some((key) => !["attemptsSinceGenius", "templateIndex"].includes(key))
     || !Number.isInteger(profile.recruitment.attemptsSinceGenius)
     || profile.recruitment.attemptsSinceGenius < 0
-    || profile.recruitment.attemptsSinceGenius > 29) {
+    || profile.recruitment.attemptsSinceGenius > 29
+    || !Number.isInteger(profile.recruitment.templateIndex)
+    || profile.recruitment.templateIndex < 0) {
     throw invalid("Recruitment state is invalid");
   }
   if (!Array.isArray(profile.unlockedLevelIds) || profile.unlockedLevelIds.length < 1

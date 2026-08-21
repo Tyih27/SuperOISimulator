@@ -13,6 +13,7 @@ export async function arenaRoutes(app) {
   app.get("/defense", { preHandler: account }, async (request, reply) => { try { const client = await app.db.connect(); try { const row = await service.arena.getDefense(client, request.account.id); return row ? { defense: { accountId: row.account_id, rating: row.rating, battlesWon: row.battles_won, battlesLost: row.battles_lost }, snapshot: row.snapshot } : { defense: null }; } finally { client.release(); } } catch (error) { throw error; } });
   app.put("/defense", action(ARENA_DEFENSE_DTO_SCHEMA, (request) => service.setDefense(request.account.id, request.body)));
   app.get("/opponents", { preHandler: account }, (request) => service.opponents(request.account.id));
+  app.get("/matches", { preHandler: account }, (request) => service.history(request.account.id, request.query?.limit));
   app.post("/matches", { preHandler: [origin, account], schema: { body: ARENA_MATCH_DTO_SCHEMA } }, async (request, reply) => {
     try { return reply.code(201).send(await service.start(request.account.id, request.body)); }
     catch (error) { if (!(error instanceof ArenaError)) throw error; return reply.code(error.statusCode).send({ code: error.code, message: error.message }); }

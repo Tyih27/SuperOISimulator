@@ -6,7 +6,7 @@ import {
   SKILL_GROUPS,
 } from "../data.js";
 import { calculateOverallPower } from "../combat/math.js";
-import { STUDENT_TRAINING_MATERIAL_ID } from "../domain/progression.js";
+import { specialistTrainingBookId, STUDENT_TRAINING_MATERIAL_ID } from "../domain/progression.js";
 
 const abilityLabels = Object.freeze({
   dynamicProgramming: "动态规划",
@@ -109,7 +109,10 @@ export function renderRoster({ profile, formation, teamIds, editing = false, mes
 
 function inventoryRows(inventory) {
   const rows = Object.entries(inventory).filter(([, quantity]) => quantity > 0);
-  const labels = { [STUDENT_TRAINING_MATERIAL_ID]: "学生培养材料" };
+  const labels = {
+    [STUDENT_TRAINING_MATERIAL_ID]: "学生培养材料",
+    ...Object.fromEntries(ABILITY_KEYS.map((ability) => [specialistTrainingBookId(ability), `${abilityLabels[ability]}专项训练册`])),
+  };
   return rows.length ? rows.map(([item, quantity]) => `<li>${esc(labels[item] ?? item)} <strong>${esc(quantity)}</strong></li>`).join("") : "<li>暂无训练道具</li>";
 }
 

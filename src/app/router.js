@@ -4,6 +4,7 @@ import { getLevel, renderCampaign } from "./campaign.js";
 import { renderProgression, renderRoster, renderStudentDetail } from "./progression.js";
 import { renderArena } from "./arena.js";
 import { createPlayback } from "./state.js";
+import { EVENT_LABELS } from "./event-labels.js";
 
 const ROUTES = new Set(["campaign", "roster", "progression", "account", "battle", "arena"]);
 const POSITIONS = ["A1", "A2", "A3"];
@@ -13,7 +14,17 @@ function esc(value) {
 }
 
 function messageFor(error) {
-  if (error instanceof ApiError) return error.message;
+  if (error instanceof ApiError) {
+    const labels = {
+      PROFILE_VERSION_CONFLICT: "档案已更新，请刷新后重试。",
+      SHOP_PURCHASE_LIMIT_REACHED: "该商品今日购买次数已用完。",
+      DAILY_CHECK_IN_ALREADY_CLAIMED: "今日签到奖励已领取。",
+      BATTLE_ALREADY_SETTLED: "这场战斗已经结算。",
+      INVALID_PROGRESSION_REQUEST: "训练请求无效，请检查资源和选择。",
+      INVALID_ARENA_REQUEST: "竞技场请求无效，请先保存防守编队。",
+    };
+    return labels[error.code] ?? error.message;
+  }
   return "无法连接到训练服务，请检查服务是否已启动。";
 }
 
@@ -44,17 +55,6 @@ function downloadJson(value, filename) {
   URL.revokeObjectURL(url);
 }
 
-const EVENT_LABELS = Object.freeze({
-  round_start: "回合开始",
-  stage_start: "阶段开始",
-  action: "发动技能",
-  skip: "跳过行动",
-  effect: "状态变化",
-  problem_completed: "题目完成",
-  student_exit: "学生退场",
-  round_end: "回合结束",
-  battle_end: "战斗结束",
-});
 
 function createBattlePlayback(snapshot) {
   if (!snapshot?.level?.topics || !snapshot?.team?.length || !snapshot?.skillGroups) return null;
@@ -99,10 +99,10 @@ function renderLiveBattle({ battle, state }) {
   const isDone = state.phase === "result";
   return `<section class="live-battle panel" aria-labelledby="live-battle-title">
     <div class="panel-header"><div><p class="eyebrow">${isDone ? "战斗已结束" : "实时对战"}</p><h2 id="live-battle-title">${isDone ? "战斗结果已就绪" : "对战过程"}</h2></div><span class="panel-meta">${esc(state.phase)} · ${esc(state.stepCount)} 步</span></div>
-    <div class="live-battle-toolbar"><span class="live-status" role="status" aria-live="polite">${esc(state.lastEvent ? `${EVENT_LABELS[state.lastEvent.type] ?? state.lastEvent.type}${state.lastEvent.round ? ` · 第 ${state.lastEvent.round} 回合` : ""}` : "准备中")}</span><div class="battle-controls"><button class="secondary-button" type="button" data-action="${state.playing ? "pause-live-battle" : "start-live-battle"}"${isDone ? " disabled" : ""}>${state.playing ? "暂停" : "播放"}</button><button class="secondary-button" type="button" data-action="step-live-battle"${isDone ? " disabled" : ""}>单步</button><button class="secondary-button" type="button" data-action="restart-live-battle">重播</button></div></div>
+    <div class="live-battle-toolbar"><span class="live-status" role="status" aria-live="polite">${esc(state.lastEvent ? `${EVENT_LABELS[state.lastEvent.type] ?? state.lastEvent.type}${state.lastEvent.round ? ` · 第 ${state.lastEvent.round} 回合` : ""}` : "准备中")}</span><div class="battle-controls"><button class="secondary-button" type="button" data-action="${state.playing ? "pause-live-battle" : "start-live-battle"}"${isDone ? " disabled" : ""}>${state.playing ? "暂停" : "播放"}</button><button class="secondary-button" type="button" data-action="step-live-battle"${isDone ? " disabled" : ""}>单步</button><button class="secondary-button" type="button" data-action="restart-live-battle">重播</button><span class="speed-control" aria-label="播放速度">${[0.5, 1, 2, 4].map((speed) => `<button class="speed-button${Number(state.speed) === speed ? " is-active" : ""}" type="button" data-playback-speed="${speed}">${speed}x</button>`).join("")}</span></div></div>
     <div class="live-battle-grid"><div><h3>我方队伍</h3><div class="live-student-list">${students.map((student) => {
       const runtime = runtimeStudents[student.id] ?? { energy: student.maxEnergy, focus: 0, alive: true };
-      return `<article class="live-student ${runtime.alive ? "" : "is-inactive"}"><div class="student-card-head"><strong>${esc(student.name)}</strong><span class="alive-state">${runtime.alive ? "做题中" : "已退场"}</span></div><div class="stat-line"><span>精力</span><strong>${Math.round(runtime.energy)} / ${student.maxEnergy}</strong></div><div class="meter energy"><span style="width:${percent(runtime.energy, student.maxEnergy)}%"></span></div><div class="stat-line"><span>专注</span><strong>${Math.round(runtime.focus ?? 0)}</strong></div><div class="meter focus"><span style="width:${percent(runtime.focus, state.combat.state?.focusMax ?? 1000)}%"></span></div></article>`;
+      return `<article class="live-student ${runtime.alive ? "" : "is-inactive"}"><div class="student-card-head"><strong>${esc(student.name)}</strong><span class="alive-state">${runtime.alive ? "做题中" : "已退场"}</span></div><div class="stat-line"><span>精力</span><strong>${Math.round(runtime.energy)} / ${student.maxEnergy}</strong></div><div class="meter energy"><span style="width:${percent(runtime.energy, student.maxEnergy)}%"></span></div><div class="stat-line"><span>专注</span><strong>${Math.round(runtime.focus ?? 0)} / ${state.combat.state?.focusMax ?? 1000}</strong></div><div class="meter focus"><span style="width:${percent(runtime.focus, state.combat.state?.focusMax ?? 1000)}%"></span></div></article>`;
     }).join("")}</div></div><div><h3>题目战线</h3><div class="live-topic-list">${activeProblems.map(({ slot, problem }) => `<article class="live-topic ${problem.passed ? "is-complete" : ""}"><div class="topic-name-row"><strong>${esc(problem.name)}</strong><span class="position-badge">${slot}</span></div><div class="topic-progress-label"><span>${problem.passed ? "已完成" : "推进度"}</span><strong>${Math.round(percent(problem.progress, problem.maxProgress))}%</strong></div><div class="topic-progress"><span style="width:${percent(problem.progress, problem.maxProgress)}%"></span></div></article>`).join("") || `<p class="empty-state">等待题目进入战线。</p>`}</div></div></div>
     <details class="live-event-log" open><summary>事件记录（${events.length}）</summary><ol class="event-replay">${events.slice(-30).map((event) => `<li><span>${esc(event.round ?? "准备")}</span>${esc(EVENT_LABELS[event.type] ?? event.type)}${event.actor ? ` · ${esc(studentNames.get(event.actor) ?? "未知学生")}` : ""}</li>`).join("")}</ol></details>
   </section>`;
@@ -132,7 +132,7 @@ export class AppRouter {
     this.detailNameEditing = false;
     this.dragStudentId = null;
     this.battle = null;
-    this.arena = { defense: null, opponents: [], match: null, replay: null };
+    this.arena = { defense: null, opponents: [], history: [], match: null, replay: null };
     this.message = "";
     this.root.addEventListener("submit", (event) => this.onSubmit(event));
     this.root.addEventListener("click", (event) => this.onClick(event));
@@ -171,7 +171,8 @@ export class AppRouter {
       this.detailStudentId = null;
       this.detailNameEditing = false;
     }
-    this.selectedLevelId ??= this.profile.unlockedLevelIds[0];
+    const rememberedLevel = globalThis.localStorage?.getItem("super-oi:selected-level");
+    this.selectedLevelId ??= this.profile.unlockedLevelIds.includes(rememberedLevel) ? rememberedLevel : this.profile.unlockedLevelIds[0];
     this.formationDraft = initialFormation(this.profile);
     this.rosterEditing = false;
   }
@@ -266,12 +267,13 @@ export class AppRouter {
     }
     if (button.matches("[data-select-level]")) {
       this.selectedLevelId = button.dataset.selectLevel;
+      globalThis.localStorage?.setItem("super-oi:selected-level", this.selectedLevelId);
       this.message = "";
       this.render();
       return;
     }
     const action = button.dataset.action;
-    if (!action && !button.dataset.opponentId && !button.dataset.buyOffer && !button.dataset.saveName && !button.dataset.dismissStudent) return;
+    if (!action && !button.dataset.opponentId && !button.dataset.buyOffer && !button.dataset.saveName && !button.dataset.dismissStudent && !button.dataset.playbackSpeed) return;
     event.preventDefault();
     try {
       if (action === "logout") {
@@ -321,9 +323,15 @@ export class AppRouter {
       } else if (action === "restart-live-battle") {
         this.battle?.playback?.restart();
         this.message = "已使用本局 seed 重播。";
+      } else if (button.dataset.playbackSpeed) {
+        this.battle?.playback?.setSpeed(button.dataset.playbackSpeed);
+        this.message = `播放速度已调整为 ${button.dataset.playbackSpeed}x。`;
       } else if (action === "load-arena-opponents") {
         this.arena.opponents = await this.client.get("/arena/opponents");
         this.message = "对手列表已刷新。";
+      } else if (action === "load-arena-history") {
+        this.arena.history = await this.client.get("/arena/matches?limit=20");
+        this.message = "比赛历史已刷新。";
       } else if (action === "save-arena-defense") {
         const saved = await this.client.put("/arena/defense", { version: this.profile.version, teamIds: POSITIONS.map((slot) => this.profile.formation[slot]), formation: this.profile.formation });
         this.arena.defense = saved.defense;
@@ -486,6 +494,8 @@ export class AppRouter {
       // Older test fixtures may return a minimal snapshot. Server settlement
       // remains available even when a local visual playback cannot be built.
       this.message = `快照已锁定，等待服务端回放（${error.message}）。`;
+      this.navigate("battle");
+      return;
     }
     this.message = "战斗快照已由服务端创建。";
     this.navigate("battle");

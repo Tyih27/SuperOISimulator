@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LEVELS, STUDENTS, TOPICS } from "../src/data.js";
+import { createProfile } from "../src/domain/profile.js";
 import { CombatEngine } from "../src/combat/engine.js";
 
 const SLOT_IDS = Object.freeze(["A1", "A2", "A3"]);
@@ -58,10 +59,11 @@ function aggregate(teamIds, positions, level, seeds) {
   const topics = level.topicIds.map((topicId) => topicById.get(topicId));
 
   for (const seed of seeds) {
+    const simulationProfile = createProfile({ accountId: `balance-${seed}`, identitySeed: `balance-${seed}`, studentIds: teamIds });
     const battle = new CombatEngine({
       level,
       seed,
-      students: teamIds.map((studentId) => studentById.get(studentId)),
+      students: teamIds.map((studentId) => simulationProfile.students[studentId]),
       topics,
       teamIds,
       positions,

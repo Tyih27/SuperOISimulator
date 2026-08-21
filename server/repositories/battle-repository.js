@@ -1,4 +1,33 @@
 export class BattleRepository {
+  async listForAccount(client, accountId, limit = 20) {
+    const result = await client.query(
+      `SELECT id, account_id, level_id, status, snapshot, result, event_log, event_log_hash, created_at, settled_at
+         FROM battle_records WHERE account_id = $1 ORDER BY created_at DESC LIMIT $2`,
+      [accountId, Math.min(Math.max(Number(limit) || 20, 1), 100)],
+    );
+    return result.rows;
+  }
+
+  async findForAccount(client, accountId, id) {
+    const result = await client.query(
+      `SELECT id, account_id, level_id, status, snapshot, result, event_log, event_log_hash, created_at, settled_at
+         FROM battle_records WHERE account_id = $1 AND id = $2`,
+      [accountId, id],
+    );
+    return result.rows[0] ?? null;
+  }
+
+  async claimFirstClear(client, { accountId, levelId }) {
+    const result = await client.query(
+      `INSERT INTO campaign_clears (account_id, level_id)
+       VALUES ($1, $2)
+       ON CONFLICT (account_id, level_id) DO NOTHING
+       RETURNING account_id`,
+      [accountId, levelId],
+    );
+    return result.rowCount === 1;
+  }
+
   async create(client, { id, accountId, levelId, snapshot }) {
     const result = await client.query(
       `INSERT INTO battle_records (id, account_id, level_id, status, snapshot)

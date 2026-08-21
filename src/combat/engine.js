@@ -1,4 +1,4 @@
-import { DEFAULT_FORMATION, LEVELS, SKILL_GROUPS, STUDENTS, TOPICS } from '../data.js';
+import { LEVELS, SKILL_GROUPS, STUDENTS, TOPICS } from '../data.js';
 import { clamp, calculateSkillProgress, calculateSupportEffect, calculateTopicSkillDamage } from './math.js';
 import { event } from './events.js';
 import { createRng } from '../rng.js';
@@ -50,10 +50,7 @@ export class CombatEngine {
     if (this.teamIds.length !== 3 || new Set(this.teamIds).size !== 3 || this.teamIds.some((id) => !this.studentById[id])) {
       throw new Error('A team must contain exactly three known students');
     }
-    const defaultFormation = this.teamIds.every((id) => Object.values(DEFAULT_FORMATION).includes(id))
-      ? DEFAULT_FORMATION
-      : { A1: this.teamIds[0], A2: this.teamIds[1], A3: this.teamIds[2] };
-    const configuredPositions = options.positions ?? defaultFormation;
+    const configuredPositions = options.positions ?? { A1: this.teamIds[0], A2: this.teamIds[1], A3: this.teamIds[2] };
     this.positions = Object.fromEntries(POSITIONS.map((position) => [position, configuredPositions[position] ?? null]));
     if (new Set(Object.values(this.positions).filter(Boolean)).size !== 3) throw new Error('A1, A2 and A3 must contain different students');
 
@@ -156,13 +153,12 @@ export class CombatEngine {
       let targetIds = targets.map((target) => target.id);
       if (skill.category === 'problem') {
         for (const target of targets) {
-          const targetMultiplier = targets.length > 1 ? 1 : 1;
           intent.problemDeltas[target.id] = (intent.problemDeltas[target.id] ?? 0) + calculateSkillProgress({
             student: this.effectiveStudent(snapshot, actorId),
             topic: target,
             skill,
             remainingProgress: target.maxProgress - target.progress,
-          }) * targetMultiplier;
+          });
         }
       } else {
         const amount = calculateSupportEffect(this.effectiveStudent(snapshot, actorId), skill);
@@ -308,9 +304,15 @@ export class CombatEngine {
       .filter((problem) => problem.position && !problem.passed));
     if (rule === 'all-problems' || rule === 'allProblems') return active;
     if (rule === 'random') return [this.rng.pick(active)].filter(Boolean);
-    if (rule === 'two-best-match' || rule === 'twoBestMatch') return active.sort((a, b) => this.matchScore(actorId, b) - this.matchScore(actorId, a) || POSITION_ORDER[a.position] - POSITION_ORDER[b.position] || a.id.localeCompare(b.id)).slice(0, 2);
+    if (rule === 'two-best-match' || rule === 'twoBestMatch') {
+      const scores = new Map(active.map((problem) => [problem.id, this.matchScore(actorId, problem)]));
+      return active.sort((a, b) => scores.get(b.id) - scores.get(a.id) || POSITION_ORDER[a.position] - POSITION_ORDER[b.position] || a.id.localeCompare(b.id)).slice(0, 2);
+    }
     if (rule === 'highest-difficulty' || rule === 'highestDifficulty') return active.sort((a, b) => this.totalDifficulty(b) - this.totalDifficulty(a) || POSITION_ORDER[a.position] - POSITION_ORDER[b.position] || a.id.localeCompare(b.id)).slice(0, 1);
-    if (rule === 'best-match' || rule === 'bestMatch') return active.sort((a, b) => this.matchScore(actorId, b) - this.matchScore(actorId, a) || POSITION_ORDER[a.position] - POSITION_ORDER[b.position] || a.id.localeCompare(b.id)).slice(0, 1);
+    if (rule === 'best-match' || rule === 'bestMatch') {
+      const scores = new Map(active.map((problem) => [problem.id, this.matchScore(actorId, problem)]));
+      return active.sort((a, b) => scores.get(b.id) - scores.get(a.id) || POSITION_ORDER[a.position] - POSITION_ORDER[b.position] || a.id.localeCompare(b.id)).slice(0, 1);
+    }
     if (rule === 'matching-position' || rule === 'alignedFirst') {
       const matching = active.find((problem) => problem.position === `B${position[1]}`);
       return matching ? [matching] : active.slice(0, 1);
@@ -329,7 +331,7 @@ export class CombatEngine {
   }
 
   matchScore(studentId, problem) {
-    const student = this.effectiveStudent(this.snapshot(), studentId);
+    const student = this.effectiveStudent({ students: this.students }, studentId);
     const keys = Object.keys(problem.difficulties).filter((key) => problem.difficulties[key] > 0);
     return keys.reduce((sum, key) => sum + Math.min(student.abilities[key], problem.difficulties[key]), 0);
   }
@@ -382,6 +384,7 @@ export class CombatEngine {
         problems: clone(this.problems),
         activeProblems: { ...this.activeProblems },
         queue: [...this.queue],
+        focusMax: this.focusMax,
       },
     };
   }
