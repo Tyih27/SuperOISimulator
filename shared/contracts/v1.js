@@ -362,7 +362,6 @@ export const DISMISS_STUDENTS_DTO_SCHEMA = deepFreeze({
     studentIds: {
       type: "array",
       minItems: 1,
-      maxItems: 50,
       uniqueItems: true,
       items: { type: "string", minLength: 1, maxLength: 128 },
     },

@@ -390,6 +390,15 @@ export class AppRouter {
         this.dismissSelected = [];
         this.dismissConfirmPending = false;
         this.message = "";
+      } else if (action === "toggle-dismiss-all") {
+        const teamIds = new Set(Object.values(this.profile.formation ?? {}).filter(Boolean));
+        const benchIds = Object.values(this.profile.students ?? {})
+          .filter((student) => !teamIds.has(student.id))
+          .map((student) => student.id);
+        const allSelected = benchIds.length > 0 && benchIds.every((id) => this.dismissSelected.includes(id));
+        this.dismissSelected = allSelected ? [] : benchIds;
+        this.dismissConfirmPending = false;
+        this.message = "";
       } else if (action === "confirm-dismiss-selected") {
         if (!this.dismissSelected.length) {
           this.message = "请先勾选要劝退的替补学生。";

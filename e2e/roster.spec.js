@@ -303,6 +303,42 @@ test("bench sorts by power and batch dismissal confirms rare students", async ({
   await expect(page.locator(".dismiss-tile")).toHaveCount(0);
 });
 
+test("batch dismissal supports selecting all bench students at once", async ({ page }) => {
+  let current = profile();
+  for (let i = 0; i < 60; i += 1) {
+    current.students[`recruit-${i}`] = { ...current.students.planner, id: `recruit-${i}`, name: `学生${i}`, aptitude: i % 2 ? "优秀" : "普通" };
+  }
+  let authenticated = false;
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname.replace("/api/v1", "");
+    const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (path === "/auth/session") return authenticated ? json({ account: { id: "roster-account", username: "roster01" } }) : json({ code: "UNAUTHENTICATED" }, 401);
+    if (path === "/auth/register" || path === "/auth/login") { authenticated = true; return json({ account: { id: "roster-account", username: "roster01" } }, path.endsWith("register") ? 201 : 200); }
+    if (path === "/profile" && route.request().method() === "GET") return json(current);
+    if (path.includes("dismiss-batch")) {
+      const body = route.request().postDataJSON();
+      const ids = body.studentIds;
+      for (const id of ids) delete current.students[id];
+      current = { ...current, version: current.version + 1, inventory: { ...current.inventory, "student-training-material": (current.inventory["student-training-material"] ?? 0) + ids.length } };
+      return json({ profile: current, dismissal: { studentIds: ids, itemId: "student-training-material", quantity: ids.length } });
+    }
+    return json({ code: "NOT_FOUND", message: path }, 404);
+  });
+
+  await login(page);
+  await page.getByRole("link", { name: "学生名单" }).click();
+  await page.getByRole("button", { name: "批量劝退" }).click();
+  await expect(page.locator(".dismiss-toolbar")).toContainText("共 63 名替补");
+
+  await page.getByRole("button", { name: "全选全部替补" }).click();
+  await expect(page.locator(".dismiss-footer")).toContainText("已选 63 名");
+  await expect(page.getByRole("button", { name: "全不选" })).toBeVisible();
+
+  await page.getByRole("button", { name: "劝退选中" }).click();
+  await expect(page.getByText("已劝退 63 名学生，共获得 63 份学生培养材料。")).toBeVisible();
+});
+
 test("replace picker lists bench students by power", async ({ page }) => {
   let current = profile();
   current.students.supporter.abilities = { ...current.students.supporter.abilities, dynamicProgramming: 1200 };

@@ -170,6 +170,12 @@ try {
   });
   assert.equal(invalidBatch.statusCode, 400);
   assert.match(invalidBatch.json().message, /cannot be dismissed/);
+  const oversizedBatch = await request(app, {
+    method: "POST", url: "/api/v1/progression/students/dismiss-batch", cookies: auth,
+    payload: { studentIds: Array.from({ length: 60 }, (_, index) => `ghost-${index}`) },
+  });
+  assert.equal(oversizedBatch.statusCode, 400);
+  assert.match(oversizedBatch.json().message, /owned by the profile/, "batches beyond 50 students must still reach domain validation");
 
   const unknownOffer = await request(app, {
     method: "POST", url: "/api/v1/progression/shop/purchases", cookies: auth,
