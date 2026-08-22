@@ -66,6 +66,8 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
   await expect(page.getByRole("dialog")).toContainText("获得 25 训练币。");
   await page.getByRole("button", { name: "知道了" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page).toHaveURL(/#arena$/);
+  await expect(page.getByText("可挑战对手")).toBeVisible();
   await page.getByRole("link", { name: "训练与补给" }).click();
   await expect(page.getByText("1025")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();

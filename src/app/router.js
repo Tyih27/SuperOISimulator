@@ -403,7 +403,12 @@ export class AppRouter {
     const battleResultOverlay = event.target.closest("[data-battle-result-overlay]");
     if (battleResultOverlay) {
       event.preventDefault();
+      const confirmedByButton = Boolean(event.target.closest('[data-action="close-battle-result"]'));
       if (this.battle) this.battle.resultDialogOpen = false;
+      if (confirmedByButton && this.battle?.settlement) {
+        this.navigate(this.battle.mode === "arena" ? "arena" : "campaign");
+        return;
+      }
       this.render();
       return;
     }

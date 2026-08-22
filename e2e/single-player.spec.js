@@ -146,6 +146,7 @@ test("single-player campaign is server-driven", async ({ page }, testInfo) => {
   await expect(page.getByRole("dialog")).toContainText("挑战胜利");
   await page.getByRole("button", { name: "知道了" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page).toHaveURL(/#campaign$/);
   await page.getByRole("link", { name: "训练与补给" }).click();
   await expect(page.getByText("天才保底")).toBeVisible();
   await page.locator('[data-buy-offer="recruitment-right"]').click();
@@ -201,7 +202,8 @@ test("battle playback controls work correctly", async ({ page }) => {
   await expect(page.getByRole("dialog")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "开始回放并结算" })).toHaveCount(0);
   await expect(page.getByRole("dialog")).toContainText("服务端回放");
-  await page.getByRole("button", { name: "知道了" }).click();
+  await page.locator("[data-battle-result-overlay]").click({ position: { x: 8, y: 8 } });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   const restartBtn = page.getByRole("button", { name: "重播" });
   if (await restartBtn.isVisible().catch(() => false)) {
     await restartBtn.click();
