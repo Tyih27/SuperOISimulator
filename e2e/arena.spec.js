@@ -51,7 +51,11 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
   await page.getByLabel("用户名").fill("arena01");
   await page.getByLabel("密码").fill("correct horse battery");
   await page.getByRole("button", { name: "注册并登录" }).click();
-  await page.getByRole("link", { name: "异步竞技场" }).click();
+  await page.getByRole("link", { name: "玩法" }).click();
+  await expect(page.getByRole("button", { name: "竞技场", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "BOSS战" }).click();
+  await expect(page.getByText("敬请期待")).toBeVisible();
+  await page.getByRole("button", { name: "竞技场", exact: true }).click();
   await page.getByRole("button", { name: "保存当前编队" }).click();
   await page.getByRole("button", { name: "刷新列表" }).click();
   await expect(page.getByText("战力 2460")).toBeVisible();
@@ -66,7 +70,7 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
   await expect(page.getByRole("dialog")).toContainText("获得 25 训练币。");
   await page.getByRole("button", { name: "知道了" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page).toHaveURL(/#arena$/);
+  await expect(page).toHaveURL(/#modes$/);
   await expect(page.getByText("可挑战对手")).toBeVisible();
   await page.getByRole("link", { name: "训练与补给" }).click();
   await expect(page.getByText("1025")).toBeVisible();
@@ -95,7 +99,7 @@ test("arena skip jumps straight to settlement", async ({ page }) => {
   await page.getByLabel("用户名").fill("arena01");
   await page.getByLabel("密码").fill("correct horse battery");
   await page.getByRole("button", { name: "注册并登录" }).click();
-  await page.getByRole("link", { name: "异步竞技场" }).click();
+  await page.getByRole("link", { name: "玩法" }).click();
   await page.getByRole("button", { name: "保存当前编队" }).click();
   await page.getByRole("button", { name: "刷新列表" }).click();
   await page.getByRole("button", { name: "挑战" }).click();
@@ -136,7 +140,7 @@ test("arena loss shows no reward", async ({ page }) => {
   await page.getByLabel("用户名").fill("arena01");
   await page.getByLabel("密码").fill("correct horse battery");
   await page.getByRole("button", { name: "注册并登录" }).click();
-  await page.getByRole("link", { name: "异步竞技场" }).click();
+  await page.getByRole("link", { name: "玩法" }).click();
   await page.getByRole("button", { name: "保存当前编队" }).click();
   await page.getByRole("button", { name: "刷新列表" }).click();
   await page.getByRole("button", { name: "挑战" }).click();
@@ -175,7 +179,7 @@ test("arena match history loads", async ({ page }) => {
   await page.getByLabel("用户名").fill("arena01");
   await page.getByLabel("密码").fill("correct horse battery");
   await page.getByRole("button", { name: "注册并登录" }).click();
-  await page.getByRole("link", { name: "异步竞技场" }).click();
+  await page.getByRole("link", { name: "玩法" }).click();
   await page.getByRole("button", { name: "保存当前编队" }).click();
   await page.getByRole("button", { name: "刷新" }).last().click();
   await expect(page.getByText("match-1")).toBeVisible();
@@ -205,6 +209,6 @@ test("defense required before challenge", async ({ page }) => {
   await page.getByLabel("用户名").fill("arena01");
   await page.getByLabel("密码").fill("correct horse battery");
   await page.getByRole("button", { name: "注册并登录" }).click();
-  await page.getByRole("link", { name: "异步竞技场" }).click();
+  await page.getByRole("link", { name: "玩法" }).click();
   await expect(page.getByText("请先保存防守编队")).toBeVisible();
 });

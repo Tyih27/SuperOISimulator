@@ -4,11 +4,11 @@ import { SPECIALIST_TRAINING_INCREMENTS } from "../domain/progression.js";
 import { createAuthSession, renderAccountScreen, renderAuthScreen } from "./auth.js";
 import { getLevel, renderCampaign } from "./campaign.js";
 import { renderLineupDialog, renderProgression, renderRoster, renderStudentDetail } from "./progression.js";
-import { renderArena } from "./arena.js";
+import { renderModes } from "./modes.js";
 import { createPlayback } from "./state.js";
 import { EVENT_LABELS } from "./event-labels.js";
 
-const ROUTES = new Set(["campaign", "roster", "progression", "account", "battle", "arena"]);
+const ROUTES = new Set(["campaign", "roster", "progression", "account", "battle", "arena", "modes"]);
 const POSITIONS = ["A1", "A2", "A3"];
 
 function esc(value) {
@@ -44,7 +44,7 @@ function isValidFormationMap(formation, students) {
 }
 
 function renderShell({ account, route, content }) {
-  return `<a class="skip-link" href="#main-content">跳到主要内容</a><div class="account-shell"><header class="account-topbar"><a class="app-brand" href="#campaign">SUPER OI <span>SIMULATOR</span></a><nav aria-label="主导航"><a href="#campaign"${route === "campaign" ? " aria-current=\"page\"" : ""}>主线关卡</a><a href="#arena"${route === "arena" ? " aria-current=\"page\"" : ""}>异步竞技场</a><a href="#roster"${route === "roster" ? " aria-current=\"page\"" : ""}>学生名单</a><a href="#progression"${route === "progression" ? " aria-current=\"page\"" : ""}>训练与补给</a><a href="#account"${route === "account" ? " aria-current=\"page\"" : ""}>账户与数据</a></nav><div class="account-actions"><span>${esc(account.username)}</span><button class="icon-button" type="button" data-action="logout" aria-label="退出登录" title="退出登录">退出</button></div></header><div class="topbar-warning" role="alert"><span class="warning-icon" aria-hidden="true">!</span><p>当前处于删档测试阶段，正式确定后会删除已有存档。</p></div><main id="main-content" class="account-main">${content}</main></div>`;
+  return `<a class="skip-link" href="#main-content">跳到主要内容</a><div class="account-shell"><header class="account-topbar"><a class="app-brand" href="#campaign">SUPER OI <span>SIMULATOR</span></a><nav aria-label="主导航"><a href="#campaign"${route === "campaign" ? " aria-current=\"page\"" : ""}>主线关卡</a><a href="#modes"${route === "modes" ? " aria-current=\"page\"" : ""}>玩法</a><a href="#roster"${route === "roster" ? " aria-current=\"page\"" : ""}>学生名单</a><a href="#progression"${route === "progression" ? " aria-current=\"page\"" : ""}>训练与补给</a><a href="#account"${route === "account" ? " aria-current=\"page\"" : ""}>账户与数据</a></nav><div class="account-actions"><span>${esc(account.username)}</span><button class="icon-button" type="button" data-action="logout" aria-label="退出登录" title="退出登录">退出</button></div></header><div class="topbar-warning" role="alert"><span class="warning-icon" aria-hidden="true">!</span><p>当前处于删档测试阶段，正式确定后会删除已有存档。</p></div><main id="main-content" class="account-main">${content}</main></div>`;
 }
 
 function downloadJson(value, filename) {
@@ -220,6 +220,7 @@ export class AppRouter {
     this.dragStudentId = null;
     this.battle = null;
     this.arena = { defense: null, defenseSnapshot: null, opponents: [], history: [], match: null, replay: null, battlesToday: null, dailyLimit: null };
+    this.modes = { tab: "arena" };
     this.message = "";
     this.messageIsError = false;
     this.root.addEventListener("submit", (event) => this.onSubmit(event));
@@ -266,7 +267,9 @@ export class AppRouter {
   applyHash() {
     if (!this.account) return;
     const candidate = globalThis.location?.hash?.slice(1) || "campaign";
-    this.route = ROUTES.has(candidate) ? candidate : "campaign";
+    if (candidate === "arena") this.modes.tab = "arena";
+    if (candidate === "modes" || candidate === "arena") this.route = "modes";
+    else this.route = ROUTES.has(candidate) ? candidate : "campaign";
     if (this.route === "battle" && !this.battle) this.route = "campaign";
     if (this.route !== "roster") {
       this.lineupOpen = false;
@@ -280,7 +283,7 @@ export class AppRouter {
       this.detailStudentId = null;
       this.detailNameEditing = false;
     }
-    if (this.route === "arena" && this.arena.dailyLimit === null) this.refreshArenaQuota();
+    if (this.route === "modes" && this.modes.tab === "arena" && this.arena.dailyLimit === null) this.refreshArenaQuota();
     if (this.route === "account" && this.account.role === "admin" && this.feedback === null) this.refreshFeedback();
     this.render();
   }
@@ -339,12 +342,12 @@ export class AppRouter {
     else if (this.route === "progression") content = renderProgression({ profile: this.profile, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "account") content = renderAccountScreen({ account: this.account, feedback: this.feedback ?? [], feedbackLoading: this.feedbackLoading, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "battle" && this.battle) content = renderBattle({ battle: this.battle, message: this.message, messageIsError: this.messageIsError });
-    else if (this.route === "arena") {
+    else if (this.route === "modes") {
       let liveHtml = "";
       if (this.arena.match && this.arena.playbackState && !this.arena.replay) {
         liveHtml = renderLiveBattle({ battle: { snapshot: this.arena.match.snapshots.attacker }, state: this.arena.playbackState });
       }
-      content = renderArena({ profile: this.profile, ...this.arena, liveHtml, message: this.message, messageIsError: this.messageIsError });
+      content = renderModes({ profile: this.profile, modeTab: this.modes.tab, ...this.arena, liveHtml, message: this.message, messageIsError: this.messageIsError });
     }
     else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, message: this.message, messageIsError: this.messageIsError });
     const detailStudent = this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
@@ -404,7 +407,7 @@ export class AppRouter {
       const confirmedByButton = Boolean(event.target.closest('[data-action="close-battle-result"]'));
       if (this.battle) this.battle.resultDialogOpen = false;
       if (confirmedByButton && this.battle?.settlement) {
-        this.navigate(this.battle.mode === "arena" ? "arena" : "campaign");
+        this.navigate(this.battle.mode === "arena" ? "modes" : "campaign");
         return;
       }
       this.render();
@@ -469,6 +472,12 @@ export class AppRouter {
     if (button.matches("[data-select-level]")) {
       this.selectedLevelId = button.dataset.selectLevel;
       this.message = "";
+      this.render();
+      return;
+    }
+    if (button.matches("[data-mode-tab]")) {
+      event.preventDefault();
+      this.modes.tab = button.dataset.modeTab;
       this.render();
       return;
     }
