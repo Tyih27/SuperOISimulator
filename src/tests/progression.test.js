@@ -17,6 +17,7 @@ import {
 } from "../domain/progression.js";
 import { createProfile } from "../domain/profile.js";
 import { createBattleSnapshot } from "../domain/snapshot.js";
+import { refundSummaryText } from "../app/progression.js";
 
 assert.ok(LEVELS.length >= 3 && LEVELS.length <= 20, "the campaign must ship with 3-20 levels");
 assert.deepEqual(LEVELS.map((level) => level.order), [...LEVELS.keys()].map((index) => index + 1));
@@ -192,5 +193,95 @@ assert.throws(() => dismissStudents(batchProfile, { studentIds: ["ghost"] }), /o
 const batchDismissed = dismissStudents(batchProfile, { studentIds: ["batch-rare", "batch-plain"] });
 assert.deepEqual(Object.keys(batchDismissed.students), ["planner"]);
 assert.equal(batchDismissed.inventory[STUDENT_TRAINING_MATERIAL_ID], 2);
+
+// --- dismissal refunds the exact materials invested in a student ---
+const investProfile = structuredClone(profile);
+const investRecruit = structuredClone(recruit);
+delete investRecruit.investedItems;
+investProfile.students[investRecruit.id] = investRecruit;
+investProfile.inventory = {
+  [specialistTrainingBookId("dynamicProgramming")]: 2,
+  [specialistTrainingBookId("graphTheory")]: 1,
+  [STUDENT_TRAINING_MATERIAL_ID]: 1,
+  [ENERGY_TONIC_ID]: 1,
+};
+let investing = applySpecialistTraining(investProfile, { studentId: investRecruit.id, ability: "dynamicProgramming" });
+assert.equal(
+  investing.students[investRecruit.id].investedItems[specialistTrainingBookId("dynamicProgramming")],
+  1,
+  "book consumption must be recorded on the student",
+);
+investing = applySpecialistTraining(investing, { studentId: investRecruit.id, ability: "dynamicProgramming" });
+assert.equal(investing.students[investRecruit.id].investedItems[specialistTrainingBookId("dynamicProgramming")], 2);
+investing = applySpecialistTraining(investing, { studentId: investRecruit.id, ability: "graphTheory" });
+assert.equal(investing.students[investRecruit.id].investedItems[specialistTrainingBookId("graphTheory")], 1);
+investing = applyEnergyTonic(investing, { studentId: investRecruit.id });
+assert.equal(investing.students[investRecruit.id].investedItems[ENERGY_TONIC_ID], 1);
+const materialRefundSource = structuredClone(investing);
+materialRefundSource.inventory[specialistTrainingBookId("dynamicProgramming")] = 0;
+investing = applySpecialistTraining(materialRefundSource, { studentId: investRecruit.id, ability: "dynamicProgramming" });
+assert.equal(
+  investing.students[investRecruit.id].investedItems[STUDENT_TRAINING_MATERIAL_ID],
+  1,
+  "material-based training must also be recorded on the student",
+);
+assert.equal(investing.inventory[STUDENT_TRAINING_MATERIAL_ID], 0);
+
+const investedBeforeDismiss = {
+  [specialistTrainingBookId("dynamicProgramming")]: 0,
+  [specialistTrainingBookId("graphTheory")]: 0,
+  [STUDENT_TRAINING_MATERIAL_ID]: 0,
+  [ENERGY_TONIC_ID]: 0,
+};
+const refundProfile = structuredClone(investing);
+refundProfile.inventory = { ...investedBeforeDismiss };
+const refundDismissed = dismissStudent(refundProfile, { studentId: investRecruit.id });
+assert.equal(refundDismissed.students[investRecruit.id], undefined);
+assert.equal(refundDismissed.inventory[specialistTrainingBookId("dynamicProgramming")], 2, "consumed books must be refunded");
+assert.equal(refundDismissed.inventory[specialistTrainingBookId("graphTheory")], 1);
+assert.equal(refundDismissed.inventory[STUDENT_TRAINING_MATERIAL_ID], 2, "refunded materials stack with the base dismissal reward");
+assert.equal(refundDismissed.inventory[ENERGY_TONIC_ID], 1, "fed KFC must be refunded");
+
+// students without an investment ledger (legacy profiles) still dismiss with just the base reward
+const legacyProfile = structuredClone(profile);
+legacyProfile.students["legacy-student"] = { id: "legacy-student", name: "旧档案学生", aptitude: "普通", abilities: { dynamicProgramming: 500, graphTheory: 500, dataStructures: 500, mathematics: 500, implementation: 500 }, maxEnergy: 5000, skillGroupId: "planner", skillGroupLevels: { planner: { normal: 1, burst: 1 } } };
+legacyProfile.formation = { A1: "graphist", A2: "structurer", A3: null };
+const legacyDismissed = dismissStudent(legacyProfile, { studentId: "legacy-student" });
+assert.equal(legacyDismissed.students["legacy-student"], undefined);
+assert.equal(legacyDismissed.inventory[STUDENT_TRAINING_MATERIAL_ID], 1, "students without investment history must only grant the base reward");
+
+// batch dismissal aggregates refunds across students
+const aggregateProfile = createProfile({
+  accountId: "refund-batch-profile",
+  studentIds: ["planner"],
+  formation: { A1: "planner", A2: null, A3: null },
+});
+const refundBatchA = structuredClone(recruit);
+refundBatchA.id = "refund-a";
+delete refundBatchA.investedItems;
+const refundBatchB = structuredClone(recruit);
+refundBatchB.id = "refund-b";
+delete refundBatchB.investedItems;
+aggregateProfile.students[refundBatchA.id] = refundBatchA;
+aggregateProfile.students[refundBatchB.id] = refundBatchB;
+aggregateProfile.inventory = {
+  ...aggregateProfile.inventory,
+  [specialistTrainingBookId("dynamicProgramming")]: 3,
+};
+aggregateProfile.inventory[STUDENT_TRAINING_MATERIAL_ID] = 0;
+let aggregateNext = applySpecialistTraining(aggregateProfile, { studentId: refundBatchA.id, ability: "dynamicProgramming" });
+aggregateNext = applySpecialistTraining(aggregateNext, { studentId: refundBatchA.id, ability: "dynamicProgramming" });
+aggregateNext = applySpecialistTraining(aggregateNext, { studentId: refundBatchB.id, ability: "dynamicProgramming" });
+aggregateNext.inventory[specialistTrainingBookId("dynamicProgramming")] = 0;
+aggregateNext.inventory[STUDENT_TRAINING_MATERIAL_ID] = 0;
+const batchRefunded = dismissStudents(aggregateNext, { studentIds: [refundBatchA.id, refundBatchB.id] });
+assert.deepEqual(Object.keys(batchRefunded.students), ["planner"]);
+assert.equal(batchRefunded.inventory[specialistTrainingBookId("dynamicProgramming")], 3, "batch refunds must be aggregated per item");
+assert.equal(batchRefunded.inventory[STUDENT_TRAINING_MATERIAL_ID], 2, "batch refunds keep one base reward per student");
+
+// --- client-side refund summary text ---
+assert.equal(refundSummaryText({ [specialistTrainingBookId("graphTheory")]: 2, [STUDENT_TRAINING_MATERIAL_ID]: 1 }), "同时返还 图论专项训练册 ×2、学生培养材料 ×1。");
+assert.equal(refundSummaryText({}), "");
+assert.equal(refundSummaryText(undefined), "");
 
 console.log("progression domain tests passed");

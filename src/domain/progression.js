@@ -94,6 +94,7 @@ export function applySpecialistTraining(profile, { studentId, ability } = {}) {
   const next = structuredClone(profile);
   next.students[studentId].abilities[ability] += increment;
   next.inventory[itemId] -= 1;
+  addInvestment(next.students[studentId], itemId);
   return next;
 }
 
@@ -137,6 +138,7 @@ export function applyEnergyTonic(profile, { studentId } = {}) {
     ENERGY_TONIC_MAX_ENERGY_CAP,
   );
   next.inventory[ENERGY_TONIC_ID] -= 1;
+  addInvestment(next.students[studentId], ENERGY_TONIC_ID);
   return next;
 }
 
@@ -160,6 +162,33 @@ export function createRecruitedStudent({ studentId, seed, namePoolVersion, templ
   };
 }
 
+export function investedItemsOf(student) {
+  const ledger = student?.investedItems;
+  return ledger && typeof ledger === "object" ? { ...ledger } : {};
+}
+
+export function dismissalRefundFor(profile, studentIds) {
+  requireProfile(profile);
+  const refunds = {};
+  for (const studentId of studentIds) {
+    for (const [itemId, quantity] of Object.entries(investedItemsOf(profile.students?.[studentId]))) {
+      if (!Number.isInteger(quantity) || quantity <= 0) continue;
+      refunds[itemId] = (refunds[itemId] ?? 0) + quantity;
+    }
+  }
+  return refunds;
+}
+
+function addInvestment(student, itemId, quantity = 1) {
+  student.investedItems = { ...investedItemsOf(student), [itemId]: (investedItemsOf(student)[itemId] ?? 0) + quantity };
+}
+
+function grantRefunds(profile, refunds) {
+  for (const [itemId, quantity] of Object.entries(refunds)) {
+    profile.inventory[itemId] = (profile.inventory[itemId] ?? 0) + quantity;
+  }
+}
+
 export function dismissStudent(profile, { studentId } = {}) {
   requireProfile(profile);
   if (typeof studentId !== "string" || studentId.trim() === "") {
@@ -172,7 +201,9 @@ export function dismissStudent(profile, { studentId } = {}) {
   }
 
   const next = structuredClone(profile);
+  const refunds = investedItemsOf(next.students[studentId]);
   delete next.students[studentId];
+  grantRefunds(next, refunds);
   next.inventory[STUDENT_TRAINING_MATERIAL_ID] =
     (next.inventory[STUDENT_TRAINING_MATERIAL_ID] ?? 0) + STUDENT_DISMISSAL_MATERIAL_REWARD;
   return next;
@@ -196,7 +227,9 @@ export function dismissStudents(profile, { studentIds = [] } = {}) {
   }
 
   const next = structuredClone(profile);
+  const refunds = dismissalRefundFor(next, studentIds);
   for (const studentId of studentIds) delete next.students[studentId];
+  grantRefunds(next, refunds);
   next.inventory[STUDENT_TRAINING_MATERIAL_ID] =
     (next.inventory[STUDENT_TRAINING_MATERIAL_ID] ?? 0) + STUDENT_DISMISSAL_MATERIAL_REWARD * studentIds.length;
   return next;

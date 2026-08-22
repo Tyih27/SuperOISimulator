@@ -179,14 +179,22 @@ export function renderRoster({ profile, selectedId, fillSlotId = null, enhanceOp
   return `<section class="app-view roster-view" aria-labelledby="roster-title"><div class="view-heading"><div class="roster-heading"><p class="eyebrow">学生名单</p><div class="roster-title-row"><h1 id="roster-title">当前队伍</h1><strong class="roster-overall">总体水平 ${teamOverallPower}</strong></div></div><button type="button" class="primary-button" data-action="open-lineup-editor">调整阵容</button><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div>${rosterTabs}${rosterBody}${bench.length ? `<section class="bench-strip" aria-labelledby="bench-strip-title"><div class="bench-header"><h2 id="bench-strip-title">替补席</h2><button type="button" class="secondary-button" data-action="${dismissOpen ? "close-dismiss-panel" : "open-dismiss-panel"}">${dismissOpen ? "收起劝退列表" : "批量劝退"}</button></div>${dismissOpen ? `${rareCount && dismissConfirmPending ? `<p class="app-message--error" role="alert">所选包含稀有及以上资质学生，请再次点击「确认劝退」完成操作。</p>` : ""}${dismissToolbar}<div class="dismiss-stats" role="group" aria-label="按资质统计与全选">${dismissStats}</div><div class="dismiss-options" role="group" aria-label="选择要劝退的替补学生">${dismissList}</div>${dismissFooter}` : ""}<div class="bench-pills">${bench.map(({ student }) => `<button type="button" class="bench-pill" data-student-detail="${esc(student.id)}" aria-label="查看 ${esc(student.name)} 详情"><strong>${esc(student.name)}</strong><span>${esc(student.aptitude)} · ${esc(skillGroupName(student))}</span></button>`).join("")}</div></section>` : ""}</section>`;
 }
 
+const ITEM_LABELS = {
+  [STUDENT_TRAINING_MATERIAL_ID]: "学生培养材料",
+  [ENERGY_TONIC_ID]: "KFC",
+  ...Object.fromEntries(ABILITY_KEYS.map((ability) => [specialistTrainingBookId(ability), `${abilityLabels[ability]}专项训练册`])),
+};
+
+export function refundSummaryText(refunded) {
+  const parts = Object.entries(refunded ?? {})
+    .filter(([, quantity]) => Number(quantity) > 0)
+    .map(([itemId, quantity]) => `${ITEM_LABELS[itemId] ?? itemId} ×${quantity}`);
+  return parts.length ? `同时返还 ${parts.join("、")}。` : "";
+}
+
 function inventoryRows(inventory) {
   const rows = Object.entries(inventory).filter(([, quantity]) => quantity > 0);
-  const labels = {
-    [STUDENT_TRAINING_MATERIAL_ID]: "学生培养材料",
-    [ENERGY_TONIC_ID]: "KFC",
-    ...Object.fromEntries(ABILITY_KEYS.map((ability) => [specialistTrainingBookId(ability), `${abilityLabels[ability]}专项训练册`])),
-  };
-  return rows.length ? rows.map(([item, quantity]) => `<li>${esc(labels[item] ?? item)} <strong>${esc(quantity)}</strong></li>`).join("") : "<li>暂无训练道具</li>";
+  return rows.length ? rows.map(([item, quantity]) => `<li>${esc(ITEM_LABELS[item] ?? item)} <strong>${esc(quantity)}</strong></li>`).join("") : "<li>暂无训练道具</li>";
 }
 
 export function renderProgression({ profile, message, messageIsError = false }) {

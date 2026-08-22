@@ -178,7 +178,9 @@ try {
   assert.equal(batchDismissal.json().profile.students[newRecruitId], undefined);
   assert.deepEqual(batchDismissal.json().dismissal.studentIds.sort(), [newRecruitId, "graphist"].sort());
   assert.equal(batchDismissal.json().dismissal.quantity, 2);
-  assert.equal(batchDismissal.json().profile.inventory["student-training-material"], 3);
+  // graphist previously consumed one training material, which the dismissal
+  // refunds alongside the two base rewards.
+  assert.equal(batchDismissal.json().profile.inventory["student-training-material"], 4);
   const invalidBatch = await request(app, {
     method: "POST", url: "/api/v1/progression/students/dismiss-batch", cookies: auth,
     payload: { studentIds: ["structurer"] },
@@ -231,7 +233,9 @@ try {
     ["specialist-book-dynamicProgramming", 1, "shop"],
     ["student-training-material", 1, "student-dismissal"],
     ["student-training-material", 1, "student-dismissal"],
+    ["specialist-book-dynamicProgramming", 1, "student-dismissal-refund"],
     ["student-training-material", 2, "student-dismissal"],
+    ["student-training-material", 1, "student-dismissal-refund"],
     ["energy-tonic", 1, "shop"],
   ]);
   const auditEntries = await app.db.query("SELECT action_type FROM account_audit_log ORDER BY id");
@@ -239,8 +243,9 @@ try {
     "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in", "profile_update", "student_dismissal", "profile_update", "shop_purchase", "student_recruitment", "student_dismissal", "shop_purchase", "energy_tonic",
   ]);
 
-  // Batch specialist training: two DP books remain in stock plus three
-  // materials, so a quantity of 4 mixes both consumables in one transaction.
+  // Batch specialist training: three DP books remain in stock (one was
+  // refunded by planner's dismissal) plus four materials, so a quantity of 4
+  // consumes books first and finishes with materials.
   const batchTraining = await request(app, {
     method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
     payload: { studentId: "structurer", ability: "dynamicProgramming", quantity: 4 },
@@ -248,12 +253,12 @@ try {
   assert.equal(batchTraining.statusCode, 200, batchTraining.json().message || JSON.stringify(batchTraining.json()));
   const perUnitIncrement = SPECIALIST_TRAINING_INCREMENTS[before.students.structurer.aptitude];
   assert.equal(batchTraining.json().training.quantity, 4);
-  assert.equal(batchTraining.json().training.usedBooks, 2);
-  assert.equal(batchTraining.json().training.usedMaterial, 2);
+  assert.equal(batchTraining.json().training.usedBooks, 3);
+  assert.equal(batchTraining.json().training.usedMaterial, 1);
   assert.equal(batchTraining.json().training.increment, perUnitIncrement * 4);
   assert.equal(batchTraining.json().profile.students.structurer.abilities.dynamicProgramming, before.students.structurer.abilities.dynamicProgramming + perUnitIncrement * 4);
   assert.equal(batchTraining.json().profile.inventory["specialist-book-dynamicProgramming"], 0);
-  assert.equal(batchTraining.json().profile.inventory["student-training-material"], 1);
+  assert.equal(batchTraining.json().profile.inventory["student-training-material"], 3);
   const insufficientBatch = await request(app, {
     method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
     payload: { studentId: "structurer", ability: "dynamicProgramming", quantity: 99 },

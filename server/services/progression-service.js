@@ -6,6 +6,7 @@ import {
   createRecruitedStudent,
   dismissStudent,
   dismissStudents,
+  dismissalRefundFor,
   ENERGY_TONIC_ID,
   STUDENT_DISMISSAL_MATERIAL_REWARD,
   STUDENT_TRAINING_MATERIAL_ID,
@@ -229,9 +230,11 @@ export class ProgressionService {
     requireString(accountId, "Account is required");
     requireString(studentId, "Student id is required");
     return this.withProfile(accountId, async ({ client, profile }) => {
+      const targetId = studentId.trim();
+      const refunds = dismissalRefundFor(profile, [targetId]);
       let next;
       try {
-        next = dismissStudent(profile, { studentId: studentId.trim() });
+        next = dismissStudent(profile, { studentId: targetId });
       } catch (error) {
         throw invalid(error.message);
       }
@@ -241,16 +244,26 @@ export class ProgressionService {
         itemId: STUDENT_TRAINING_MATERIAL_ID,
         quantity: STUDENT_DISMISSAL_MATERIAL_REWARD,
         sourceType: "student-dismissal",
-        sourceId: studentId.trim(),
+        sourceId: targetId,
       });
+      for (const [itemId, quantity] of Object.entries(refunds)) {
+        await this.ledger.recordInventoryGrant(client, {
+          accountId,
+          itemId,
+          quantity,
+          sourceType: "student-dismissal-refund",
+          sourceId: targetId,
+        });
+      }
       return {
         dismissal: {
-          studentId: studentId.trim(),
+          studentId: targetId,
           itemId: STUDENT_TRAINING_MATERIAL_ID,
           quantity: STUDENT_DISMISSAL_MATERIAL_REWARD,
+          refunded: refunds,
         },
         auditAction: "student_dismissal",
-        auditPayload: { studentId: studentId.trim(), itemId: STUDENT_TRAINING_MATERIAL_ID },
+        auditPayload: { studentId: targetId, itemId: STUDENT_TRAINING_MATERIAL_ID },
       };
     });
   }
@@ -260,6 +273,7 @@ export class ProgressionService {
     if (!Array.isArray(studentIds) || studentIds.length === 0) throw invalid("At least one student must be selected");
     const normalized = studentIds.map((studentId) => String(studentId).trim());
     return this.withProfile(accountId, async ({ client, profile }) => {
+      const refunds = dismissalRefundFor(profile, normalized);
       let next;
       try {
         next = dismissStudents(profile, { studentIds: normalized });
@@ -274,11 +288,21 @@ export class ProgressionService {
         sourceType: "student-dismissal",
         sourceId: normalized.join(","),
       });
+      for (const [itemId, quantity] of Object.entries(refunds)) {
+        await this.ledger.recordInventoryGrant(client, {
+          accountId,
+          itemId,
+          quantity,
+          sourceType: "student-dismissal-refund",
+          sourceId: normalized.join(","),
+        });
+      }
       return {
         dismissal: {
           studentIds: normalized,
           itemId: STUDENT_TRAINING_MATERIAL_ID,
           quantity: STUDENT_DISMISSAL_MATERIAL_REWARD * normalized.length,
+          refunded: refunds,
         },
         auditAction: "student_dismissal",
         auditPayload: { studentIds: normalized, itemId: STUDENT_TRAINING_MATERIAL_ID },
