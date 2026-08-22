@@ -96,7 +96,6 @@ function objectiveTargetFor(level) {
 function renderLiveBattle({ battle, state }) {
   if (!state?.combat) return "";
   const students = battle.snapshot.team;
-  const studentNames = new Map(students.map((student) => [student.id, student.name]));
   const runtimeStudents = state.combat.state?.students ?? {};
   const runtimeProblems = state.combat.state?.problems ?? {};
   const levelTopics = battle.snapshot.level.topics ?? [];
@@ -106,7 +105,6 @@ function renderLiveBattle({ battle, state }) {
     .filter(({ runtime, topic }) => topic);
   const passedCount = levelTopics.filter(({ id }) => runtimeProblems[id]?.passed).length;
   const objectiveTarget = objectiveTargetFor(battle.snapshot.level);
-  const events = state.combat.events ?? [];
   const isDone = state.phase === "result";
   return `<section class="live-battle panel" aria-labelledby="live-battle-title">
     <div class="panel-header"><div><p class="eyebrow">${isDone ? "战斗已结束" : "实时对战"}</p><h2 id="live-battle-title">${isDone ? "战斗结果已就绪" : "对战过程"}</h2></div><span class="panel-meta">${esc(state.phase)} · ${esc(state.stepCount)} 步</span></div>
@@ -115,7 +113,6 @@ function renderLiveBattle({ battle, state }) {
       const runtime = runtimeStudents[student.id] ?? { energy: student.maxEnergy, focus: 0, alive: true };
       return `<article class="live-student ${runtime.alive ? "" : "is-inactive"}"><div class="student-card-head"><strong>${esc(student.name)}</strong><span class="alive-state">${runtime.alive ? "做题中" : "已退场"}</span></div><div class="stat-line"><span>精力</span><strong>${Math.round(runtime.energy)} / ${student.maxEnergy}</strong></div><div class="meter energy"><span style="width:${percent(runtime.energy, student.maxEnergy)}%"></span></div><div class="stat-line"><span>专注</span><strong>${Math.round(runtime.focus ?? 0)} / ${state.combat.state?.focusMax ?? 1000}</strong></div><div class="meter focus"><span style="width:${percent(runtime.focus, state.combat.state?.focusMax ?? 1000)}%"></span></div></article>`;
     }).join("")}</div></div><div><div class="panel-header"><h3>题目战线</h3><span class="panel-meta">已通过 ${passedCount} / 目标 ${objectiveTarget}</span></div><div class="live-topic-list">${activeProblems.map(({ slot, runtime, topic }) => `<article class="live-topic ${runtime?.passed ? "is-complete" : ""}"><div class="topic-name-row"><strong>${esc(topic.name)}</strong><span class="position-badge">${slot}</span></div><div class="topic-progress-label"><span>${runtime?.passed ? "已完成" : "推进度"}</span><strong>${Math.round(percent(runtime?.progress ?? 0, topic.maxProgress ?? 10000))}%</strong></div><div class="topic-progress"><span style="width:${percent(runtime?.progress ?? 0, topic.maxProgress ?? 10000)}%"></span></div></article>`).join("") || `<p class="empty-state">等待题目进入战线。</p>`}</div></div></div>
-    <details class="live-event-log" open><summary>事件记录（${events.length}）</summary><ol class="event-replay">${events.slice(-30).map((event) => `<li><span>${esc(event.round ?? "准备")}</span>${esc(EVENT_LABELS[event.type] ?? event.type)}${event.actor ? ` · ${esc(studentNames.get(event.actor) ?? "未知学生")}` : ""}</li>`).join("")}</ol></details>
   </section>`;
 }
 
@@ -189,14 +186,14 @@ function renderArenaBattle({ battle, message, messageIsError = false }) {
   const attacker = snapshots.attacker ?? {};
   const defender = snapshots.defender ?? {};
   const result = battle.settlement?.result;
-  return `<section class="app-view battle-replay arena-battle-page" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">竞技场对战</p><h1 id="battle-title">${esc(attacker.level?.name ?? "随机竞技场")}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><strong class="mono">比赛 ${esc(battle.id)}</strong></div><div><span>本局 seed</span><strong>${esc(battle.seed ?? attacker.seed ?? "")}</strong></div><div><span>进攻方</span><strong>${(attacker.team ?? []).map((student) => esc(student.name)).join(" / ") || "等待快照"}</strong></div><div><span>防守方</span><strong>${(defender.team ?? []).map((student) => esc(student.name)).join(" / ") || "等待快照"}</strong></div></div>${battle.quotaText ? `<p class="arena-quota-note">${esc(battle.quotaText)}</p>` : ""}${renderArenaLiveBattle({ battle })}${result ? renderSettlementResult({ battle }) : `<section class="battle-ready"><h2>快照已锁定</h2><p>双方队伍和随机题组已由服务端记录，回放结束后将自动结算。</p></section>`}${renderSettlementRetry({ battle })}${renderSettlementDialog({ battle })}</section>`;
+  return `<section class="app-view battle-replay arena-battle-page" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">竞技场对战</p><h1 id="battle-title">${esc(attacker.level?.name ?? "随机竞技场")}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><span>进攻方</span><strong>${(attacker.team ?? []).map((student) => esc(student.name)).join(" / ") || "等待快照"}</strong></div><div><span>防守方</span><strong>${(defender.team ?? []).map((student) => esc(student.name)).join(" / ") || "等待快照"}</strong></div></div>${battle.quotaText ? `<p class="arena-quota-note">${esc(battle.quotaText)}</p>` : ""}${renderArenaLiveBattle({ battle })}${result ? renderSettlementResult({ battle }) : `<section class="battle-ready"><h2>快照已锁定</h2><p>双方队伍和随机题组已由服务端记录，回放结束后将自动结算。</p></section>`}${renderSettlementRetry({ battle })}${renderSettlementDialog({ battle })}</section>`;
 }
 
 function renderBattle({ battle, message, messageIsError = false }) {
   if (battle.mode === "arena") return renderArenaBattle({ battle, message, messageIsError });
   const result = battle.settlement?.result;
   const liveState = battle.playbackState;
-  return `<section class="app-view battle-replay" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">服务端战斗记录</p><h1 id="battle-title">${esc(battle.snapshot.level.name)}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><span>战斗编号</span><strong class="mono">${esc(battle.id)}</strong></div><div><span>本局 seed</span><strong>${esc(battle.snapshot.seed)}</strong></div><div><span>队伍</span><strong>${battle.snapshot.team.map((student) => esc(student.name)).join(" / ")}</strong></div></div>${liveState ? renderLiveBattle({ battle, state: liveState }) : ""}${result ? renderSettlementResult({ battle }) : `<section class="battle-ready"><h2>快照已锁定</h2><p>队伍、关卡和本局 seed 已由服务端记录。回放结束后将自动结算。</p></section>`}${renderSettlementRetry({ battle })}${renderSettlementDialog({ battle })}</section>`;
+  return `<section class="app-view battle-replay" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">服务端战斗记录</p><h1 id="battle-title">${esc(battle.snapshot.level.name)}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><span>队伍</span><strong>${battle.snapshot.team.map((student) => esc(student.name)).join(" / ")}</strong></div></div>${liveState ? renderLiveBattle({ battle, state: liveState }) : ""}${result ? renderSettlementResult({ battle }) : `<section class="battle-ready"><h2>快照已锁定</h2><p>队伍和关卡已由服务端记录。回放结束后将自动结算。</p></section>`}${renderSettlementRetry({ battle })}${renderSettlementDialog({ battle })}</section>`;
 }
 
 export class AppRouter {
@@ -607,7 +604,7 @@ export class AppRouter {
         this.message = "已推进一个对战阶段。";
       } else if (action === "restart-live-battle") {
         this.activePlaybacks().forEach((playback) => playback.restart());
-        this.message = "已使用本局 seed 重播。";
+        this.message = "已重播本局战斗。";
       } else if (button.dataset.playbackSpeed) {
         this.activePlaybacks().forEach((playback) => playback.setSpeed(button.dataset.playbackSpeed));
         this.message = `播放速度已调整为 ${button.dataset.playbackSpeed}x。`;

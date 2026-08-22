@@ -56,7 +56,7 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
   await page.getByRole("button", { name: "刷新列表" }).click();
   await expect(page.getByText("战力 2460")).toBeVisible();
   await page.getByRole("button", { name: "挑战" }).click();
-  await expect(page.getByText("比赛 11111111-1111-4111-8111-111111111111")).toBeVisible();
+  await expect(page.getByText("等待该方战斗快照")).toBeVisible();
   await expect(page.getByText("今日剩余挑战次数 39 / 40")).toBeVisible();
   await expect(page.locator(".live-battle")).toBeVisible();
   await expect(page.getByText(/已通过 \d+ \/ 目标 3/)).toBeVisible();
