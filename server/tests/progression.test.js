@@ -98,7 +98,8 @@ try {
     payload: { studentId: "graphist", ability: "graphTheory" },
   });
   assert.equal(materialTraining.statusCode, 200);
-  assert.equal(materialTraining.json().training.itemId, "student-training-material");
+  assert.equal(materialTraining.json().training.usedBooks, 0);
+  assert.equal(materialTraining.json().training.usedMaterial, 1);
   assert.equal(materialTraining.json().training.previousValue, graphistAbilityBefore);
   assert.equal(materialTraining.json().training.currentValue, graphistAbilityBefore + SPECIALIST_TRAINING_INCREMENTS.普通);
   assert.equal(materialTraining.json().training.increment, SPECIALIST_TRAINING_INCREMENTS.普通);
@@ -109,7 +110,7 @@ try {
     payload: { studentId: "graphist", ability: "graphTheory" },
   });
   assert.equal(failedTraining.statusCode, 400);
-  assert.match(failedTraining.json().message, /training book or student training material/);
+  assert.match(failedTraining.json().message, /Not enough specialist training books or student training materials/);
   const afterFailedTraining = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: auth });
   assert.equal(afterFailedTraining.json().version, materialTraining.json().profile.version);
 
@@ -223,6 +224,33 @@ try {
   assert.deepEqual(auditEntries.rows.map(({ action_type: actionType }) => actionType), [
     "daily_check_in", "specialist_training", "shop_purchase", "shop_purchase", "shop_purchase", "student_recruitment", "student_dismissal", "specialist_training", "daily_check_in", "profile_update", "student_dismissal", "profile_update", "shop_purchase", "student_recruitment", "student_dismissal", "shop_purchase", "energy_tonic",
   ]);
+
+  // Batch specialist training: two DP books remain in stock plus three
+  // materials, so a quantity of 4 mixes both consumables in one transaction.
+  const batchTraining = await request(app, {
+    method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
+    payload: { studentId: "structurer", ability: "dynamicProgramming", quantity: 4 },
+  });
+  assert.equal(batchTraining.statusCode, 200, batchTraining.json().message || JSON.stringify(batchTraining.json()));
+  const perUnitIncrement = SPECIALIST_TRAINING_INCREMENTS[before.students.structurer.aptitude];
+  assert.equal(batchTraining.json().training.quantity, 4);
+  assert.equal(batchTraining.json().training.usedBooks, 2);
+  assert.equal(batchTraining.json().training.usedMaterial, 2);
+  assert.equal(batchTraining.json().training.increment, perUnitIncrement * 4);
+  assert.equal(batchTraining.json().profile.students.structurer.abilities.dynamicProgramming, before.students.structurer.abilities.dynamicProgramming + perUnitIncrement * 4);
+  assert.equal(batchTraining.json().profile.inventory["specialist-book-dynamicProgramming"], 0);
+  assert.equal(batchTraining.json().profile.inventory["student-training-material"], 1);
+  const insufficientBatch = await request(app, {
+    method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
+    payload: { studentId: "structurer", ability: "dynamicProgramming", quantity: 99 },
+  });
+  assert.equal(insufficientBatch.statusCode, 400);
+  assert.match(insufficientBatch.json().message, /Not enough/);
+  const invalidQuantity = await request(app, {
+    method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
+    payload: { studentId: "structurer", ability: "dynamicProgramming", quantity: 0 },
+  });
+  assert.equal(invalidQuantity.statusCode, 400);
 
   const catalogRegistered = await request(app, {
     method: "POST", url: "/api/v1/auth/register", payload: { username: "shopcatalog01", password: PASSWORD },

@@ -360,6 +360,7 @@ export const SPECIALIST_TRAINING_DTO_SCHEMA = deepFreeze({
   properties: {
     studentId: { type: "string", minLength: 1, maxLength: 128 },
     ability: { enum: ["dynamicProgramming", "graphTheory", "dataStructures", "mathematics", "implementation"] },
+    quantity: { type: "integer", minimum: 1 },
   },
   additionalProperties: false,
 });

@@ -46,16 +46,19 @@ async function mockApi(page, options = {}) {
       const body = route.request().postDataJSON();
       const student = current.students[body.studentId];
       if (!student) return json({ code: "INVALID_PROGRESSION_REQUEST", message: "Student must be owned by the profile" }, 400);
+      const quantity = Number.isInteger(body.quantity) && body.quantity > 0 ? body.quantity : 1;
       const bookId = `specialist-book-${body.ability}`;
-      const hasBook = (current.inventory[bookId] ?? 0) > 0;
-      const hasMaterial = (current.inventory["student-training-material"] ?? 0) > 0;
-      if (!hasBook && !hasMaterial) return json({ code: "INVALID_PROGRESSION_REQUEST", message: "A matching specialist training book or student training material is required" }, 400);
+      const bookCount = current.inventory[bookId] ?? 0;
+      const materialCount = current.inventory["student-training-material"] ?? 0;
+      if (bookCount + materialCount < quantity) return json({ code: "INVALID_PROGRESSION_REQUEST", message: "Not enough specialist training books or student training materials for the requested quantity" }, 400);
+      const usedBooks = Math.min(quantity, bookCount);
+      const usedMaterial = quantity - usedBooks;
       const prev = student.abilities[body.ability];
-      const next = { ...current, version: current.version + 1, students: { ...current.students, [body.studentId]: { ...student, abilities: { ...student.abilities, [body.ability]: prev + 40 } } } };
-      if (hasBook) next.inventory = { ...next.inventory, [bookId]: (next.inventory[bookId] ?? 1) - 1 };
-      else next.inventory = { ...next.inventory, "student-training-material": (next.inventory["student-training-material"] ?? 1) - 1 };
-      current = next;
-      return json({ profile: current, training: { studentId: body.studentId, ability: body.ability, itemId: hasBook ? bookId : "student-training-material", previousValue: prev, currentValue: prev + 40, increment: 40 } });
+      const increment = 40 * quantity;
+      current = { ...current, version: current.version + 1, students: { ...current.students, [body.studentId]: { ...student, abilities: { ...student.abilities, [body.ability]: prev + increment } } } };
+      if (usedBooks > 0) current = { ...current, inventory: { ...current.inventory, [bookId]: bookCount - usedBooks } };
+      if (usedMaterial > 0) current = { ...current, inventory: { ...current.inventory, "student-training-material": materialCount - usedMaterial } };
+      return json({ profile: current, training: { studentId: body.studentId, ability: body.ability, previousValue: prev, currentValue: prev + increment, increment, quantity, usedBooks, usedMaterial } });
     }
 
     if (path === "/progression/shop/purchases") {
@@ -138,6 +141,19 @@ test("specialist training via roster dossier consumes book", async ({ page }) =>
   await page.getByRole("button", { name: "确认提升" }).click();
 
   await expect(page.getByText(/学生强化完成，数值 820 → 860/)).toBeVisible();
+});
+
+test("specialist training supports batch quantity via 拉满", async ({ page }) => {
+  await mockApi(page);
+  await login(page);
+  await page.getByRole("link", { name: "学生名单" }).click();
+  await page.getByRole("button", { name: "提升", exact: true }).click();
+  await page.locator('input[name="enhance-ability"][value="dynamicProgramming"]').check();
+  await expect(page.getByText(/当前可用：2 次/)).toBeVisible();
+  await page.getByRole("button", { name: "拉满" }).click();
+  await expect(page.locator("[data-enhance-quantity]")).toHaveValue("2");
+  await page.getByRole("button", { name: "确认提升" }).click();
+  await expect(page.getByText(/学生强化完成，数值 820 → 900，消耗 专项训练册 ×2/)).toBeVisible();
 });
 
 // ── Shop purchase ────────────────────────────────────────────────────────────

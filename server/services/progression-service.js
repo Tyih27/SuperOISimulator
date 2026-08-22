@@ -2,14 +2,13 @@ import { randomUUID } from "node:crypto";
 import { LEVELS, SHOP_OFFERS, STUDENTS } from "../../src/data.js";
 import {
   applyEnergyTonic,
-  applySpecialistTraining,
+  applySpecialistTrainingBatch,
   createRecruitedStudent,
   dismissStudent,
   dismissStudents,
   ENERGY_TONIC_ID,
   STUDENT_DISMISSAL_MATERIAL_REWARD,
   STUDENT_TRAINING_MATERIAL_ID,
-  specialistTrainingBookId,
   rollRecruitmentAptitude,
 } from "../../src/domain/progression.js";
 import { LedgerRepository } from "../repositories/ledger-repository.js";
@@ -140,24 +139,32 @@ export class ProgressionService {
     requireString(accountId, "Account is required");
     const studentId = requireString(request?.studentId, "Student id is required");
     const ability = requireString(request?.ability, "Ability is required");
+    const quantity = request?.quantity ?? 1;
     return this.withProfile(accountId, async ({ client, profile }) => {
       let next;
+      let usedBooks;
+      let usedMaterial;
       try {
-        next = applySpecialistTraining(profile, { studentId, ability });
+        ({ next, usedBooks, usedMaterial } = applySpecialistTrainingBatch(profile, { studentId, ability, quantity }));
       } catch (error) {
         throw invalid(error.message);
       }
       const previousValue = profile.students[studentId].abilities[ability];
       const currentValue = next.students[studentId].abilities[ability];
-      const bookId = specialistTrainingBookId(ability);
-      const itemId = (next.inventory[bookId] ?? 0) < (profile.inventory[bookId] ?? 0)
-        ? bookId
-        : STUDENT_TRAINING_MATERIAL_ID;
       Object.assign(profile, next);
       return {
-        training: { studentId, ability, itemId, previousValue, currentValue, increment: currentValue - previousValue },
+        training: {
+          studentId,
+          ability,
+          previousValue,
+          currentValue,
+          increment: currentValue - previousValue,
+          quantity: usedBooks + usedMaterial,
+          usedBooks,
+          usedMaterial,
+        },
         auditAction: "specialist_training",
-        auditPayload: { studentId, ability },
+        auditPayload: { studentId, ability, quantity: usedBooks + usedMaterial },
       };
     });
   }

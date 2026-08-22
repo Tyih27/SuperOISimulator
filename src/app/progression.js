@@ -110,7 +110,7 @@ function enhanceForm(student, inventory) {
   return `<form class="enhance-form" data-enhance-form data-student-id="${esc(student.id)}"><fieldset><legend>选择要提升的能力</legend><div class="enhance-options">${ABILITY_KEYS.map((ability) => {
     const bookCount = inventory[specialistTrainingBookId(ability)] ?? 0;
     return `<label class="enhance-option"><input type="radio" name="enhance-ability" value="${esc(ability)}" required><span><strong>${abilityLabels[ability]}</strong><small>${abilityLabels[ability]}专项训练册 ×${esc(bookCount)}</small></span></label>`;
-  }).join("")}</div></fieldset><p class="view-subtitle">优先消耗对应专项训练册；没有训练册时自动消耗 1 份学生培养材料（当前持有 ${esc(materialCount)} 份材料）。强化不消耗训练币。</p><button type="submit" class="primary-button">确认提升</button></form>`;
+  }).join("")}</div></fieldset><div class="enhance-quantity-row"><label class="enhance-quantity-label">使用数量<input type="number" name="enhance-quantity" min="1" step="1" value="1" inputmode="numeric" data-enhance-quantity></label><button type="button" class="secondary-button" data-action="enhance-fill-max">拉满</button><span class="view-subtitle" data-enhance-available>选择能力后显示可用次数。</span></div><p class="view-subtitle">批量食用：优先消耗对应专项训练册，不足部分自动改用学生培养材料（当前持有 ${esc(materialCount)} 份材料）。强化不消耗训练币。</p><button type="submit" class="primary-button">确认提升</button></form>`;
 }
 
 function renderStudentName(student, editingName) {

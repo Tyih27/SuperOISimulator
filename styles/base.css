@@ -168,6 +168,7 @@ textarea:focus-visible { outline: 3px solid rgba(161, 98, 7, 0.34); outline-offs
 .enhance-panel { display: grid; gap: 0.6rem; }
 .enhance-panel .panel-header { margin-bottom: 0; }
 .enhance-form { display: grid; gap: 0.8rem; padding-top: 0.6rem; }
+.enhance-quantity-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }.enhance-quantity-label { display: inline-flex; align-items: center; gap: 0.45rem; color: var(--muted); font-size: 0.72rem; font-weight: 720; }.enhance-quantity-label input { width: 5.5rem; min-height: 2.2rem; padding: 0.3rem 0.5rem; }.enhance-quantity-row .secondary-button { min-height: 2.2rem; padding: 0.3rem 0.8rem; font-size: 0.72rem; }.enhance-quantity-row [data-enhance-available] { margin: 0; }
 .enhance-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .enhance-form legend { margin-bottom: 0.55rem; color: var(--muted); font-size: 0.7rem; font-weight: 720; }
 .enhance-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; }

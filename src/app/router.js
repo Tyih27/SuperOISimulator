@@ -1,5 +1,6 @@
 import { ApiError } from "../api/client.js";
 import { APTITUDE_ORDER } from "../data.js";
+import { SPECIALIST_TRAINING_INCREMENTS } from "../domain/progression.js";
 import { createAuthSession, renderAccountScreen, renderAuthScreen } from "./auth.js";
 import { getLevel, renderCampaign } from "./campaign.js";
 import { renderLineupDialog, renderProgression, renderRoster, renderStudentDetail } from "./progression.js";
@@ -204,6 +205,7 @@ export class AppRouter {
     this.messageIsError = false;
     this.root.addEventListener("submit", (event) => this.onSubmit(event));
     this.root.addEventListener("click", (event) => this.onClick(event));
+    this.root.addEventListener("change", (event) => this.onChange(event));
     this.root.addEventListener("keydown", (event) => this.onKeyDown(event));
     this.root.addEventListener("dragstart", (event) => this.onDragStart(event));
     this.root.addEventListener("dragover", (event) => this.onDragOver(event));
@@ -341,9 +343,9 @@ export class AppRouter {
     const enhanceForm = event.target.closest("[data-enhance-form]");
     if (enhanceForm) {
       event.preventDefault();
-      const ability = new FormData(enhanceForm).get("enhance-ability");
+      const formData = new FormData(enhanceForm);
       try {
-        await this.train(enhanceForm.dataset.studentId, ability);
+        await this.train(enhanceForm.dataset.studentId, formData.get("enhance-ability"), formData.get("enhance-quantity"));
       } catch (error) {
         this.message = messageFor(error);
       }
@@ -448,6 +450,8 @@ export class AppRouter {
       } else if (action === "cancel-student-rename") {
         this.message = "已取消名称修改。";
         this.detailNameEditing = false;
+      } else if (action === "enhance-fill-max") {
+        this.fillEnhanceQuantityMax(button);
       } else if (action === "open-lineup-editor") {
         this.lineupOpen = true;
         this.message = "拖拽卡片即可互换站位，修改即时保存。";
@@ -816,17 +820,61 @@ export class AppRouter {
     this.message = "学生名称已保存。";
   }
 
-  async train(studentId, ability) {
+  onChange(event) {
+    const enhanceForm = event.target.closest?.("[data-enhance-form]");
+    if (enhanceForm && event.target.name === "enhance-ability") {
+      this.updateEnhanceAvailability(enhanceForm);
+    }
+  }
+
+  enhanceAvailableUnits(studentId, ability) {
+    const inventory = this.profile?.inventory ?? {};
+    return (inventory[`specialist-book-${ability}`] ?? 0) + (inventory["student-training-material"] ?? 0);
+  }
+
+  updateEnhanceAvailability(form) {
+    const ability = form.querySelector("input[name='enhance-ability']:checked")?.value;
+    const hint = form.querySelector("[data-enhance-available]");
+    if (!ability || !hint) return;
+    const student = this.profile?.students?.[form.dataset.studentId];
+    const total = this.enhanceAvailableUnits(form.dataset.studentId, ability);
+    const increment = student ? SPECIALIST_TRAINING_INCREMENTS[student.aptitude] : null;
+    hint.textContent = increment
+      ? `当前可用：${total} 次（每次 +${increment}，拉满共 +${total * increment}）`
+      : `当前可用：${total} 次`;
+  }
+
+  fillEnhanceQuantityMax(button) {
+    const form = button.closest("[data-enhance-form]");
+    if (!form) return;
+    const ability = form.querySelector("input[name='enhance-ability']:checked")?.value;
+    if (!ability) {
+      this.message = "请先选择要提升的能力。";
+      this.render();
+      return;
+    }
+    const total = this.enhanceAvailableUnits(form.dataset.studentId, ability);
+    this.updateEnhanceAvailability(form);
+    const input = form.querySelector("[data-enhance-quantity]");
+    if (input) input.value = String(Math.max(total, 1));
+  }
+
+  async train(studentId, ability, quantityRaw) {
     if (!studentId || !ability) throw new Error("请选择要提升的能力。");
-    const result = await this.client.post("/progression/training/specialist", { studentId, ability });
+    const parsed = Number.parseInt(quantityRaw ?? "1", 10);
+    const quantity = Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+    const result = await this.client.post("/progression/training/specialist", { studentId, ability, quantity });
     this.profile = result.profile;
     this.enhanceOpen = true;
     const training = result.training;
-    this.message = !training
-      ? "学生强化完成。"
-      : training.itemId === "student-training-material"
-        ? `学生强化完成，数值 ${training.previousValue} → ${training.currentValue}，已消耗 1 份学生培养材料。`
-        : `学生强化完成，数值 ${training.previousValue} → ${training.currentValue}，已消耗对应训练册。`;
+    if (!training) {
+      this.message = "学生强化完成。";
+      return;
+    }
+    const parts = [];
+    if (training.usedBooks > 0) parts.push(`专项训练册 ×${training.usedBooks}`);
+    if (training.usedMaterial > 0) parts.push(`学生培养材料 ×${training.usedMaterial}`);
+    this.message = `学生强化完成，数值 ${training.previousValue} → ${training.currentValue}，消耗 ${parts.join(" + ") || "无资源"}。`;
   }
 
   async dailyCheckIn() {

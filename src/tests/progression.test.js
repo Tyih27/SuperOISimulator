@@ -3,6 +3,7 @@ import { ABILITY_KEYS, APTITUDE_ABILITY_RANGES, APTITUDE_ORDER, LEVELS, RECRUITM
 import {
   applyEnergyTonic,
   applySpecialistTraining,
+  applySpecialistTrainingBatch,
   createRecruitedStudent,
   dismissStudent,
   dismissStudents,
@@ -76,6 +77,30 @@ const materialTrained = applySpecialistTraining(
 );
 assert.equal(materialTrained.currencies.trainingCoins, 0, "material-based training must not charge training coins either");
 assert.equal(materialTrained.inventory[STUDENT_TRAINING_MATERIAL_ID], 0);
+
+const trainBatchProfile = structuredClone(profile);
+trainBatchProfile.inventory[specialistTrainingBookId("dynamicProgramming")] = 2;
+trainBatchProfile.inventory[STUDENT_TRAINING_MATERIAL_ID] = 2;
+const trainBatchBefore = trainBatchProfile.students.planner.abilities.dynamicProgramming;
+const { next: trainBatchNext, usedBooks, usedMaterial } = applySpecialistTrainingBatch(
+  trainBatchProfile,
+  { studentId: "planner", ability: "dynamicProgramming", quantity: 4 },
+);
+assert.equal(usedBooks, 2, "books must be consumed before materials");
+assert.equal(usedMaterial, 2);
+assert.equal(trainBatchNext.students.planner.abilities.dynamicProgramming, trainBatchBefore + plannerIncrement * 4);
+assert.equal(trainBatchNext.inventory[specialistTrainingBookId("dynamicProgramming")], 0);
+assert.equal(trainBatchNext.inventory[STUDENT_TRAINING_MATERIAL_ID], 0);
+assert.equal(trainBatchProfile.students.planner.abilities.dynamicProgramming, trainBatchBefore, "batch training must not mutate the supplied profile");
+assert.throws(
+  () => applySpecialistTrainingBatch(trainBatchProfile, { studentId: "planner", ability: "dynamicProgramming", quantity: 5 }),
+  /Not enough/,
+  "the whole batch must fail when stock cannot cover the requested quantity",
+);
+assert.throws(
+  () => applySpecialistTrainingBatch(profile, { studentId: "planner", ability: "graphTheory", quantity: 0 }),
+  /positive integer/,
+);
 
 const tonicProfile = structuredClone(profile);
 tonicProfile.inventory[ENERGY_TONIC_ID] = 1;

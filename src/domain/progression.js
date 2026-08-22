@@ -97,6 +97,28 @@ export function applySpecialistTraining(profile, { studentId, ability } = {}) {
   return next;
 }
 
+export function applySpecialistTrainingBatch(profile, { studentId, ability, quantity } = {}) {
+  requireProfile(profile);
+  if (!ABILITY_KEYS.includes(ability)) throw new Error("Unknown ability for specialist training");
+  const student = profile.students[studentId];
+  if (!student) throw new Error("Student must be owned by the profile");
+  const count = quantity ?? 1;
+  if (!Number.isInteger(count) || count < 1) throw new Error("Training quantity must be a positive integer");
+  const bookId = specialistTrainingBookId(ability);
+  const bookCount = profile.inventory?.[bookId] ?? 0;
+  const materialCount = profile.inventory?.[STUDENT_TRAINING_MATERIAL_ID] ?? 0;
+  if (bookCount + materialCount < count) {
+    throw new Error("Not enough specialist training books or student training materials for the requested quantity");
+  }
+  const usedBooks = Math.min(count, bookCount);
+  const usedMaterial = count - usedBooks;
+  let next = profile;
+  for (let index = 0; index < count; index += 1) {
+    next = applySpecialistTraining(next, { studentId, ability });
+  }
+  return { next, usedBooks, usedMaterial };
+}
+
 export function applyEnergyTonic(profile, { studentId } = {}) {
   requireProfile(profile);
   if (typeof studentId !== "string" || !profile.students[studentId]) {
