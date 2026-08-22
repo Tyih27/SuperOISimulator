@@ -24,6 +24,7 @@ function messageFor(error) {
       INVALID_PROGRESSION_REQUEST: "训练请求无效，请检查资源和选择。",
       INVALID_ARENA_REQUEST: "竞技场请求无效，请先保存防守编队。",
       ARENA_DAILY_LIMIT_REACHED: "今日竞技场对战次数已达上限（40 场），请明天再战。",
+      ADMIN_REQUIRED: "只有管理员可以查看反馈列表。",
     };
     return labels[error.code] ?? error.message;
   }
@@ -182,6 +183,8 @@ export class AppRouter {
     this.auth = createAuthSession(client);
     this.account = null;
     this.profile = null;
+    this.feedback = null;
+    this.feedbackLoading = false;
     this.route = "campaign";
     this.selectedLevelId = null;
     this.lineupOpen = false;
@@ -256,6 +259,7 @@ export class AppRouter {
       this.detailNameEditing = false;
     }
     if (this.route === "arena" && this.arena.dailyLimit === null) this.refreshArenaQuota();
+    if (this.route === "account" && this.account.role === "admin" && this.feedback === null) this.refreshFeedback();
     this.render();
   }
 
@@ -282,6 +286,22 @@ export class AppRouter {
     this.render();
   }
 
+  async refreshFeedback() {
+    this.feedbackLoading = true;
+    this.render();
+    try {
+      const result = await this.client.get("/account/feedback");
+      this.feedback = result.feedback ?? [];
+    } catch (error) {
+      this.feedback = [];
+      this.message = messageFor(error);
+      this.messageIsError = true;
+    } finally {
+      this.feedbackLoading = false;
+      this.render();
+    }
+  }
+
   renderLoading() {
     this.root.innerHTML = `<main class="auth-page"><p class="app-message" role="status">正在连接训练服务...</p></main>`;
   }
@@ -294,7 +314,7 @@ export class AppRouter {
     let content;
     if (this.route === "roster") content = renderRoster({ profile: this.profile, selectedId: this.rosterSelectedId, enhanceOpen: this.enhanceOpen, replaceOpen: this.replaceOpen, dismissOpen: this.dismissOpen, dismissSelected: this.dismissSelected, dismissConfirmPending: this.dismissConfirmPending, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "progression") content = renderProgression({ profile: this.profile, message: this.message, messageIsError: this.messageIsError });
-    else if (this.route === "account") content = renderAccountScreen({ account: this.account, message: this.message, messageIsError: this.messageIsError });
+    else if (this.route === "account") content = renderAccountScreen({ account: this.account, feedback: this.feedback ?? [], feedbackLoading: this.feedbackLoading, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "battle" && this.battle) content = renderBattle({ battle: this.battle, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "arena") {
       let liveHtml = "";
@@ -342,6 +362,7 @@ export class AppRouter {
     try {
       const result = submitter?.value === "register" ? await this.auth.register(credentials) : await this.auth.login(credentials);
       this.account = result.account;
+      this.feedback = null;
       this.message = "登录成功。";
       await this.loadProfile();
       this.navigate("campaign");
@@ -407,6 +428,7 @@ export class AppRouter {
         await this.auth.logout();
         this.account = null;
         this.profile = null;
+        this.feedback = null;
         this.activePlaybacks().forEach((playback) => playback.pause());
         this.battle = null;
         this.lineupOpen = false;
@@ -553,6 +575,9 @@ export class AppRouter {
         const exported = await this.client.get("/account/export");
         downloadJson(exported, `super-oi-${this.account.id}.json`);
         this.message = "训练数据已下载。";
+      } else if (action === "refresh-feedback") {
+        await this.refreshFeedback();
+        return;
       } else if (action === "train") {
         await this.train();
       } else if (action === "recruit") {
@@ -869,13 +894,24 @@ export class AppRouter {
         });
         this.account = null;
         this.profile = null;
+        this.feedback = null;
         this.battle = null;
         this.message = "密码已更新，请使用新密码重新登录。";
+      } else if (form.dataset.accountForm === "feedback") {
+        const result = await this.client.post("/account/feedback", {
+          category: values.category,
+          message: values.message,
+        });
+        if (this.account.role === "admin" && Array.isArray(this.feedback)) {
+          this.feedback = [result.feedback, ...this.feedback];
+        }
+        this.message = "反馈已提交，感谢你的建议。";
       } else if (form.dataset.accountForm === "account-deletion") {
         if (values.confirmed !== "on") throw new Error("请确认删除账户。");
         await this.client.delete("/account", { password: values.password });
         this.account = null;
         this.profile = null;
+        this.feedback = null;
         this.battle = null;
         this.message = "账号已删除，所有相关数据已一并清除。";
       }

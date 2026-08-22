@@ -44,8 +44,38 @@ function publicAccount(account) {
   return {
     id: account.id,
     username: account.username,
+    role: account.role ?? "user",
     createdAt: account.created_at.toISOString(),
   };
+}
+
+export async function ensureAdminAccount(pool, { username = "admin", password = "superoi-admin" } = {}) {
+  const credentials = normalizeCredentials({ username, password });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const repository = new AccountRepository(pool);
+    const existing = await repository.findByUsernameForUpdate(client, credentials.username);
+    const passwordHash = await argon2.hash(credentials.password, { type: argon2.argon2id });
+    if (existing) {
+      await repository.promoteToAdmin(client, existing.id);
+      if (existing.role !== "admin") await repository.updatePassword(client, existing.id, passwordHash);
+      await client.query(
+        "UPDATE account_deletion_requests SET status = 'cancelled' WHERE account_id = $1 AND status = 'queued'",
+        [existing.id],
+      );
+    } else {
+      await repository.createAccount(client, {
+        id: randomUUID(), username: credentials.username, passwordHash, role: "admin",
+      });
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export function hashSessionToken(token) {

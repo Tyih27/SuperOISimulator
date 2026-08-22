@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createArenaLevel } from "../combat/arena-content.js";
-import { calculateOverallPower } from "../combat/math.js";
+import { calculateTeamPower } from "../combat/math.js";
 import { createProfile } from "../domain/profile.js";
 import { createBattleSnapshot } from "../domain/snapshot.js";
 
@@ -12,7 +12,7 @@ const snapshot = createBattleSnapshot(profile, {
   seed: "content-fixture",
   timestamp: "2026-08-22T00:00:00.000Z",
 });
-const teamPower = snapshot.team.reduce((sum, student) => sum + Math.round(calculateOverallPower(student)), 0);
+const teamPower = calculateTeamPower(snapshot.team);
 
 const first = createArenaLevel({ seed: "same", targetPower: teamPower });
 const second = createArenaLevel({ seed: "same", targetPower: teamPower });

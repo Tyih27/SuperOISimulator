@@ -11,6 +11,7 @@ import { battleRoutes } from "./routes/battles.js";
 import { accountDataRoutes } from "./routes/account-data.js";
 import { arenaRoutes } from "./routes/arena.js";
 import { metricsRoutes } from "./routes/metrics.js";
+import { feedbackRoutes } from "./routes/feedback.js";
 
 function requirePool(pool) {
   if (!pool || typeof pool.query !== "function") {
@@ -106,6 +107,7 @@ export function buildApp({ pool, config = {} } = {}) {
     api.addHook("onRequest", createAntiScriptHook({ thresholdMs: config.antiScriptThresholdMs ?? 30 }));
     await api.register(authRoutes, { prefix: "/api/v1/auth" });
     await api.register(accountDataRoutes, { prefix: "/api/v1/account" });
+    await api.register(feedbackRoutes, { prefix: "/api/v1/account/feedback" });
     await api.register(profileRoutes, { prefix: "/api/v1/profile" });
     await api.register(progressionRoutes, { prefix: "/api/v1/progression" });
     await api.register(battleRoutes, { prefix: "/api/v1" });

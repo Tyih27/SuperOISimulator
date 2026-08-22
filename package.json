@@ -21,7 +21,7 @@
     "test:battle": "node server/tests/battle-service.test.js",
     "test:arena": "node server/tests/arena.test.js",
     "test:arena-content": "node src/tests/arena-content.test.js",
-    "test:api": "node server/tests/health.test.js && node server/tests/auth.test.js && node server/tests/profile.test.js && node server/tests/progression.test.js && node server/tests/battle-service.test.js && node server/tests/account-data.test.js && node server/tests/arena-api.test.js",
+    "test:api": "node server/tests/health.test.js && node server/tests/auth.test.js && node server/tests/profile.test.js && node server/tests/progression.test.js && node server/tests/battle-service.test.js && node server/tests/account-data.test.js && node server/tests/feedback.test.js && node server/tests/arena-api.test.js",
     "test:anti-script-unit": "node server/tests/anti-script-unit.test.js",
     "test": "npm run test:combat && npm run test:formation && npm run test:playback && npm run test:domain && npm run test:identity && npm run test:progression && npm run test:balance && npm run test:task6 && npm run test:client && npm run test:migration && npm run test:origins && npm run test:anti-script-unit && npm run test:arena-content",
     "simulate:balance": "node scripts/simulate-formations.js --all --seeds 1,2,3,4,5 --out-dir reports",

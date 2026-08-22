@@ -1,5 +1,5 @@
 import { LEVELS } from "../data.js";
-import { calculateOverallPower } from "../combat/math.js";
+import { calculateTeamPower } from "../combat/math.js";
 
 const FORMATION_SLOTS = ["A1", "A2", "A3"];
 const levelById = new Map(LEVELS.map((level) => [level.id, level]));
@@ -25,10 +25,11 @@ function chapterNumber(level) {
 
 export function teamTotalPower(profile) {
   const studentsById = new Map(Object.values(profile.students ?? {}).map((student) => [student.id, student]));
-  return FORMATION_SLOTS.reduce((sum, slot) => {
+  const team = FORMATION_SLOTS.map((slot) => {
     const student = studentsById.get(profile.formation?.[slot]);
-    return sum + (student ? Math.round(calculateOverallPower(student)) : 0);
-  }, 0);
+    return student;
+  }).filter(Boolean);
+  return calculateTeamPower(team);
 }
 
 function recommendationText(level, myPower) {

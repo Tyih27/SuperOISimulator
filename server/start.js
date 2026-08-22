@@ -2,6 +2,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPool, runMigrations } from "./db.js";
 import { buildApp } from "./app.js";
+import { ensureAdminAccount } from "./services/auth-service.js";
 import { openBrowser, shouldOpenBrowser } from "./browser.js";
 import { parseAllowedOrigins } from "./origins.js";
 
@@ -41,6 +42,8 @@ const browserOrigin = parseAllowedOrigins(process.env.BROWSER_ORIGIN, {
   variableName: "BROWSER_ORIGIN",
   fallback: allowedOrigins[0],
 })[0];
+const adminUsername = process.env.ADMIN_USERNAME?.trim() || "admin";
+const adminPassword = process.env.ADMIN_PASSWORD?.trim() || "superoi-admin";
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid TCP port");
 if (sessionSecret.length < 32) throw new Error("SESSION_SECRET must contain at least 32 characters");
@@ -59,6 +62,7 @@ const app = buildApp({
 
 try {
   await runMigrations(pool);
+  await ensureAdminAccount(pool, { username: adminUsername, password: adminPassword });
   await app.listen({ port, host });
   const browserUrl = `${browserOrigin.replace(/\/$/, "")}/`;
   console.log(`Super OI Simulator running at ${allowedOrigins.join(", ")}`);

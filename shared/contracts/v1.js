@@ -39,6 +39,16 @@ export const ACCOUNT_DELETE_DTO_SCHEMA = deepFreeze({
   properties: { password: { type: "string", minLength: 8, maxLength: 1024 } },
   additionalProperties: false,
 });
+export const FEEDBACK_CREATE_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/feedback-create-v1",
+  type: "object",
+  required: ["message"],
+  properties: {
+    category: { enum: ["bug", "suggestion", "other"] },
+    message: { type: "string", minLength: 1, maxLength: 4000 },
+  },
+  additionalProperties: false,
+});
 const versionString = { type: "string", const: "1" };
 const abilityMap = {
   type: "object",

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { LEVELS } from "../../src/data.js";
 import { createBattleSnapshot } from "../../src/domain/snapshot.js";
 import { runArena } from "../../src/combat/arena-engine.js";
-import { calculateOverallPower } from "../../src/combat/math.js";
+import { calculateTeamPower } from "../../src/combat/math.js";
 import { createArenaLevel, withArenaLevel } from "../../src/combat/arena-content.js";
 import { LedgerRepository } from "../repositories/ledger-repository.js";
 import { ArenaRepository } from "../repositories/arena-repository.js";
@@ -30,14 +30,14 @@ function ratingDelta(winner) { return winner === "attacker" ? 25 : winner === "d
 
 function defensePower(row) {
   const team = Array.isArray(row.snapshot?.team) ? row.snapshot.team : [];
-  return team.reduce((sum, student) => sum + Math.round(calculateOverallPower(student)), 0);
+  return calculateTeamPower(team);
 }
 
 function snapshotPower(snapshot) {
-  return (snapshot?.team ?? []).reduce((sum, student) => sum + Math.round(calculateOverallPower(student)), 0);
+  return calculateTeamPower(snapshot?.team ?? []);
 }
 
-function publicDefense(row) {
+export function publicDefense(row) {
   const hasSnapshot = row.snapshot !== undefined && row.snapshot !== null;
   return {
     accountId: row.account_id,

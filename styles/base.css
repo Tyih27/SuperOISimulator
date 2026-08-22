@@ -81,7 +81,9 @@ svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width:
 .auth-form { display: grid; gap: 0.85rem; }
 .auth-form label, .panel > label, .roster-card label { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.72rem; }
 input, select { min-width: 0; min-height: 2.35rem; padding: 0.45rem 0.55rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 4px; font: inherit; }
+textarea { min-width: 0; padding: 0.55rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 4px; font: inherit; line-height: 1.45; resize: vertical; }
 input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 0.34); outline-offset: 2px; }
+textarea:focus-visible { outline: 3px solid rgba(161, 98, 7, 0.34); outline-offset: 2px; }
 .auth-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.25rem; }
 .app-message { min-height: 1.2rem; margin: 0; color: var(--gold-deep); font-size: 0.74rem; }
 .app-message--error { color: var(--red); background: var(--red-wash); padding: 0.3rem 0.6rem; border-radius: 4px; border: 1px solid #e5aaa2; }
@@ -89,6 +91,7 @@ input:focus-visible, select:focus-visible { outline: 3px solid rgba(161, 98, 7, 
 .account-control-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.85fr); gap: 1.25rem; padding: 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .account-control-section h2 { font-size: 0.95rem; }.account-control-section p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.74rem; }.account-control-section > .secondary-button { align-self: end; justify-self: start; }
 .account-form { display: grid; gap: 0.7rem; }.account-form label { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.72rem; }.account-form .confirmation-label { display: flex; align-items: center; gap: 0.5rem; color: var(--ink); }.confirmation-label input { min-height: auto; }
+.feedback-admin-section { display: block; }.feedback-admin-section .section-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: 0.8rem; }.feedback-admin-section .section-heading h2, .feedback-admin-section .section-heading p { margin-top: 0; }.feedback-table-wrap { overflow-x: auto; }.feedback-table { width: 100%; border-collapse: collapse; font-size: 0.73rem; }.feedback-table th, .feedback-table td { padding: 0.65rem 0.55rem; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }.feedback-table th { color: var(--muted); font-size: 0.67rem; font-weight: 720; white-space: nowrap; }.feedback-table td:last-child { min-width: 18rem; white-space: pre-wrap; }
 .danger-section { border-color: #efc8c3; }.danger-section h2 { color: var(--red); }.danger-button { justify-self: start; min-height: 2.4rem; padding: 0.55rem 0.85rem; color: var(--red); background: var(--red-wash); border: 1px solid #e5aaa2; border-radius: 5px; font: inherit; font-size: 0.76rem; font-weight: 720; }
 .view-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .view-heading h1 { font-size: 1.35rem; }

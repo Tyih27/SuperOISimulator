@@ -27,6 +27,12 @@ export function calculateOverallPower(student) {
   return average(ABILITY_KEYS.map((key) => student.abilities?.[key] ?? 0));
 }
 
+/** Calculate the integer team power used by both the UI and arena snapshots. */
+export function calculateTeamPower(students = []) {
+  if (!Array.isArray(students)) throw new TypeError("Team students must be an array");
+  return students.reduce((sum, student) => sum + roundHalfUp(calculateOverallPower(student)), 0);
+}
+
 export function calculateAbilityGap(student, topic) {
   return average(relevantAbilityKeys(topic).map((key) => (student.abilities?.[key] ?? 0) - topic.difficulties[key]));
 }

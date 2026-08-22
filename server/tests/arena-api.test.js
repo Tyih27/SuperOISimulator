@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { buildTestApp } from "./helpers.js";
+import { calculateTeamPower } from "../../src/combat/math.js";
 
 const ORIGIN = "http://localhost:3000";
 const PASSWORD = "correct horse battery";
@@ -16,13 +17,19 @@ try {
   const bobProfile = (await app.inject({ method: "GET", url: "/api/v1/profile", cookies: bobCookie })).json();
   const defense = { version: aliceProfile.version, teamIds: ["planner", "graphist", "structurer"], formation: aliceProfile.formation };
   const bobDefense = { version: bobProfile.version, teamIds: ["structurer", "graphist", "planner"], formation: { A1: "structurer", A2: "graphist", A3: "planner" } };
-  assert.equal((await request(app, { method: "PUT", url: "/api/v1/arena/defense", cookies: aliceCookie, payload: defense })).statusCode, 200);
+  const savedDefense = await request(app, { method: "PUT", url: "/api/v1/arena/defense", cookies: aliceCookie, payload: defense });
+  assert.equal(savedDefense.statusCode, 200);
+  const expectedDefensePower = calculateTeamPower(savedDefense.json().snapshot.team);
+  assert.equal(savedDefense.json().defense.power, expectedDefensePower);
   assert.equal((await request(app, { method: "PUT", url: "/api/v1/arena/defense", cookies: bobCookie, payload: bobDefense })).statusCode, 200);
   const opponents = await app.inject({ method: "GET", url: "/api/v1/arena/opponents", cookies: aliceCookie });
   assert.equal(opponents.statusCode, 200);
   assert.equal(opponents.json().length, 1);
   assert.equal(typeof opponents.json()[0].power, "number", "opponent list must include defense power");
   assert.ok(opponents.json()[0].power > 0);
+  const defenseInfoBeforeMatch = await app.inject({ method: "GET", url: "/api/v1/arena/defense", cookies: aliceCookie });
+  assert.equal(defenseInfoBeforeMatch.statusCode, 200);
+  assert.equal(defenseInfoBeforeMatch.json().defense.power, expectedDefensePower);
   const match = await request(app, { method: "POST", url: "/api/v1/arena/matches", cookies: aliceCookie, payload: { opponentId: bob.json().account.id } });
   assert.equal(match.statusCode, 201);
   const matchPayload = match.json();

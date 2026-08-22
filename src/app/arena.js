@@ -1,4 +1,5 @@
 import { SKILL_GROUPS } from "../data.js";
+import { calculateTeamPower } from "../combat/math.js";
 import { EVENT_LABELS } from "./event-labels.js";
 
 function esc(value) {
@@ -12,12 +13,15 @@ function skillGroupName(student) {
 export function renderArena({ profile, defense, opponents = [], history = [], match, replay, liveHtml = "", battlesToday = null, dailyLimit = null, message = "", messageIsError = false } = {}) {
   const formation = profile?.formation ?? {};
   const students = Object.values(profile?.students ?? {});
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+  const currentTeam = ["A1", "A2", "A3"].map((slot) => studentsById.get(formation[slot])).filter(Boolean);
+  const currentPower = calculateTeamPower(currentTeam);
   const quotaExhausted = dailyLimit !== null && (battlesToday ?? 0) >= dailyLimit;
   const quotaText = dailyLimit === null ? "" : `<span class="panel-meta">今日剩余挑战次数 ${Math.max(dailyLimit - (battlesToday ?? 0), 0)} / ${esc(dailyLimit)}</span>`;
   return `<section class="app-view arena-view" aria-labelledby="arena-title">
     <div class="view-heading"><div><p class="eyebrow">异步竞技场</p><h1 id="arena-title">镜像挑战</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div>
     <div class="arena-grid">
-      <section class="panel"><div class="panel-header"><h2>防守编队</h2><span class="panel-meta">积分 ${esc(defense?.rating ?? 1000)}</span></div>
+      <section class="panel"><div class="panel-header"><h2>防守编队</h2><span class="panel-meta">战力 ${esc(defense?.power ?? currentPower)} · 积分 ${esc(defense?.rating ?? 1000)}</span></div>
         <p class="arena-copy">服务器保存三名学生的能力、技能组和站位快照，进攻时不会读取对手当前档案。</p>
         <ol class="arena-formation">${["A1", "A2", "A3"].map((slot) => { const student = students.find((item) => item.id === formation[slot]); return `<li><span>${slot}</span><div><strong>${esc(student?.name ?? formation[slot] ?? "未设置")}</strong>${student ? `<small>技能组：${esc(skillGroupName(student))}</small>` : ""}</div></li>`; }).join("")}</ol>
         <button class="primary-button" type="button" data-action="save-arena-defense">保存当前编队</button>

@@ -1,6 +1,6 @@
 import { EMPTY_DTO_SCHEMA, ARENA_DEFENSE_DTO_SCHEMA, ARENA_MATCH_DTO_SCHEMA } from "../../shared/contracts/v1.js";
 import { AuthService } from "../services/auth-service.js";
-import { ArenaError, ArenaService } from "../services/arena-service.js";
+import { ArenaError, ArenaService, publicDefense } from "../services/arena-service.js";
 
 function token(request) { const signed = request.cookies.sid; if (!signed) return null; const result = request.unsignCookie(signed); return result.valid ? result.value : null; }
 async function origin(request, reply) { const configured = request.server.config.allowedOrigins; const allowed = Array.isArray(configured) && configured.length ? configured : [`${request.protocol}://${request.host}`]; if (!request.headers.origin || !allowed.includes(request.headers.origin)) return reply.code(403).send({ code: "ORIGIN_FORBIDDEN", message: "Request origin is not allowed" }); }
@@ -10,7 +10,7 @@ function action(schema, handler) { return { preHandler: [origin, account], schem
 export async function arenaRoutes(app) {
   const service = new ArenaService(app.db, { now: app.config.now, idFactory: app.config.idFactory, starterStudentIds: app.config.defaultStarterIds ?? null });
   app.decorate("arenaAuthService", new AuthService(app.db, { sessionTtlMs: app.config.sessionTtlMs }));
-  app.get("/defense", { preHandler: account }, async (request) => { const client = await app.db.connect(); try { const row = await service.arena.getDefense(client, request.account.id); const quota = await service.dailyQuota(client, request.account.id); return row ? { defense: { accountId: row.account_id, rating: row.rating, battlesWon: row.battles_won, battlesLost: row.battles_lost }, snapshot: row.snapshot, ...quota } : { defense: null, ...quota }; } finally { client.release(); } });
+  app.get("/defense", { preHandler: account }, async (request) => { const client = await app.db.connect(); try { const row = await service.arena.getDefense(client, request.account.id); const quota = await service.dailyQuota(client, request.account.id); return row ? { defense: publicDefense(row), snapshot: row.snapshot, ...quota } : { defense: null, ...quota }; } finally { client.release(); } });
   app.put("/defense", action(ARENA_DEFENSE_DTO_SCHEMA, (request) => service.setDefense(request.account.id, request.body)));
   app.get("/opponents", { preHandler: account }, (request) => service.opponents(request.account.id));
   app.get("/matches", { preHandler: account }, (request) => service.history(request.account.id, request.query?.limit));
