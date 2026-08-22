@@ -266,10 +266,14 @@ export class AppRouter {
 
   applyHash() {
     if (!this.account) return;
-    const candidate = globalThis.location?.hash?.slice(1) || "campaign";
+    const candidate = globalThis.location?.hash?.slice(1) || "";
     if (candidate === "arena") this.modes.tab = "arena";
-    if (candidate === "modes" || candidate === "arena") this.route = "modes";
-    else this.route = ROUTES.has(candidate) ? candidate : "campaign";
+    let nextRoute;
+    if (candidate === "modes" || candidate === "arena") nextRoute = "modes";
+    else if (ROUTES.has(candidate)) nextRoute = candidate;
+    else if (!candidate) nextRoute = "campaign";
+    else return;
+    this.route = nextRoute;
     if (this.route === "battle" && !this.battle) this.route = "campaign";
     if (this.route !== "roster") {
       this.lineupOpen = false;
