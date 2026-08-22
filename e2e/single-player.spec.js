@@ -201,7 +201,7 @@ test("battle playback controls work correctly", async ({ page }) => {
   await page.getByRole("button", { name: "开始挑战" }).click();
   await expect(page.getByRole("dialog")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "开始回放并结算" })).toHaveCount(0);
-  await expect(page.getByRole("dialog")).toContainText("服务端回放");
+  await expect(page.getByRole("dialog")).toContainText("获得 100 训练币。");
   await page.locator("[data-battle-result-overlay]").click({ position: { x: 8, y: 8 } });
   await expect(page.getByRole("dialog")).toHaveCount(0);
   const restartBtn = page.getByRole("button", { name: "重播" });
@@ -214,7 +214,7 @@ test("battle playback controls work correctly", async ({ page }) => {
     await speed2x.click();
     await expect(speed2x).toHaveClass(/is-active/);
   }
-  await expect(page.getByText("服务端回放")).toBeVisible();
+  await expect(page.locator(".settled-result")).toBeVisible();
 });
 
 test("campaign level selection updates detail", async ({ page }) => {
