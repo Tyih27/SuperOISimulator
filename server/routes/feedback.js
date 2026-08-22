@@ -50,7 +50,7 @@ export async function feedbackRoutes(app) {
       category: request.body.category ?? "other",
       message,
     });
-    return reply.code(201).send({ feedback });
+    return reply.code(201).send({ feedback: { ...feedback, username: request.account.username } });
   });
 
   app.get("/", { preHandler: [requireAccount, requireAdmin] }, async (request) => {

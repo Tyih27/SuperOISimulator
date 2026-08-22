@@ -28,6 +28,7 @@ try {
   });
   assert.equal(submitted.statusCode, 201);
   assert.equal(submitted.json().feedback.message, "增加更多训练题。");
+  assert.equal(submitted.json().feedback.username, "feedback01");
 
   const denied = await app.inject({ method: "GET", url: "/api/v1/account/feedback", cookies: userCookie });
   assert.equal(denied.statusCode, 403);
