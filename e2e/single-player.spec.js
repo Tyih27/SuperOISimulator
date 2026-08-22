@@ -141,9 +141,11 @@ test("single-player campaign is server-driven", async ({ page }, testInfo) => {
   await page.getByRole("link", { name: "主线关卡" }).click();
   await expect(page.getByText("第 1 章")).toBeVisible();
   await page.getByRole("button", { name: "开始挑战" }).click();
-  await expect(page.getByRole("heading", { name: "快照已锁定" })).toBeVisible();
-  await page.getByRole("button", { name: "开始回放并结算" }).click();
-  await expect(page.getByText("挑战胜利")).toBeVisible();
+  await expect(page.getByRole("button", { name: "开始回放并结算" })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText("挑战胜利");
+  await page.getByRole("button", { name: "知道了" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("link", { name: "训练与补给" }).click();
   await expect(page.getByText("天才保底")).toBeVisible();
   await page.locator('[data-buy-offer="recruitment-right"]').click();
@@ -196,30 +198,21 @@ test("battle playback controls work correctly", async ({ page }) => {
   await page.getByRole("button", { name: "注册并登录" }).click();
   await page.getByRole("link", { name: "主线关卡" }).click();
   await page.getByRole("button", { name: "开始挑战" }).click();
-  await expect(page.getByRole("heading", { name: "快照已锁定" })).toBeVisible();
-  await page.getByRole("button", { name: "开始回放并结算" }).click();
-  await expect(page.getByText("服务端回放")).toBeVisible();
-  const pauseBtn = page.getByRole("button", { name: "暂停" });
-  const playBtn = page.getByRole("button", { name: "播放" });
-  if (await pauseBtn.isVisible().catch(() => false)) {
-    await pauseBtn.click();
-    await expect(playBtn).toBeVisible();
-    await playBtn.click();
-  }
-  const stepBtn = page.getByRole("button", { name: "单步" });
-  if (await stepBtn.isVisible().catch(() => false)) {
-    await stepBtn.click();
-  }
+  await expect(page.getByRole("dialog")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "开始回放并结算" })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toContainText("服务端回放");
+  await page.getByRole("button", { name: "知道了" }).click();
   const restartBtn = page.getByRole("button", { name: "重播" });
   if (await restartBtn.isVisible().catch(() => false)) {
     await restartBtn.click();
-  }
-  const speed2x = page.getByRole("button", { name: "2x" });
-  if (await speed2x.isVisible().catch(() => false)) {
+    const stepBtn = page.getByRole("button", { name: "单步" });
+    await expect(stepBtn).toBeVisible();
+    await stepBtn.click();
+    const speed2x = page.getByRole("button", { name: "2x" });
     await speed2x.click();
     await expect(speed2x).toHaveClass(/is-active/);
   }
-  await expect(page.getByText(/挑战胜利|挑战失败/)).toBeVisible();
+  await expect(page.getByText("服务端回放")).toBeVisible();
 });
 
 test("campaign level selection updates detail", async ({ page }) => {

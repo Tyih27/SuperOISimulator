@@ -60,9 +60,12 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
   await expect(page.getByText("今日剩余挑战次数 39 / 40")).toBeVisible();
   await expect(page.locator(".live-battle")).toBeVisible();
   await expect(page.getByText(/已通过 \d+ \/ 目标 3/)).toBeVisible();
-  await page.getByRole("button", { name: "开始结算并查看结果" }).click();
-  await expect(page.getByText("挑战胜利")).toBeVisible();
-  await expect(page.getByText("获得 25 训练币。")).toBeVisible();
+  await expect(page.getByRole("button", { name: "开始结算并查看结果" })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("dialog")).toContainText("挑战胜利");
+  await expect(page.getByRole("dialog")).toContainText("获得 25 训练币。");
+  await page.getByRole("button", { name: "知道了" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("link", { name: "训练与补给" }).click();
   await expect(page.getByText("1025")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
@@ -100,9 +103,10 @@ test("arena loss shows no reward", async ({ page }) => {
   await page.getByRole("button", { name: "保存当前编队" }).click();
   await page.getByRole("button", { name: "刷新列表" }).click();
   await page.getByRole("button", { name: "挑战" }).click();
-  await page.getByRole("button", { name: "开始结算并查看结果" }).click();
-  await expect(page.getByText("挑战失败")).toBeVisible();
-  await expect(page.getByText("获得 25 训练币")).toBeHidden();
+  await expect(page.getByRole("button", { name: "开始结算并查看结果" })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText("挑战失败");
+  await expect(page.getByRole("dialog")).not.toContainText("获得 25 训练币");
 });
 
 test("arena match history loads", async ({ page }) => {

@@ -231,6 +231,15 @@ textarea:focus-visible { outline: 3px solid rgba(161, 98, 7, 0.34); outline-offs
 .campaign-actions .secondary-button { display: inline-flex; align-items: center; text-decoration: none; }
 .student-detail-overlay { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: clamp(1rem, 4vw, 3rem); background: rgba(23, 23, 23, 0.58); }
 .student-detail-dialog { width: min(860px, 100%); max-height: min(90vh, 760px); overflow: auto; padding: clamp(1.15rem, 3vw, 2rem); background: var(--surface); border: 1px solid var(--line-strong); border-top: 4px solid var(--gold); border-radius: 8px; box-shadow: 0 24px 70px rgba(23, 23, 23, 0.25); }
+.battle-result-overlay { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: clamp(0.8rem, 4vw, 3rem); background: rgba(23, 23, 23, 0.66); }
+.battle-result-dialog { width: min(720px, 100%); max-height: min(90vh, 820px); overflow: auto; padding: clamp(1rem, 3vw, 1.8rem); background: var(--surface); border: 1px solid var(--line-strong); border-top: 4px solid var(--gold); border-radius: 8px; box-shadow: 0 24px 70px rgba(23, 23, 23, 0.3); }
+.battle-result-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.battle-result-header h2 { margin: 0; }
+.battle-result-dialog .settled-result { margin-top: 1rem; }
+.battle-result-dialog .event-replay { margin-top: 1rem; }
+.battle-result-actions { display: flex; justify-content: flex-end; margin-top: 1.1rem; padding-top: 0.9rem; border-top: 1px solid var(--line); }
+.settlement-retry { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-top: 1rem; padding: 0.75rem 0.9rem; color: var(--red); background: var(--red-wash); border: 1px solid #e3b9b9; border-radius: 5px; }
+.settlement-retry p { margin: 0; font-size: 0.72rem; }
 .student-detail-header, .student-detail-skill-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .student-detail-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 0.45rem; }
 .student-detail-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.65rem; }
@@ -479,7 +488,7 @@ h2 { margin-bottom: 0; font-size: 1.05rem; letter-spacing: -0.02em; line-height:
 .arena-match { margin-top: 1rem; }
 .arena-match details { margin-top: 1rem; }
 .arena-match summary { color: var(--ink); font-size: 0.76rem; font-weight: 700; cursor: pointer; }
-@media (max-width: 760px) { .student-detail-overlay, .lineup-overlay { padding: 0.7rem; }.student-detail-dialog, .lineup-dialog { max-height: 94vh; }.student-detail-skills { grid-template-columns: 1fr; }.arena-grid, .arena-live-grid { grid-template-columns: 1fr; }.arena-side .live-student-list { grid-template-columns: 1fr; }.lineup-slots-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.enhance-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }.student-page-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .student-detail-overlay, .lineup-overlay, .battle-result-overlay { padding: 0.7rem; }.student-detail-dialog, .lineup-dialog, .battle-result-dialog { max-height: 94vh; }.student-detail-skills { grid-template-columns: 1fr; }.arena-grid, .arena-live-grid { grid-template-columns: 1fr; }.arena-side .live-student-list { grid-template-columns: 1fr; }.lineup-slots-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.enhance-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }.student-page-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }.settlement-retry { align-items: stretch; flex-direction: column; } }
 
 @media (max-width: 1050px) {
   .topbar { align-items: flex-start; }

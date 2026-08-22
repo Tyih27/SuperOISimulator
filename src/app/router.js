@@ -155,25 +155,48 @@ function renderArenaLiveBattle({ battle }) {
   return `<section class="live-battle arena-live-battle" aria-labelledby="arena-live-battle-title"><div class="panel-header"><div><p class="eyebrow">${complete ? "战斗已结束" : "实时竞技场"}</p><h2 id="arena-live-battle-title">双方做题进度</h2></div><span class="panel-meta">${esc(statusState?.phase ?? "ready")} · ${esc(statusState?.stepCount ?? 0)} 步</span></div><div class="live-battle-toolbar"><span class="live-status" role="status" aria-live="polite">${esc(lastEvent ? `${EVENT_LABELS[lastEvent.type] ?? lastEvent.type}${lastEvent.round ? ` · 第 ${lastEvent.round} 回合` : ""}` : "准备中")}</span><div class="battle-controls"><button class="secondary-button" type="button" data-action="${playing ? "pause-live-battle" : "start-live-battle"}"${complete ? " disabled" : ""}>${playing ? "暂停" : "播放"}</button><button class="secondary-button" type="button" data-action="step-live-battle"${complete ? " disabled" : ""}>单步</button><button class="secondary-button" type="button" data-action="restart-live-battle">重播</button><span class="speed-control" aria-label="播放速度">${[0.5, 1, 2, 4].map((speed) => `<button class="speed-button${Number(statusState?.speed) === speed ? " is-active" : ""}" type="button" data-playback-speed="${speed}">${speed}x</button>`).join("")}</span></div></div><div class="arena-live-grid">${renderArenaSide({ label: "进攻方", snapshot: snapshots.attacker, state: attackerState })}${renderArenaSide({ label: "防守方", snapshot: snapshots.defender, state: defenderState })}</div></section>`;
 }
 
+function renderSettlementResult({ battle }) {
+  const settlement = battle.settlement;
+  if (!settlement?.result) return "";
+  if (battle.mode === "arena") {
+    const snapshots = battle.snapshots ?? {};
+    const attacker = snapshots.attacker ?? {};
+    const defender = snapshots.defender ?? {};
+    const result = settlement.result;
+    const winnerText = result.winner === "attacker" ? "挑战胜利" : result.winner === "defender" ? "挑战失败" : result.winner === "draw" ? "平局" : "";
+    const resultClass = result.winner === "attacker" ? "is-win" : result.winner === "draw" ? "is-draw" : "is-lose";
+    const attackerEvents = result.attacker?.events ?? settlement.events?.attacker ?? [];
+    return `<section class="settled-result ${resultClass}"><h2>${winnerText}</h2><p>${result.winner === "attacker" ? `获得 ${settlement.reward?.trainingCoins ?? 0} 训练币。` : "本次未获得竞技场奖励。"}</p><dl><div><dt>进攻方完成题目</dt><dd>${result.attacker?.completedCount ?? 0} / ${objectiveTargetFor(attacker.level)}</dd></div><div><dt>防守方完成题目</dt><dd>${result.defender?.completedCount ?? 0} / ${objectiveTargetFor(defender.level)}</dd></div><div><dt>积分</dt><dd>${settlement.rating?.attackerBefore ?? "-"} → ${settlement.rating?.attackerAfter ?? "-"}</dd></div></dl></section>${attackerEvents.length ? `<section class="event-replay"><h2>服务端回放</h2><ol>${attackerEvents.map((event) => `<li><span>${esc(event.round ?? "准备")}</span>${esc(EVENT_LABELS[event.type] ?? event.type)}</li>`).join("")}</ol></section>` : ""}`;
+  }
+  const result = settlement.result;
+  const reward = settlement.reward ?? {};
+  const studentNames = new Map((battle.snapshot.team ?? []).map((student) => [student.id, student.name]));
+  return `<section class="settled-result ${result.result === "win" ? "is-win" : "is-lose"}"><h2>${result.result === "win" ? "挑战胜利" : "挑战失败"}</h2><p>${result.result === "win" ? `获得 ${reward.trainingCoins ?? 0} 训练币。` : "本次未获得关卡奖励。"}</p><dl><div><dt>完成题目</dt><dd>${result.completedCount} / ${objectiveTargetFor(battle.snapshot.level)}</dd></div><div><dt>结束回合</dt><dd>${result.round}</dd></div><div><dt>剩余精力</dt><dd>${result.remainingEnergy}</dd></div></dl></section><section class="event-replay"><h2>服务端回放</h2><ol>${(result.events ?? []).map((event) => `<li><span>${esc(event.round ?? "准备")}</span>${esc(EVENT_LABELS[event.type] ?? event.type)}${event.actor ? ` · ${esc(studentNames.get(event.actor) ?? "未知学生")}` : ""}</li>`).join("")}</ol></section>`;
+}
+
+function renderSettlementDialog({ battle }) {
+  if (!battle.settlement || !battle.resultDialogOpen) return "";
+  return `<div class="battle-result-overlay" data-battle-result-overlay><section class="battle-result-dialog" role="dialog" aria-modal="true" aria-labelledby="battle-result-title"><div class="battle-result-header"><div><p class="eyebrow">对战结算</p><h2 id="battle-result-title">本局结果</h2></div><button class="icon-button" type="button" data-action="close-battle-result" aria-label="关闭对战结果" title="关闭对战结果">关闭</button></div>${renderSettlementResult({ battle })}<div class="battle-result-actions"><button class="primary-button" type="button" data-action="close-battle-result">知道了</button></div></section></div>`;
+}
+
+function renderSettlementRetry({ battle }) {
+  if (!battle.settlementError || battle.settlement) return "";
+  return `<div class="settlement-retry" role="alert"><p>${esc(battle.settlementError)}</p><button class="secondary-button" type="button" data-action="${battle.mode === "arena" ? "settle-arena" : "settle-battle"}">重试结算</button></div>`;
+}
+
 function renderArenaBattle({ battle, message, messageIsError = false }) {
   const snapshots = battle.snapshots ?? {};
   const attacker = snapshots.attacker ?? {};
   const defender = snapshots.defender ?? {};
-  const settlement = battle.settlement;
-  const result = settlement?.result;
-  const winnerText = result?.winner === "attacker" ? "挑战胜利" : result?.winner === "defender" ? "挑战失败" : result?.winner === "draw" ? "平局" : "";
-  const resultClass = result?.winner === "attacker" ? "is-win" : result?.winner === "draw" ? "is-draw" : "is-lose";
-  const attackerEvents = result?.attacker?.events ?? settlement?.events?.attacker ?? [];
-  return `<section class="app-view battle-replay arena-battle-page" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">竞技场对战</p><h1 id="battle-title">${esc(attacker.level?.name ?? "随机竞技场")}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><strong class="mono">比赛 ${esc(battle.id)}</strong></div><div><span>本局 seed</span><strong>${esc(battle.seed ?? attacker.seed ?? "")}</strong></div><div><span>进攻方</span><strong>${(attacker.team ?? []).map((student) => esc(student.name)).join(" / ") || "等待快照"}</strong></div><div><span>防守方</span><strong>${(defender.team ?? []).map((student) => esc(student.name)).join(" / ") || "等待快照"}</strong></div></div>${battle.quotaText ? `<p class="arena-quota-note">${esc(battle.quotaText)}</p>` : ""}${renderArenaLiveBattle({ battle })}${result ? `<section class="settled-result ${resultClass}"><h2>${winnerText}</h2><p>${result.winner === "attacker" ? `获得 ${settlement.reward?.trainingCoins ?? 0} 训练币。` : "本次未获得竞技场奖励。"}</p><dl><div><dt>进攻方完成题目</dt><dd>${result.attacker?.completedCount ?? 0} / ${objectiveTargetFor(attacker.level)}</dd></div><div><dt>防守方完成题目</dt><dd>${result.defender?.completedCount ?? 0} / ${objectiveTargetFor(defender.level)}</dd></div><div><dt>积分</dt><dd>${settlement.rating?.attackerBefore ?? "-"} → ${settlement.rating?.attackerAfter ?? "-"}</dd></div></dl></section>${attackerEvents.length ? `<section class="event-replay"><h2>服务端回放</h2><ol>${attackerEvents.map((event) => `<li><span>${esc(event.round ?? "准备")}</span>${esc(EVENT_LABELS[event.type] ?? event.type)}</li>`).join("")}</ol></section>` : ""}` : `<section class="battle-ready"><h2>快照已锁定</h2><p>双方队伍和随机题组已由服务端记录，结算使用这份不可变快照。</p><button class="primary-button" type="button" data-action="settle-arena">开始结算并查看结果</button></section>`}</section>`;
+  const result = battle.settlement?.result;
+  return `<section class="app-view battle-replay arena-battle-page" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">竞技场对战</p><h1 id="battle-title">${esc(attacker.level?.name ?? "随机竞技场")}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><strong class="mono">比赛 ${esc(battle.id)}</strong></div><div><span>本局 seed</span><strong>${esc(battle.seed ?? attacker.seed ?? "")}</strong></div><div><span>进攻方</span><strong>${(attacker.team ?? []).map((student) => esc(student.name)).join(" / ") || "等待快照"}</strong></div><div><span>防守方</span><strong>${(defender.team ?? []).map((student) => esc(student.name)).join(" / ") || "等待快照"}</strong></div></div>${battle.quotaText ? `<p class="arena-quota-note">${esc(battle.quotaText)}</p>` : ""}${renderArenaLiveBattle({ battle })}${result ? renderSettlementResult({ battle }) : `<section class="battle-ready"><h2>快照已锁定</h2><p>双方队伍和随机题组已由服务端记录，回放结束后将自动结算。</p></section>`}${renderSettlementRetry({ battle })}${renderSettlementDialog({ battle })}</section>`;
 }
 
 function renderBattle({ battle, message, messageIsError = false }) {
   if (battle.mode === "arena") return renderArenaBattle({ battle, message, messageIsError });
   const result = battle.settlement?.result;
-  const reward = battle.settlement?.reward ?? {};
-  const studentNames = new Map((battle.snapshot.team ?? []).map((student) => [student.id, student.name]));
   const liveState = battle.playbackState;
-  return `<section class="app-view battle-replay" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">服务端战斗记录</p><h1 id="battle-title">${esc(battle.snapshot.level.name)}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><span>战斗编号</span><strong class="mono">${esc(battle.id)}</strong></div><div><span>本局 seed</span><strong>${esc(battle.snapshot.seed)}</strong></div><div><span>队伍</span><strong>${battle.snapshot.team.map((student) => esc(student.name)).join(" / ")}</strong></div></div>${liveState ? renderLiveBattle({ battle, state: liveState }) : ""}${result ? `<section class="settled-result ${result.result === "win" ? "is-win" : "is-lose"}"><h2>${result.result === "win" ? "挑战胜利" : "挑战失败"}</h2><p>${result.result === "win" ? `获得 ${reward.trainingCoins ?? 0} 训练币。` : "本次未获得关卡奖励。"}</p><dl><div><dt>完成题目</dt><dd>${result.completedCount} / ${objectiveTargetFor(battle.snapshot.level)}</dd></div><div><dt>结束回合</dt><dd>${result.round}</dd></div><div><dt>剩余精力</dt><dd>${result.remainingEnergy}</dd></div></dl></section><section class="event-replay"><h2>服务端回放</h2><ol>${result.events.map((event) => `<li><span>${esc(event.round ?? "准备")}</span>${esc(EVENT_LABELS[event.type] ?? event.type)}${event.actor ? ` · ${esc(studentNames.get(event.actor) ?? "未知学生")}` : ""}</li>`).join("")}</ol></section>` : `<section class="battle-ready"><h2>快照已锁定</h2><p>队伍、关卡和本局 seed 已由服务端记录。结算与回放始终使用这份不可变快照。</p><button class="primary-button" type="button" data-action="settle-battle">开始回放并结算</button></section>`}</section>`;
+  return `<section class="app-view battle-replay" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">服务端战斗记录</p><h1 id="battle-title">${esc(battle.snapshot.level.name)}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><span>战斗编号</span><strong class="mono">${esc(battle.id)}</strong></div><div><span>本局 seed</span><strong>${esc(battle.snapshot.seed)}</strong></div><div><span>队伍</span><strong>${battle.snapshot.team.map((student) => esc(student.name)).join(" / ")}</strong></div></div>${liveState ? renderLiveBattle({ battle, state: liveState }) : ""}${result ? renderSettlementResult({ battle }) : `<section class="battle-ready"><h2>快照已锁定</h2><p>队伍、关卡和本局 seed 已由服务端记录。回放结束后将自动结算。</p></section>`}${renderSettlementRetry({ battle })}${renderSettlementDialog({ battle })}</section>`;
 }
 
 export class AppRouter {
@@ -268,7 +291,7 @@ export class AppRouter {
   }
 
   navigate(route) {
-    if (route !== "battle") this.activePlaybacks().forEach((playback) => playback.pause());
+    if (this.route === "battle" && route !== "battle") this.activePlaybacks().forEach((playback) => playback.pause());
     if (globalThis.location) globalThis.location.hash = route;
     this.applyHash();
   }
@@ -380,6 +403,13 @@ export class AppRouter {
   }
 
   async onClick(event) {
+    const battleResultOverlay = event.target.closest("[data-battle-result-overlay]");
+    if (battleResultOverlay) {
+      event.preventDefault();
+      if (this.battle) this.battle.resultDialogOpen = false;
+      this.render();
+      return;
+    }
     const overlay = event.target.closest("[data-student-detail-overlay]");
     if (overlay && event.target === overlay) {
       event.preventDefault();
@@ -564,6 +594,8 @@ export class AppRouter {
         await this.startBattle();
       } else if (action === "settle-battle") {
         await this.settleBattle();
+      } else if (action === "close-battle-result") {
+        if (this.battle) this.battle.resultDialogOpen = false;
       } else if (action === "start-live-battle") {
         this.activePlaybacks().forEach((playback) => playback.start());
         this.message = "正在播放本局对战。";
@@ -597,12 +629,7 @@ export class AppRouter {
           this.message = "防守编队已锁定。";
         }
       } else if (action === "settle-arena") {
-        const arenaMatch = this.battle?.mode === "arena" ? this.battle : this.arena.match;
-        this.arena.replay = await this.client.post(`/arena/matches/${arenaMatch.id}/settle`, {});
-        this.activePlaybacks().forEach((playback) => playback.pause());
-        if (this.battle?.mode === "arena") this.battle.settlement = this.arena.replay;
-        this.profile = this.arena.replay.profile ?? await this.client.get("/profile");
-        this.message = "竞技场对战已结算。";
+        await this.settleArena();
       } else if (action === "export-account") {
         const exported = await this.client.get("/account/export");
         downloadJson(exported, `super-oi-${this.account.id}.json`);
@@ -631,6 +658,7 @@ export class AppRouter {
               if (this.battle?.mode === "arena" && this.battle.playbacks?.[side] === playback) {
                 this.battle.playbackStates[side] = state;
                 this.render();
+                if (state.phase === "result" && this.arenaPlaybackComplete()) void this.settleArena();
               }
             });
             playback.start();
@@ -642,6 +670,9 @@ export class AppRouter {
           ...this.arena.match,
           mode: "arena",
           settlement: null,
+          settlementPending: false,
+          settlementError: null,
+          resultDialogOpen: false,
           playbacks,
           playbackStates,
           quotaText: this.arena.dailyLimit === null
@@ -650,6 +681,7 @@ export class AppRouter {
         };
         this.message = "比赛快照已锁定，对战过程播放中。";
         this.navigate("battle");
+        if (!Object.keys(playbacks).length) void this.settleArena();
       } else if (button.dataset.buyOffer) {
         await this.buy(button.dataset.buyOffer);
       } else if (button.dataset.dismissStudent) {
@@ -677,6 +709,12 @@ export class AppRouter {
 
   async onKeyDown(event) {
     if (event.key === "Escape") {
+      if (this.battle?.resultDialogOpen) {
+        event.preventDefault();
+        this.battle.resultDialogOpen = false;
+        this.render();
+        return;
+      }
       if (this.detailStudentId) {
         event.preventDefault();
         if (this.detailNameEditing) {
@@ -832,7 +870,15 @@ export class AppRouter {
       teamIds,
       formation,
     });
-    this.battle = { ...started, settlement: null, playback: null, playbackState: null };
+    this.battle = {
+      ...started,
+      settlement: null,
+      settlementPending: false,
+      settlementError: null,
+      resultDialogOpen: false,
+      playback: null,
+      playbackState: null,
+    };
     try {
       const playback = createBattlePlayback(started.snapshot);
       if (playback) {
@@ -842,6 +888,7 @@ export class AppRouter {
           if (this.battle?.playback === playback) {
             this.battle.playbackState = state;
             this.render();
+            if (state.phase === "result") void this.settleBattle();
           }
         });
         playback.start();
@@ -851,6 +898,7 @@ export class AppRouter {
       // remains available even when a local visual playback cannot be built.
       this.message = `快照已锁定，等待服务端回放（${error.message}）。`;
       this.navigate("battle");
+      void this.settleBattle();
       return;
     }
     this.message = "战斗快照已由服务端创建。";
@@ -858,12 +906,68 @@ export class AppRouter {
   }
 
   async settleBattle() {
-    this.battle?.playback?.pause();
-    this.battle.settlement = await this.client.post(`/campaign/battles/${this.battle.id}/settle`);
-    if (this.battle.settlement.profile) {
-      this.profile = this.battle.settlement.profile;
+    const battle = this.battle;
+    if (!battle || battle.mode === "arena" || battle.settlement || battle.settlementPending) return;
+    battle.settlementPending = true;
+    battle.settlementError = null;
+    this.message = "对战已结束，正在自动结算。";
+    this.messageIsError = false;
+    this.render();
+    try {
+      battle.playback?.pause();
+      battle.settlement = await this.client.post(`/campaign/battles/${battle.id}/settle`);
+      if (battle.settlement.profile) this.profile = battle.settlement.profile;
+      battle.resultDialogOpen = true;
+      this.message = "服务端结算已完成。";
+    } catch (error) {
+      battle.settlementError = messageFor(error);
+      this.message = `自动结算失败：${battle.settlementError}`;
+      this.messageIsError = isErrorRateLimited(error);
+    } finally {
+      if (this.battle === battle) {
+        battle.settlementPending = false;
+        this.render();
+      }
     }
-    this.message = "服务端结算已完成。";
+  }
+
+  arenaPlaybackComplete() {
+    const battle = this.battle;
+    const playbacks = Object.values(battle?.playbacks ?? {});
+    return playbacks.length > 0 && playbacks.every((playback) => playback.getState().phase === "result");
+  }
+
+  async settleArena() {
+    const battle = this.battle?.mode === "arena" ? this.battle : null;
+    const arenaMatch = battle ?? this.arena.match;
+    if (!arenaMatch || battle?.settlement || battle?.settlementPending || this.arena.replay) return;
+    if (battle) {
+      battle.settlementPending = true;
+      battle.settlementError = null;
+    }
+    this.message = "对战已结束，正在自动结算。";
+    this.messageIsError = false;
+    this.render();
+    try {
+      const replay = await this.client.post(`/arena/matches/${arenaMatch.id}/settle`, {});
+      this.arena.replay = replay;
+      this.activePlaybacks().forEach((playback) => playback.pause());
+      if (battle) {
+        battle.settlement = replay;
+        battle.resultDialogOpen = true;
+      }
+      this.profile = replay.profile ?? await this.client.get("/profile");
+      this.message = "竞技场对战已结算。";
+    } catch (error) {
+      if (battle) battle.settlementError = messageFor(error);
+      this.message = `自动结算失败：${messageFor(error)}`;
+      this.messageIsError = isErrorRateLimited(error);
+    } finally {
+      if (battle && this.battle === battle) {
+        battle.settlementPending = false;
+        this.render();
+      }
+    }
   }
 
   async saveName(studentId) {
