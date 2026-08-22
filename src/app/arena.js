@@ -21,7 +21,7 @@ export function renderArena({ profile, defense, defenseSnapshot = null, opponent
   const hasDefenseSnapshot = Boolean(defenseSnapshot?.team?.length && defenseSnapshot?.formation);
   const snapshotTeamById = new Map((defenseSnapshot?.team ?? []).map((student) => [student.id, student]));
   const snapshotTime = defense?.updatedAt ? new Date(defense.updatedAt).toLocaleString("zh-CN", { hour12: false }) : "";
-  const defenseMeta = `战力 ${esc(defense?.power ?? currentPower)} · 积分 ${esc(defense?.rating ?? 1000)}${snapshotTime ? ` · 快照 ${esc(snapshotTime)}` : ""}`;
+  const defenseMeta = `战力 ${esc(defense?.power ?? currentPower)} · 积分 ${esc(defense?.rating ?? 1000)} · 胜 ${esc(defense?.battlesWon ?? 0)} / 负 ${esc(defense?.battlesLost ?? 0)}${snapshotTime ? ` · 快照 ${esc(snapshotTime)}` : ""}`;
   const defenseSlots = ["A1", "A2", "A3"].map((slot) => {
     const slotStudentId = hasDefenseSnapshot ? defenseSnapshot.formation[slot] : formation[slot];
     const student = hasDefenseSnapshot ? snapshotTeamById.get(slotStudentId) : students.find((item) => item.id === slotStudentId);

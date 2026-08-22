@@ -304,7 +304,7 @@ export class AppRouter {
       this.detailStudentId = null;
       this.detailNameEditing = false;
     }
-    if (this.route === "modes" && this.modes.tab === "arena" && this.arena.dailyLimit === null) this.refreshArenaQuota();
+    if (this.route === "modes" && this.modes.tab === "arena") this.refreshArenaQuota();
     if (this.route === "modes" && this.modes.tab === "boss-rush" && this.boss.dailyLimit === null) this.refreshBossQuota();
     if (this.route === "account" && this.account.role === "admin" && this.feedback === null) this.refreshFeedback();
     this.render();

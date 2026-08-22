@@ -212,3 +212,50 @@ test("defense required before challenge", async ({ page }) => {
   await page.getByRole("link", { name: "玩法" }).click();
   await expect(page.getByText("请先保存防守编队")).toBeVisible();
 });
+
+test("arena shows the player's own win/loss record and refreshes it on every visit", async ({ page }) => {
+  let authenticated = false;
+  let defenseFetches = 0;
+  const arenaProfile = {
+    schemaVersion: 3, version: 1, accountId: "arena-account", identitySeed: "arena", namePoolVersion: 1,
+    students: Object.fromEntries(["planner", "graphist", "structurer"].map((id, index) => [id, {
+      id, name: ["林澈", "周岚", "程野"][index], aptitude: "普通", abilities: { dynamicProgramming: 600, graphTheory: 600, dataStructures: 600, mathematics: 600, implementation: 600 }, maxEnergy: 5000, skillGroupId: id, skillGroupLevels: { [id]: { normal: 1, burst: 1 } },
+    }])),
+    formation: { A1: "planner", A2: "graphist", A3: "structurer" }, inventory: {}, currencies: { trainingCoins: 1000, recruitmentTickets: 1 }, unlockedLevelIds: ["chapter-1-1"],
+  };
+  let record = { battlesWon: 4, battlesLost: 2, rating: 1075 };
+  await page.route("**/api/v1/**", async (route) => {
+    const path = new URL(route.request().url()).pathname.replace("/api/v1", "");
+    const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (path === "/auth/session") return authenticated ? json({ account: { id: arenaProfile.accountId, username: "arena01" } }) : json({ message: "Authentication required" }, 401);
+    if (path === "/auth/register" || path === "/auth/login") { authenticated = true; return json({ account: { id: arenaProfile.accountId, username: "arena01" } }, 201); }
+    if (path === "/profile") return json(arenaProfile);
+    if (path === "/arena/defense") {
+      defenseFetches += 1;
+      return json({
+        defense: { accountId: arenaProfile.accountId, username: "arena01", ...record },
+        snapshot: null,
+        battlesToday: record.battlesWon + record.battlesLost > 4 ? 7 : 3,
+        dailyLimit: 40,
+      });
+    }
+    if (path === "/arena/opponents") return json([]);
+    return json({ message: path }, 404);
+  });
+
+  await page.goto("/");
+  await page.getByLabel("用户名").fill("arena01");
+  await page.getByLabel("密码").fill("correct horse battery");
+  await page.getByRole("button", { name: "注册并登录" }).click();
+  await page.getByRole("link", { name: "玩法" }).click();
+  await expect(page.locator(".arena-view").getByText("积分 1075 · 胜 4 / 负 2")).toBeVisible();
+  const fetchesAfterFirstVisit = defenseFetches;
+  expect(fetchesAfterFirstVisit).toBeGreaterThan(0);
+
+  // Leaving and coming back must re-fetch so a freshly settled battle shows up.
+  record = { battlesWon: 5, battlesLost: 2, rating: 1100 };
+  await page.getByRole("link", { name: "学生名单" }).click();
+  await page.getByRole("link", { name: "玩法" }).click();
+  await expect(page.locator(".arena-view").getByText("积分 1100 · 胜 5 / 负 2")).toBeVisible();
+  expect(defenseFetches).toBeGreaterThan(fetchesAfterFirstVisit);
+});
