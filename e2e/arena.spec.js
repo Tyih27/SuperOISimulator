@@ -54,7 +54,7 @@ test("arena defense, replay, and historical view are server-driven", async ({ pa
   await page.getByRole("link", { name: "玩法" }).click();
   await expect(page.getByRole("button", { name: "竞技场", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "BOSS战" }).click();
-  await expect(page.getByText("敬请期待")).toBeVisible();
+  await expect(page.getByRole("button", { name: "开始挑战" })).toBeVisible();
   await page.getByRole("button", { name: "竞技场", exact: true }).click();
   await page.getByRole("button", { name: "保存当前编队" }).click();
   await page.getByRole("button", { name: "刷新列表" }).click();

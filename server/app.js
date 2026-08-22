@@ -10,6 +10,7 @@ import { progressionRoutes } from "./routes/progression.js";
 import { battleRoutes } from "./routes/battles.js";
 import { accountDataRoutes } from "./routes/account-data.js";
 import { arenaRoutes } from "./routes/arena.js";
+import { bossRoutes } from "./routes/boss.js";
 import { metricsRoutes } from "./routes/metrics.js";
 import { feedbackRoutes } from "./routes/feedback.js";
 
@@ -112,6 +113,7 @@ export function buildApp({ pool, config = {} } = {}) {
     await api.register(progressionRoutes, { prefix: "/api/v1/progression" });
     await api.register(battleRoutes, { prefix: "/api/v1" });
     await api.register(arenaRoutes, { prefix: "/api/v1/arena" });
+    await api.register(bossRoutes, { prefix: "/api/v1/boss" });
   });
 
   configureStaticFiles(app, config.staticDir);

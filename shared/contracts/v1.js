@@ -533,3 +533,15 @@ export const ARENA_MATCH_DTO_SCHEMA = deepFreeze({
   properties: { opponentId: { type: "string", minLength: 1, maxLength: 128 } },
   additionalProperties: false,
 });
+
+export const BOSS_CHALLENGE_START_DTO_SCHEMA = deepFreeze({
+  $id: "super-oi/boss-challenge-start-v1",
+  type: "object",
+  required: ["version", "teamIds", "formation"],
+  properties: {
+    version: positiveInteger,
+    teamIds: { type: "array", minItems: 1, maxItems: 3, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 128 } },
+    formation,
+  },
+  additionalProperties: false,
+});

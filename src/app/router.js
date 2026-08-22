@@ -1,9 +1,10 @@
 import { ApiError } from "../api/client.js";
 import { APTITUDE_ORDER } from "../data.js";
 import { SPECIALIST_TRAINING_INCREMENTS } from "../domain/progression.js";
+import { BOSS_MAX_ROUNDS } from "../combat/boss-content.js";
 import { createAuthSession, renderAccountScreen, renderAuthScreen } from "./auth.js";
 import { getLevel, renderCampaign } from "./campaign.js";
-import { renderLineupDialog, renderProgression, renderRoster, renderStudentDetail } from "./progression.js";
+import { renderLineupDialog, renderProgression, renderRoster, renderStudentDetail, refundSummaryText } from "./progression.js";
 import { renderModes } from "./modes.js";
 import { createPlayback } from "./state.js";
 import { EVENT_LABELS } from "./event-labels.js";
@@ -25,6 +26,8 @@ function messageFor(error) {
       INVALID_PROGRESSION_REQUEST: "训练请求无效，请检查资源和选择。",
       INVALID_ARENA_REQUEST: "竞技场请求无效，请先保存防守编队。",
       ARENA_DAILY_LIMIT_REACHED: "今日竞技场对战次数已达上限（40 场），请明天再战。",
+      INVALID_BOSS_REQUEST: "BOSS战请求无效，请检查上场编队。",
+      BOSS_DAILY_LIMIT_REACHED: "今日 BOSS 挑战次数已达上限（10 次），请明天再来。",
       ADMIN_REQUIRED: "只有管理员可以查看反馈列表。",
     };
     return labels[error.code] ?? error.message;
@@ -155,6 +158,10 @@ function renderArenaLiveBattle({ battle }) {
 function renderSettlementResult({ battle }) {
   const settlement = battle.settlement;
   if (!settlement?.result) return "";
+  if (battle.mode === "boss") {
+    const coins = settlement.reward?.trainingCoins ?? 0;
+    return `<section class="settled-result ${coins > 0 ? "is-win" : "is-draw"}"><h2>战斗结束</h2><p>对 BOSS 造成 <strong>${settlement.damage ?? 0}</strong> 点伤害。${coins > 0 ? `获得 ${coins} 训练币。` : "本次未获得训练币。"}</p><dl><div><dt>坚持回合</dt><dd>${settlement.round ?? "-"} / ${BOSS_MAX_ROUNDS}</dd></div><div><dt>剩余精力</dt><dd>${settlement.remainingEnergy ?? "-"}</dd></div></dl></section>`;
+  }
   if (battle.mode === "arena") {
     const snapshots = battle.snapshots ?? {};
     const attacker = snapshots.attacker ?? {};
@@ -176,7 +183,15 @@ function renderSettlementDialog({ battle }) {
 
 function renderSettlementRetry({ battle }) {
   if (!battle.settlementError || battle.settlement) return "";
-  return `<div class="settlement-retry" role="alert"><p>${esc(battle.settlementError)}</p><button class="secondary-button" type="button" data-action="${battle.mode === "arena" ? "settle-arena" : "settle-battle"}">重试结算</button></div>`;
+  const retryAction = battle.mode === "arena" ? "settle-arena" : battle.mode === "boss" ? "settle-boss-challenge" : "settle-battle";
+  return `<div class="settlement-retry" role="alert"><p>${esc(battle.settlementError)}</p><button class="secondary-button" type="button" data-action="${retryAction}">重试结算</button></div>`;
+}
+
+function renderBossBattle({ battle, message, messageIsError = false }) {
+  const snapshot = battle.snapshot ?? {};
+  const result = battle.settlement?.result;
+  const liveState = battle.playbackState;
+  return `<section class="app-view battle-replay boss-battle-page" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">BOSS战</p><h1 id="battle-title">${esc(snapshot.level?.name ?? "BOSS挑战")}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><span>队伍</span><strong>${(snapshot.team ?? []).map((student) => esc(student.name)).join(" / ") || "等待快照"}</strong></div></div>${liveState ? renderLiveBattle({ battle: { snapshot }, state: liveState }) : ""}${result ? renderSettlementResult({ battle }) : ""}${renderSettlementRetry({ battle })}${renderSettlementDialog({ battle })}</section>`;
 }
 
 function renderArenaBattle({ battle, message, messageIsError = false }) {
@@ -189,6 +204,7 @@ function renderArenaBattle({ battle, message, messageIsError = false }) {
 
 function renderBattle({ battle, message, messageIsError = false }) {
   if (battle.mode === "arena") return renderArenaBattle({ battle, message, messageIsError });
+  if (battle.mode === "boss") return renderBossBattle({ battle, message, messageIsError });
   const result = battle.settlement?.result;
   const liveState = battle.playbackState;
   return `<section class="app-view battle-replay" aria-labelledby="battle-title"><div class="view-heading"><div><p class="eyebrow">服务端战斗记录</p><h1 id="battle-title">${esc(battle.snapshot.level.name)}</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div><div class="battle-summary"><div><span>队伍</span><strong>${battle.snapshot.team.map((student) => esc(student.name)).join(" / ")}</strong></div></div>${liveState ? renderLiveBattle({ battle, state: liveState }) : ""}${result ? renderSettlementResult({ battle }) : ""}${renderSettlementRetry({ battle })}${renderSettlementDialog({ battle })}</section>`;
@@ -220,6 +236,7 @@ export class AppRouter {
     this.dragStudentId = null;
     this.battle = null;
     this.arena = { defense: null, defenseSnapshot: null, opponents: [], history: [], match: null, replay: null, battlesToday: null, dailyLimit: null };
+    this.boss = { battlesToday: null, dailyLimit: null, history: [], match: null };
     this.modes = { tab: "arena" };
     this.message = "";
     this.messageIsError = false;
@@ -288,6 +305,7 @@ export class AppRouter {
       this.detailNameEditing = false;
     }
     if (this.route === "modes" && this.modes.tab === "arena" && this.arena.dailyLimit === null) this.refreshArenaQuota();
+    if (this.route === "modes" && this.modes.tab === "boss-rush" && this.boss.dailyLimit === null) this.refreshBossQuota();
     if (this.route === "account" && this.account.role === "admin" && this.feedback === null) this.refreshFeedback();
     this.render();
   }
@@ -310,6 +328,17 @@ export class AppRouter {
       this.arena.dailyLimit = data.dailyLimit ?? null;
       this.arena.defense = data.defense ?? null;
       this.arena.defenseSnapshot = data.snapshot ?? null;
+    } catch (error) {
+      this.message = messageFor(error);
+    }
+    this.render();
+  }
+
+  async refreshBossQuota() {
+    try {
+      const data = await this.client.get("/boss/quota");
+      this.boss.battlesToday = data.battlesToday ?? 0;
+      this.boss.dailyLimit = data.dailyLimit ?? null;
     } catch (error) {
       this.message = messageFor(error);
     }
@@ -351,7 +380,7 @@ export class AppRouter {
       if (this.arena.match && this.arena.playbackState && !this.arena.replay) {
         liveHtml = renderLiveBattle({ battle: { snapshot: this.arena.match.snapshots.attacker }, state: this.arena.playbackState });
       }
-      content = renderModes({ profile: this.profile, modeTab: this.modes.tab, ...this.arena, liveHtml, message: this.message, messageIsError: this.messageIsError });
+      content = renderModes({ profile: this.profile, modeTab: this.modes.tab, message: this.message, messageIsError: this.messageIsError, arenaProps: { ...this.arena, liveHtml }, bossProps: { ...this.boss } });
     }
     else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, message: this.message, messageIsError: this.messageIsError });
     const detailStudent = this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
@@ -411,7 +440,8 @@ export class AppRouter {
       const confirmedByButton = Boolean(event.target.closest('[data-action="close-battle-result"]'));
       if (this.battle) this.battle.resultDialogOpen = false;
       if (confirmedByButton && this.battle?.settlement) {
-        this.navigate(this.battle.mode === "arena" ? "modes" : "campaign");
+        if (this.battle.mode === "boss") this.modes.tab = "boss-rush";
+        this.navigate(this.battle.mode === "arena" || this.battle.mode === "boss" ? "modes" : "campaign");
         return;
       }
       this.render();
@@ -482,6 +512,7 @@ export class AppRouter {
     if (button.matches("[data-mode-tab]")) {
       event.preventDefault();
       this.modes.tab = button.dataset.modeTab;
+      if (this.modes.tab === "boss-rush" && this.boss.dailyLimit === null) void this.refreshBossQuota();
       this.render();
       return;
     }
@@ -607,6 +638,13 @@ export class AppRouter {
         await this.startBattle();
       } else if (action === "settle-battle") {
         await this.settleBattle();
+      } else if (action === "start-boss-challenge") {
+        await this.startBossChallenge();
+      } else if (action === "settle-boss-challenge") {
+        await this.settleBoss();
+      } else if (action === "load-boss-history") {
+        this.boss.history = await this.client.get("/boss/challenges?limit=20");
+        this.message = "挑战历史已刷新。";
       } else if (action === "close-battle-result") {
         if (this.battle) this.battle.resultDialogOpen = false;
       } else if (action === "start-live-battle") {
@@ -923,7 +961,7 @@ export class AppRouter {
 
   async settleBattle() {
     const battle = this.battle;
-    if (!battle || battle.mode === "arena" || battle.settlement || battle.settlementPending) return;
+    if (!battle || battle.mode || battle.settlement || battle.settlementPending) return;
     battle.settlementPending = true;
     battle.settlementError = null;
     this.message = "对战已结束，正在自动结算。";
@@ -951,6 +989,76 @@ export class AppRouter {
     const battle = this.battle;
     const playbacks = Object.values(battle?.playbacks ?? {});
     return playbacks.length > 0 && playbacks.every((playback) => playback.getState().phase === "result");
+  }
+
+  async startBossChallenge() {
+    const formation = { ...this.profile.formation };
+    const teamIds = POSITIONS.map((slot) => formation[slot]).filter(Boolean);
+    if (!teamIds.length) {
+      this.message = "请先在学生名单安排至少一名上场学生。";
+      return;
+    }
+    const started = await this.client.post("/boss/challenges", { version: this.profile.version, teamIds, formation });
+    this.boss.match = started;
+    if (this.boss.dailyLimit !== null) this.boss.battlesToday = Math.min((this.boss.battlesToday ?? 0) + 1, this.boss.dailyLimit);
+    let playback = null;
+    try {
+      playback = createBattlePlayback(started.snapshot);
+    } catch (error) {
+      // Playback is a visual aid; server settlement remains authoritative.
+    }
+    this.battle = {
+      ...started,
+      mode: "boss",
+      settlement: null,
+      settlementPending: false,
+      settlementError: null,
+      resultDialogOpen: false,
+      playback,
+      playbackState: playback?.getState() ?? null,
+    };
+    if (playback) {
+      playback.subscribe((state) => {
+        if (this.battle?.playback === playback) {
+          this.battle.playbackState = state;
+          this.render();
+          if (state.phase === "result") void this.settleBoss();
+        }
+      });
+      playback.start();
+      this.message = "BOSS战快照已由服务端创建。";
+    } else {
+      this.message = "快照已锁定，等待服务端结算。";
+      void this.settleBoss();
+    }
+    this.navigate("battle");
+  }
+
+  async settleBoss() {
+    const battle = this.battle?.mode === "boss" ? this.battle : null;
+    if (!battle || battle.settlement || battle.settlementPending) return;
+    battle.settlementPending = true;
+    battle.settlementError = null;
+    this.message = "对战已结束，正在自动结算。";
+    this.messageIsError = false;
+    this.render();
+    try {
+      battle.playback?.pause();
+      const settlement = await this.client.post(`/boss/challenges/${battle.id}/settle`, {});
+      battle.settlement = settlement;
+      if (settlement.profile) this.profile = settlement.profile;
+      battle.resultDialogOpen = true;
+      this.message = "服务端结算已完成。";
+    } catch (error) {
+      battle.settlementError = messageFor(error);
+      this.message = `自动结算失败：${messageFor(error)}`;
+      this.messageIsError = isErrorRateLimited(error);
+    } finally {
+      if (this.battle === battle) {
+        battle.settlementPending = false;
+        this.render();
+      }
+    }
   }
 
   async settleArena() {
@@ -1067,7 +1175,7 @@ export class AppRouter {
     this.profile = result.profile;
     this.detailStudentId = null;
     this.detailNameEditing = false;
-    this.message = "学生已劝退，获得 1 份学生培养材料。";
+    this.message = `学生已劝退，获得 ${result.dismissal?.quantity ?? 1} 份学生培养材料。${refundSummaryText(result.dismissal?.refunded)}`;
   }
 
   async dismissSelectedStudents() {
@@ -1080,7 +1188,7 @@ export class AppRouter {
     this.dismissSelected = [];
     this.dismissConfirmPending = false;
     this.messageIsError = false;
-    this.message = `已劝退 ${count} 名学生，共获得 ${quantity} 份学生培养材料。`;
+    this.message = `已劝退 ${count} 名学生，共获得 ${quantity} 份学生培养材料。${refundSummaryText(result.dismissal?.refunded)}`;
   }
 
   async useEnergyTonic(studentId) {
