@@ -95,4 +95,43 @@ terminalPlayback.start();
 assert.equal(terminalScheduler.runAll(), 6);
 assert.equal(serializeEvents(terminalPlayback.getState().result.events), terminalEvents, 'restart must preserve the initial configuration and seed');
 
+const skipOptions = {
+  combatOptions: { seed: 5, maxRounds: 1, goal: { type: 'count', target: 99 } },
+  stepMs: 10,
+};
+const manualScheduler = new FakeScheduler();
+const manualPlayback = new PlaybackController({ ...skipOptions, scheduler: manualScheduler });
+manualPlayback.start();
+manualScheduler.runAll();
+
+const skipScheduler = new FakeScheduler();
+const skipPlayback = new PlaybackController({ ...skipOptions, scheduler: skipScheduler });
+skipPlayback.start();
+let skipEmissions = 0;
+skipPlayback.subscribe(() => { skipEmissions += 1; });
+skipPlayback.skip();
+const skippedState = skipPlayback.getState();
+assert.equal(skippedState.phase, 'result');
+assert.equal(skippedState.playing, false);
+assert.equal(serializeEvents(skippedState.result.events), serializeEvents(manualPlayback.getState().result.events), 'skip must produce the identical deterministic result as full playback');
+assert.equal(skippedState.eventCursor, skippedState.combat.events.length);
+assert.equal(skippedState.stepCount, manualPlayback.getState().stepCount);
+assert.equal(skipScheduler.pending.size, 0, 'skip must cancel pending timers');
+assert.equal(skipEmissions, 1, 'skip must emit exactly once');
+skipScheduler.runNext();
+assert.equal(skipEmissions, 1, 'no further ticks may fire after skip');
+
+const skippedAgainStateBefore = JSON.stringify(skipPlayback.getState());
+let skippedAgainEmissions = 0;
+skipPlayback.subscribe(() => { skippedAgainEmissions += 1; });
+skipPlayback.skip();
+assert.equal(JSON.stringify(skipPlayback.getState()), skippedAgainStateBefore, 'skip must be a no-op once the battle has ended');
+assert.equal(skippedAgainEmissions, 0);
+
+const formationScheduler = new FakeScheduler();
+const formationSkipPlayback = new PlaybackController({ ...skipOptions, scheduler: formationScheduler });
+formationSkipPlayback.skip();
+assert.equal(formationSkipPlayback.getState().phase, 'result');
+assert.ok(formationSkipPlayback.getState().result);
+
 console.log('playback-state tests passed');

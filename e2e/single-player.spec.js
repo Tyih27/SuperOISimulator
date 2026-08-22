@@ -72,16 +72,16 @@ async function mockApi(page) {
     if (path === "/campaign/battles") {
       const team3 = Object.values(current.students).slice(0, 3).map((s) => ({ ...s, skillGroupId: s.id, skillGroupLevels: { [s.id]: { normal: 1, burst: 1 } } }));
       const topics = [
-        { id: "t1", name: "Topic1", difficulties: { dynamicProgramming: 500, graphTheory: 0, dataStructures: 0, mathematics: 0, implementation: 0 }, maxProgress: 10000, skill: { id: "t1-atk", name: "T1 Attack", category: "problem", effectType: "energyDamage", targetRule: "matchingPosition", damageMultiplier: 1, flatBonus: 0, maxDamage: 2000 } },
-        { id: "t2", name: "Topic2", difficulties: { dynamicProgramming: 0, graphTheory: 500, dataStructures: 0, mathematics: 0, implementation: 0 }, maxProgress: 10000, skill: { id: "t2-atk", name: "T2 Attack", category: "problem", effectType: "energyDamage", targetRule: "matchingPosition", damageMultiplier: 1, flatBonus: 0, maxDamage: 2000 } },
-        { id: "t3", name: "Topic3", difficulties: { dynamicProgramming: 0, graphTheory: 0, dataStructures: 500, mathematics: 0, implementation: 0 }, maxProgress: 10000, skill: { id: "t3-atk", name: "T3 Attack", category: "problem", effectType: "energyDamage", targetRule: "matchingPosition", damageMultiplier: 1, flatBonus: 0, maxDamage: 2000 } },
+        { id: "t1", name: "Topic1", difficulties: { dynamicProgramming: 500, graphTheory: 0, dataStructures: 0, mathematics: 0, implementation: 0 }, maxProgress: 3000, skill: { id: "t1-atk", name: "T1 Attack", category: "problem", effectType: "energyDamage", targetRule: "matchingPosition", damageMultiplier: 1, flatBonus: 0, maxDamage: 2000 } },
+        { id: "t2", name: "Topic2", difficulties: { dynamicProgramming: 0, graphTheory: 500, dataStructures: 0, mathematics: 0, implementation: 0 }, maxProgress: 3000, skill: { id: "t2-atk", name: "T2 Attack", category: "problem", effectType: "energyDamage", targetRule: "matchingPosition", damageMultiplier: 1, flatBonus: 0, maxDamage: 2000 } },
+        { id: "t3", name: "Topic3", difficulties: { dynamicProgramming: 0, graphTheory: 0, dataStructures: 500, mathematics: 0, implementation: 0 }, maxProgress: 3000, skill: { id: "t3-atk", name: "T3 Attack", category: "problem", effectType: "energyDamage", targetRule: "matchingPosition", damageMultiplier: 1, flatBonus: 0, maxDamage: 2000 } },
       ];
       const sg = {
         planner: { id: "planner", name: "拆解思路", skills: { normal: { id: "planner-normal", name: "逐个击破", category: "problem", targetRule: "lowestRemaining", skillMultiplier: 1, targetMultiplier: 1, flatBonus: 0, focusGain: 200 }, burst: { id: "planner-burst", name: "关键路径", category: "problem", targetRule: "highestDifficulty", skillMultiplier: 1.5, targetMultiplier: 1, flatBonus: 0, focusGain: 200 } } },
         graphist: { id: "graphist", name: "图论直觉", skills: { normal: { id: "graphist-normal", name: "匹配攻击", category: "problem", targetRule: "bestMatch", skillMultiplier: 1, targetMultiplier: 1, flatBonus: 0, focusGain: 200 }, burst: { id: "graphist-burst", name: "割点突破", category: "problem", targetRule: "highestDifficulty", skillMultiplier: 1.35, targetMultiplier: 1, flatBonus: 120, focusGain: 200 } } },
         structurer: { id: "structurer", name: "结构维护", skills: { normal: { id: "structurer-normal", name: "稳态修复", category: "support", targetRule: "lowestEnergy", effectType: "energyRestore", amount: 650, focusGain: 200 }, burst: { id: "structurer-burst", name: "全队整备", category: "support", targetRule: "allStudents", effectType: "energyRestore", amount: 420, focusGain: 200 } } },
       };
-      return json({ id: "7e11b4e1-0fc6-4af3-8a09-2c0591cebc22", snapshot: { level: { name: "清晨训练场", topics, maxRounds: 12, focusMax: 1000, objective: { type: "count", requiredTopics: 2 } }, seed: "A7C4-19", formation: { A1: "planner", A2: "graphist", A3: "structurer" }, team: team3, skillGroups: sg } }, 201);
+      return json({ id: "7e11b4e1-0fc6-4af3-8a09-2c0591cebc22", snapshot: { level: { name: "清晨训练场", topicIds: ["t1", "t2", "t3"], topics, maxRounds: 12, focusMax: 1000, objective: { type: "count", requiredTopics: 2 } }, seed: "A7C4-19", formation: { A1: "planner", A2: "graphist", A3: "structurer" }, team: team3, skillGroups: sg } }, 201);
     }
     if (path.endsWith("/settle")) return json({ result: { result: "win", completedCount: 3, round: 8, remainingEnergy: 9200, events: [{ round: 1, type: "battle_started" }, { round: 8, type: "battle_ended" }] }, reward: { trainingCoins: 100 }, profile: current });
     return json({ code: "NOT_FOUND", message: path }, 404);
@@ -142,6 +142,9 @@ test("single-player campaign is server-driven", async ({ page }, testInfo) => {
   await expect(page.getByText("第 1 章")).toBeVisible();
   await page.getByRole("button", { name: "开始挑战" }).click();
   await expect(page.getByRole("button", { name: "开始回放并结算" })).toHaveCount(0);
+  const campaignSkip = page.getByRole("button", { name: "跳过" });
+  await expect(campaignSkip).toBeVisible();
+  await campaignSkip.click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText("挑战胜利");
   await page.getByRole("button", { name: "知道了" }).click();
@@ -215,6 +218,22 @@ test("battle playback controls work correctly", async ({ page }) => {
     await expect(speed2x).toHaveClass(/is-active/);
   }
   await expect(page.locator(".settled-result")).toBeVisible();
+});
+
+test("battle skip jumps straight to settlement", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/");
+  await page.getByLabel("用户名").fill("alice01");
+  await page.getByLabel("密码").fill("correct horse battery");
+  await page.getByRole("button", { name: "注册并登录" }).click();
+  await page.getByRole("link", { name: "主线关卡" }).click();
+  await page.getByRole("button", { name: "开始挑战" }).click();
+  const skipButton = page.getByRole("button", { name: "跳过" });
+  await expect(skipButton).toBeVisible({ timeout: 15_000 });
+  await expect(skipButton).toBeEnabled();
+  await skipButton.click();
+  await expect(page.getByRole("dialog")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("dialog")).toContainText("获得 100 训练币。");
 });
 
 test("campaign level selection updates detail", async ({ page }) => {

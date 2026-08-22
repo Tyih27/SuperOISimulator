@@ -129,6 +129,27 @@ export class PlaybackController {
     return this.advanceOne(false);
   }
 
+  /** Fast-forward the whole battle to its terminal state with a single emit. */
+  skip() {
+    if (this.phase === 'formation') this.prepare();
+    if (this.phase === 'result') return this.getState();
+    this.playing = false;
+    this.cancelTimer();
+    if (this.phase === 'ready') {
+      this.engine.start();
+      this.phase = 'battle';
+    }
+    const before = this.engine.events.length;
+    this.result = this.engine.run();
+    const appended = this.engine.events.slice(before);
+    this.stepCount += appended.filter((entry) => entry.type === 'stage_start').length;
+    this.eventCursor = this.engine.events.length;
+    this.lastEvent = this.engine.events.at(-1) ?? null;
+    this.phase = 'result';
+    this.emit();
+    return this.getState();
+  }
+
   advanceOne(keepPlaying) {
     if (this.phase === 'formation') this.prepare();
     if (this.phase === 'result') return null;
