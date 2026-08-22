@@ -452,6 +452,7 @@ export class AppRouter {
         this.detailNameEditing = false;
       } else if (action === "enhance-fill-max") {
         this.fillEnhanceQuantityMax(button);
+        return;
       } else if (action === "open-lineup-editor") {
         this.lineupOpen = true;
         this.message = "拖拽卡片即可互换站位，修改即时保存。";
