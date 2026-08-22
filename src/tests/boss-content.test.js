@@ -32,6 +32,7 @@ assert.equal(level.topics[0].skill.damageMultiplier, BOSS_ATTACK_DAMAGE_MULTIPLI
 assert.ok(BOSS_ATTACK_DAMAGE_MULTIPLIER < 1, "boss attack must be tuned down");
 assert.equal(level.objective.type, "all", "the boss can never be completed");
 assert.equal(level.focusMax, 1000);
+assert.equal(level.topics[0].skill.targetRule, "random", "the boss must strike a random living student");
 
 const again = createBossLevel({ seed: "same", targetPower: teamPower });
 assert.deepEqual(level, again, "boss content should be deterministic for a seed");
@@ -57,6 +58,12 @@ const progressSum = Object.values(firstRun.state.problems).reduce((sum, problem)
 assert.equal(firstRun.damage, progressSum, "damage must equal accumulated boss progress");
 assert.ok(firstRun.round <= BOSS_MAX_ROUNDS);
 assert.ok(firstRun.eventsHash && firstRun.eventsHash.length === 64);
+const bossId = level.topicIds[0];
+const attackTargets = firstRun.events
+  .filter((entry) => entry.type === "action" && entry.actor === bossId)
+  .map((entry) => entry.targets[0]);
+assert.ok(attackTargets.length > 0, "the boss must attack every round");
+assert.ok(new Set(attackTargets).size >= 2, "boss attacks should spread across random students");
 
 const soloProfile = createProfile({ accountId: "boss-wipe", studentIds: ["planner"] });
 const soloSnapshot = createBattleSnapshot(soloProfile, {

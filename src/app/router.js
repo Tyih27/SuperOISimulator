@@ -91,6 +91,8 @@ function percent(value, max) {
   return Math.max(0, Math.min(100, (numeric / limit) * 100));
 }
 
+const BOSS_DAMAGE_METER_FULL_DAMAGE = 100000;
+
 function objectiveTargetFor(level) {
   if (!level?.objective) return 0;
   return level.objective.type === "all" ? level.topics?.length ?? 0 : level.objective.requiredTopics ?? 0;
@@ -108,6 +110,8 @@ function renderLiveBattle({ battle, state }) {
     .filter(({ runtime, topic }) => topic);
   const passedCount = levelTopics.filter(({ id }) => runtimeProblems[id]?.passed).length;
   const objectiveTarget = objectiveTargetFor(battle.snapshot.level);
+  const bossMode = battle.snapshot.level?.id === "boss-rush";
+  const damageDealt = levelTopics.reduce((sum, { id }) => sum + (runtimeProblems[id]?.progress ?? 0), 0);
   const isDone = state.phase === "result";
   return `<section class="live-battle panel" aria-labelledby="live-battle-title">
     <div class="panel-header"><div><p class="eyebrow">${isDone ? "战斗已结束" : "实时对战"}</p><h2 id="live-battle-title">${isDone ? "战斗结果已就绪" : "对战过程"}</h2></div><span class="panel-meta">${esc(state.phase)} · ${esc(state.stepCount)} 步</span></div>
@@ -115,7 +119,13 @@ function renderLiveBattle({ battle, state }) {
     <div class="live-battle-grid"><div><h3>我方队伍</h3><div class="live-student-list">${students.map((student) => {
       const runtime = runtimeStudents[student.id] ?? { energy: student.maxEnergy, focus: 0, alive: true };
       return `<article class="live-student ${runtime.alive ? "" : "is-inactive"}"><div class="student-card-head"><strong>${esc(student.name)}</strong><span class="alive-state">${runtime.alive ? "做题中" : "已退场"}</span></div><div class="stat-line"><span>精力</span><strong>${Math.round(runtime.energy)} / ${student.maxEnergy}</strong></div><div class="meter energy"><span style="width:${percent(runtime.energy, student.maxEnergy)}%"></span></div><div class="stat-line"><span>专注</span><strong>${Math.round(runtime.focus ?? 0)} / ${state.combat.state?.focusMax ?? 1000}</strong></div><div class="meter focus"><span style="width:${percent(runtime.focus, state.combat.state?.focusMax ?? 1000)}%"></span></div></article>`;
-    }).join("")}</div></div><div><div class="panel-header"><h3>题目战线</h3><span class="panel-meta">已通过 ${passedCount} / 目标 ${objectiveTarget}</span></div><div class="live-topic-list">${activeProblems.map(({ slot, runtime, topic }) => `<article class="live-topic ${runtime?.passed ? "is-complete" : ""}"><div class="topic-name-row"><strong>${esc(topic.name)}</strong><span class="position-badge">${slot}</span></div><div class="topic-progress-label"><span>${runtime?.passed ? "已完成" : "推进度"}</span><strong>${Math.round(percent(runtime?.progress ?? 0, topic.maxProgress ?? 10000))}%</strong></div><div class="topic-progress"><span style="width:${percent(runtime?.progress ?? 0, topic.maxProgress ?? 10000)}%"></span></div></article>`).join("") || `<p class="empty-state">等待题目进入战线。</p>`}</div></div></div>
+    }).join("")}</div></div><div><div class="panel-header"><h3>题目战线</h3><span class="panel-meta">${bossMode ? `累计伤害 ${damageDealt}` : `已通过 ${passedCount} / 目标 ${objectiveTarget}`}</span></div><div class="live-topic-list">${activeProblems.map(({ slot, runtime, topic }) => {
+      const progressValue = runtime?.progress ?? 0;
+      const meter = bossMode
+        ? `<div class="topic-progress-label"><span>累计伤害</span><strong>${Math.round(progressValue)}</strong></div><div class="topic-progress"><span style="width:${percent(progressValue, BOSS_DAMAGE_METER_FULL_DAMAGE)}%"></span></div>`
+        : `<div class="topic-progress-label"><span>${runtime?.passed ? "已完成" : "推进度"}</span><strong>${Math.round(percent(progressValue, topic.maxProgress ?? 10000))}%</strong></div><div class="topic-progress"><span style="width:${percent(progressValue, topic.maxProgress ?? 10000)}%"></span></div>`;
+      return `<article class="live-topic ${runtime?.passed ? "is-complete" : ""}"><div class="topic-name-row"><strong>${esc(topic.name)}</strong><span class="position-badge">${slot}</span></div>${meter}</article>`;
+    }).join("") || `<p class="empty-state">等待题目进入战线。</p>`}</div></div></div>
   </section>`;
 }
 

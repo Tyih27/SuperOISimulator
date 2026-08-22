@@ -62,6 +62,7 @@ test("boss rush challenge settles by damage", async ({ page }) => {
   await expect(startButton).toBeEnabled();
   await startButton.click();
   await expect(page.locator(".live-battle")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/累计伤害 \d+/)).toBeVisible({ timeout: 15_000 });
   const skipButton = page.getByRole("button", { name: "跳过" });
   await expect(skipButton).toBeEnabled({ timeout: 15_000 });
   await skipButton.click();

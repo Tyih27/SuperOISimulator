@@ -327,6 +327,7 @@ export class CombatEngine {
   selectStudentTargets(rule, problemPosition, snapshot) {
     const students = sortedByPosition(this.teamIds.map((id) => ({ ...snapshot.students[id], id })).filter((student) => student.alive && student.energy > 0));
     if (rule === 'all-students' || rule === 'allStudents') return students;
+    if (rule === 'random') return [this.rng.pick(students)].filter(Boolean);
     if (rule === 'lowest-energy' || rule === 'lowestEnergy') return students.sort((a, b) => a.energy - b.energy || POSITION_ORDER[a.position] - POSITION_ORDER[b.position] || a.id.localeCompare(b.id)).slice(0, 1);
     if (rule === 'lowestFocus') return students.sort((a, b) => a.focus - b.focus || POSITION_ORDER[a.position] - POSITION_ORDER[b.position] || a.id.localeCompare(b.id)).slice(0, 1);
     const matching = students.find((student) => student.position === `A${problemPosition[1]}`);

@@ -23,7 +23,7 @@ export function createBossLevel({ seed = "boss", targetPower = 1 } = {}) {
         name: "BOSS压制",
         category: "problem",
         effectType: "energyDamage",
-        targetRule: "matching-position",
+        targetRule: "random",
         damageMultiplier: BOSS_ATTACK_DAMAGE_MULTIPLIER,
       },
     })),
