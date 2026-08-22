@@ -41,6 +41,9 @@ try {
   assert.equal(exported.statusCode, 200);
   assert.match(exported.headers["content-disposition"], /attachment/);
   assert.equal(exported.json().data.profile.payload.students.planner.name, "账户测试");
+  assert.equal(exported.json().data.profileSnapshots.length, 1);
+  assert.equal(exported.json().data.profileSnapshots[0].action_type, "student_rename");
+  assert.equal(exported.json().data.profileSnapshots[0].profile.students.planner.name, "账户测试");
   assert.doesNotMatch(exported.body, /password_hash|correct horse battery/i);
 
   const invalidChange = await request(app, {
@@ -79,6 +82,8 @@ try {
   assert.equal(deletedAccount.rows[0].total, 0);
   const deletedProfile = await app.db.query("SELECT count(*)::int AS total FROM player_profiles WHERE account_id = $1", [profile.accountId]);
   assert.equal(deletedProfile.rows[0].total, 0);
+  const deletedSnapshots = await app.db.query("SELECT count(*)::int AS total FROM profile_snapshots WHERE account_id = $1", [profile.accountId]);
+  assert.equal(deletedSnapshots.rows[0].total, 0);
   const deletionRevoked = await app.inject({ method: "GET", url: "/api/v1/auth/session", cookies: currentAuth });
   assert.equal(deletionRevoked.statusCode, 401);
   const deletedLogin = await request(app, {

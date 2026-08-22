@@ -1,4 +1,7 @@
 import { LEVEL_DEFINITIONS } from "./levels/index.js";
+import { SKILL_GROUPS } from "./skill-groups.js";
+
+export { SKILL_GROUPS };
 
 /**
  * Immutable battle data for the first single-player combat slice.
@@ -79,23 +82,6 @@ const freeze = (value) => {
   return value;
 };
 
-const problemSkill = (skill) => ({
-  category: "problem",
-  focusGain: 200,
-  skillMultiplier: 1,
-  targetMultiplier: 1,
-  flatBonus: 0,
-  ...skill
-});
-
-const supportSkill = (skill) => ({
-  category: "support",
-  focusGain: 200,
-  relatedAbility: "overall",
-  effect: { base: 0, multiplier: 0 },
-  ...skill
-});
-
 const topicSkill = (skill) => ({
   category: "problem",
   effectType: "energyDamage",
@@ -103,61 +89,6 @@ const topicSkill = (skill) => ({
   damageMultiplier: 1,
   flatBonus: 0,
   ...skill
-});
-
-/**
- * Skill content is a catalogue, separate from a student's identity and
- * progression. A student selects one group through `skillGroupId`.
- */
-export const SKILL_GROUPS = freeze({
-  planner: {
-    id: "planner",
-    name: "拆解思路",
-    skills: {
-      normal: problemSkill({ id: "planner-normal", name: "逐个击破", targetRule: "lowestRemaining", relatedAbility: "dynamicProgramming" }),
-      burst: problemSkill({ id: "planner-burst", name: "关键路径", targetRule: "highestDifficulty", relatedAbility: "dynamicProgramming", skillMultiplier: 1.5 })
-    }
-  },
-  graphist: {
-    id: "graphist",
-    name: "图论直觉",
-    skills: {
-      normal: problemSkill({ id: "graphist-normal", name: "匹配攻击", targetRule: "bestMatch", relatedAbility: "graphTheory" }),
-      burst: problemSkill({ id: "graphist-burst", name: "割点突破", targetRule: "highestDifficulty", relatedAbility: "graphTheory", skillMultiplier: 1.35, flatBonus: 120 })
-    }
-  },
-  structurer: {
-    id: "structurer",
-    name: "结构维护",
-    skills: {
-      normal: supportSkill({ id: "structurer-normal", name: "稳态修复", targetRule: "lowestEnergy", effectType: "energyRestore", effect: { base: 650, multiplier: 0.25 } }),
-      burst: supportSkill({ id: "structurer-burst", name: "全队整备", targetRule: "allStudents", effectType: "energyRestore", effect: { base: 420, multiplier: 0.12 } })
-    }
-  },
-  mathematician: {
-    id: "mathematician",
-    name: "严密推导",
-    skills: {
-      normal: problemSkill({ id: "mathematician-normal", name: "精确推导", targetRule: "bestMatch", relatedAbility: "mathematics", skillMultiplier: 1.1 }),
-      burst: problemSkill({ id: "mathematician-burst", name: "极限证明", targetRule: "highestDifficulty", relatedAbility: "mathematics", skillMultiplier: 1.6 })
-    }
-  },
-  implementer: {
-    id: "implementer",
-    name: "工程执行",
-    skills: {
-      normal: problemSkill({ id: "implementer-normal", name: "稳定输出", targetRule: "alignedFirst", relatedAbility: "implementation" }),
-      burst: problemSkill({ id: "implementer-burst", name: "连续提交", targetRule: "lowestRemaining", relatedAbility: "implementation", skillMultiplier: 1.25, targetMultiplier: 0.8, flatBonus: 240 })
-    }
-  },
-  supporter: {
-    id: "supporter",
-    name: "团队协作",
-    skills: {
-      normal: supportSkill({ id: "supporter-normal", name: "专注鼓舞", targetRule: "lowestFocus", effectType: "focusGain", effect: { base: 120, multiplier: 0.1 } }),
-      burst: supportSkill({ id: "supporter-burst", name: "集体增益", targetRule: "allStudents", effectType: "focusGain", effect: { base: 180, multiplier: 0.16 } })
-    }
-  }
 });
 
 export const STUDENTS = freeze([

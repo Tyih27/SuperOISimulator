@@ -63,14 +63,8 @@ export function calculateTopicSkillDamage(student, topic, skill = {}) {
   return roundHalfUp(base * (skill.damageMultiplier ?? 1) + (skill.flatBonus ?? 0));
 }
 
-export function relatedAbilityValue(student, relatedAbility = "overall") {
-  return relatedAbility === "overall" ? calculateOverallPower(student) : (student.abilities?.[relatedAbility] ?? 0);
-}
-
-export function calculateSupportEffect(student, skill) {
-  const effect = skill.effect ?? {};
-  const raw = (effect.base ?? 0) + relatedAbilityValue(student, skill.relatedAbility) * (effect.multiplier ?? 0);
-  return roundHalfUp(raw);
+export function calculateSupportEffect(skill) {
+  return roundHalfUp(skill?.amount ?? 0);
 }
 
 export const abilityGap = calculateAbilityGap;

@@ -178,7 +178,7 @@ assert.throws(
 
 const legacyEngine = new CombatEngine({
   students: [
-    { id: "legacy", skills: { normal: { id: "legacy-normal", name: "Legacy", category: "problem", targetRule: "lowestRemaining", relatedAbility: "dynamicProgramming", skillMultiplier: 1, targetMultiplier: 1, flatBonus: 0, focusGain: 200 }, burst: { id: "legacy-burst", name: "Legacy Burst", category: "problem", targetRule: "highestDifficulty", relatedAbility: "dynamicProgramming", skillMultiplier: 1.5, targetMultiplier: 1, flatBonus: 0, focusGain: 200 } }, abilities: { dynamicProgramming: 800, graphTheory: 600, dataStructures: 500, mathematics: 400, implementation: 700 }, maxEnergy: 5000 },
+    { id: "legacy", skills: { normal: { id: "legacy-normal", name: "Legacy", category: "problem", targetRule: "lowestRemaining", skillMultiplier: 1, targetMultiplier: 1, flatBonus: 0, focusGain: 200 }, burst: { id: "legacy-burst", name: "Legacy Burst", category: "problem", targetRule: "highestDifficulty", skillMultiplier: 1.5, targetMultiplier: 1, flatBonus: 0, focusGain: 200 } }, abilities: { dynamicProgramming: 800, graphTheory: 600, dataStructures: 500, mathematics: 400, implementation: 700 }, maxEnergy: 5000 },
     { id: "g2", abilities: { dynamicProgramming: 600, graphTheory: 700, dataStructures: 500, mathematics: 400, implementation: 600 }, maxEnergy: 5000, skillGroupId: "graphist", skillGroupLevels: { graphist: { normal: 1, burst: 1 } } },
     { id: "s2", abilities: { dynamicProgramming: 500, graphTheory: 500, dataStructures: 800, mathematics: 500, implementation: 600 }, maxEnergy: 5000, skillGroupId: "structurer", skillGroupLevels: { structurer: { normal: 1, burst: 1 } } },
   ],

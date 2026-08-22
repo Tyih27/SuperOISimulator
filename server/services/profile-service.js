@@ -15,7 +15,9 @@ import {
 import { normalizeStudentName } from "../../src/domain/student-identity.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
 import { AuditRepository } from "../repositories/audit-repository.js";
+import { ProfileSnapshotRepository } from "../repositories/profile-snapshot-repository.js";
 import { migrateProfile } from "./profile-migration.js";
+import { syncArenaDefenseSnapshot } from "./arena-defense-sync.js";
 
 const FORMATION_SLOTS = ["A1", "A2", "A3"];
 const knownLevelIds = new Set(LEVELS.map(({ id }) => id));
@@ -188,6 +190,7 @@ export class ProfileService {
     this.pool = pool;
     this.repository = new ProfileRepository(pool);
     this.audit = new AuditRepository();
+    this.snapshots = new ProfileSnapshotRepository();
     this.starterStudentIds = starterStudentIds;
   }
 
@@ -250,11 +253,19 @@ export class ProfileService {
         version: next.version,
         profile: next,
       });
+      await syncArenaDefenseSnapshot(client, { accountId, profile: next });
       const renamed = Object.entries(update.students ?? {}).some(([studentId, student]) =>
         student.name !== undefined && student.name !== current.students[studentId]?.name);
+      const actionType = renamed ? "student_rename" : "profile_update";
+      await this.snapshots.create(client, {
+        accountId,
+        profileVersion: saved.version,
+        actionType,
+        profile: saved.payload,
+      });
       await this.audit.append(client, {
         accountId,
-        actionType: renamed ? "student_rename" : "profile_update",
+        actionType,
         payload: renamed ? { studentIds: Object.keys(update.students ?? {}).filter((id) => update.students[id]?.name !== undefined) } : { fields: Object.keys(update).filter((key) => key !== "version") },
       });
       await client.query("COMMIT");

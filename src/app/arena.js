@@ -10,7 +10,7 @@ function skillGroupName(student) {
   return SKILL_GROUPS[student?.skillGroupId]?.name ?? student?.skillGroupId ?? "未配置";
 }
 
-export function renderArena({ profile, defense, opponents = [], history = [], match, replay, liveHtml = "", battlesToday = null, dailyLimit = null, message = "", messageIsError = false } = {}) {
+export function renderArena({ profile, defense, defenseSnapshot = null, opponents = [], history = [], match, replay, liveHtml = "", battlesToday = null, dailyLimit = null, message = "", messageIsError = false } = {}) {
   const formation = profile?.formation ?? {};
   const students = Object.values(profile?.students ?? {});
   const studentsById = new Map(students.map((student) => [student.id, student]));
@@ -18,12 +18,21 @@ export function renderArena({ profile, defense, opponents = [], history = [], ma
   const currentPower = calculateTeamPower(currentTeam);
   const quotaExhausted = dailyLimit !== null && (battlesToday ?? 0) >= dailyLimit;
   const quotaText = dailyLimit === null ? "" : `<span class="panel-meta">今日剩余挑战次数 ${Math.max(dailyLimit - (battlesToday ?? 0), 0)} / ${esc(dailyLimit)}</span>`;
+  const hasDefenseSnapshot = Boolean(defenseSnapshot?.team?.length && defenseSnapshot?.formation);
+  const snapshotTeamById = new Map((defenseSnapshot?.team ?? []).map((student) => [student.id, student]));
+  const snapshotTime = defense?.updatedAt ? new Date(defense.updatedAt).toLocaleString("zh-CN", { hour12: false }) : "";
+  const defenseMeta = `战力 ${esc(defense?.power ?? currentPower)} · 积分 ${esc(defense?.rating ?? 1000)}${snapshotTime ? ` · 快照 ${esc(snapshotTime)}` : ""}`;
+  const defenseSlots = ["A1", "A2", "A3"].map((slot) => {
+    const slotStudentId = hasDefenseSnapshot ? defenseSnapshot.formation[slot] : formation[slot];
+    const student = hasDefenseSnapshot ? snapshotTeamById.get(slotStudentId) : students.find((item) => item.id === slotStudentId);
+    return `<li><span>${slot}</span><div><strong>${esc(student?.name ?? slotStudentId ?? "未设置")}</strong>${student ? `<small>技能组：${esc(skillGroupName(student))}</small>` : ""}</div></li>`;
+  }).join("");
   return `<section class="app-view arena-view" aria-labelledby="arena-title">
     <div class="view-heading"><div><p class="eyebrow">异步竞技场</p><h1 id="arena-title">镜像挑战</h1></div><p class="app-message${messageIsError ? " app-message--error" : ""}" role="status" aria-live="polite">${esc(message)}</p></div>
     <div class="arena-grid">
-      <section class="panel"><div class="panel-header"><h2>防守编队</h2><span class="panel-meta">战力 ${esc(defense?.power ?? currentPower)} · 积分 ${esc(defense?.rating ?? 1000)}</span></div>
-        <p class="arena-copy">服务器保存三名学生的能力、技能组和站位快照，进攻时不会读取对手当前档案。</p>
-        <ol class="arena-formation">${["A1", "A2", "A3"].map((slot) => { const student = students.find((item) => item.id === formation[slot]); return `<li><span>${slot}</span><div><strong>${esc(student?.name ?? formation[slot] ?? "未设置")}</strong>${student ? `<small>技能组：${esc(skillGroupName(student))}</small>` : ""}</div></li>`; }).join("")}</ol>
+      <section class="panel"><div class="panel-header"><h2>防守编队</h2><span class="panel-meta">${defenseMeta}</span></div>
+        <p class="arena-copy">服务器保存三名学生的能力、技能组和站位快照；训练、食用 KFC、招募劝退或调整阵容后，快照会自动更新为最新数值。进攻时不会读取对手当前档案。</p>
+        <ol class="arena-formation">${defenseSlots}</ol>
         <button class="primary-button" type="button" data-action="save-arena-defense">保存当前编队</button>
       </section>
       <section class="panel"><div class="panel-header"><h2>可挑战对手</h2>${quotaText}<button class="secondary-button" type="button" data-action="load-arena-opponents">刷新列表</button></div>

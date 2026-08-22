@@ -147,7 +147,12 @@ textarea:focus-visible { outline: 3px solid rgba(161, 98, 7, 0.34); outline-offs
 .roster-tab { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 2.35rem; padding: 0.4rem 0.95rem; color: var(--muted); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 999px; font-size: 0.8rem; font-weight: 720; }
 .roster-tab:hover { color: var(--ink); border-color: var(--ink); }
 .roster-tab.is-active { color: var(--gold-deep); background: var(--gold-wash); border-color: #e3b341; }
-.roster-detail-panel { display: grid; gap: clamp(1rem, 2.5vw, 1.5rem); align-content: start; min-height: min(62vh, 560px); padding: clamp(1.25rem, 3.5vw, 2.5rem); background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--gold); border-radius: var(--radius); box-shadow: var(--shadow); }
+.roster-tab-empty { border-style: dashed; }
+.fill-panel { display: grid; gap: 0.8rem; padding: clamp(1.1rem, 3vw, 1.9rem); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.lineup-empty-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; min-height: 9rem; color: var(--muted); background: var(--surface-soft); border: 2px dashed var(--line-strong); border-radius: 5px; font-size: 0.78rem; font-weight: 720; text-align: center; padding: 0.7rem; }
+.lineup-empty-slot small { color: var(--subtle); font-size: 0.66rem; font-weight: 600; }
+.lineup-empty-slot.is-drop-target { color: var(--ink); border-color: var(--gold); box-shadow: inset 0 2px 0 var(--gold), 0 0 0 3px var(--gold-wash); }
+.roster-detail-panel { display: grid; gap: clamp(1rem, 2.5vw, 1.5rem); align-content: start; min-height: min(62vh, 560px); padding: clamp(1.25rem, 3.5vw, 2.5rem); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .dossier-head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.7rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
 .dossier-head .roster-slot { font-size: 0.95rem; }
 .dossier-head h2 { margin: 0; font-size: clamp(1.45rem, 3.4vw, 2.15rem); letter-spacing: -0.02em; line-height: 1.1; }
@@ -185,6 +190,10 @@ textarea:focus-visible { outline: 3px solid rgba(161, 98, 7, 0.34); outline-offs
 .student-page-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.65rem; }
 .replace-panel { display: grid; gap: 0.6rem; }
 .replace-panel .panel-header { margin-bottom: 0; }
+.energy-panel { display: grid; gap: 0.6rem; }
+.energy-panel .panel-header { margin-bottom: 0; }
+.energy-panel .view-subtitle { margin: 0; }
+.energy-panel .primary-button { justify-self: start; }
 .replace-options { display: grid; gap: 0.5rem; padding-top: 0.6rem; }
 .replace-option { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem; padding: 0.6rem 0.75rem; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 5px; }
 .replace-info { display: grid; gap: 0.15rem; min-width: 0; }

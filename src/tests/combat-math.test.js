@@ -12,7 +12,6 @@ import {
   calculateAverageAbilityShortfall,
   calculateEnergyDamage,
   calculateTopicSkillDamage,
-  relatedAbilityValue,
   calculateSupportEffect,
 } from "../combat/math.js";
 
@@ -190,37 +189,12 @@ assert.equal(calculateTopicSkillDamage(studentWeak, topicTwoAbilities, { damageM
 const skillNoArgs = undefined;
 assert.equal(calculateTopicSkillDamage(studentBalanced, topicTwoAbilities, skillNoArgs), 500);
 
-// ── relatedAbilityValue ──────────────────────────────────────────────────────
-
-assert.equal(relatedAbilityValue(studentFull, "overall"), 600);
-assert.equal(relatedAbilityValue(studentFull, "dynamicProgramming"), 800);
-assert.equal(relatedAbilityValue(studentFull, "graphTheory"), 600);
-assert.equal(relatedAbilityValue(studentFull, "implementation"), 1000);
-assert.equal(relatedAbilityValue(studentFull, "unknown"), 0);
-assert.equal(relatedAbilityValue({ abilities: {} }, "dynamicProgramming"), 0);
-assert.equal(relatedAbilityValue(studentFull), 600);
-
 // ── calculateSupportEffect ───────────────────────────────────────────────────
 
-const effectBase = { base: 200, multiplier: 0, min: 0, max: 2000 };
-assert.equal(calculateSupportEffect(studentFull, { effect: effectBase, relatedAbility: "overall" }), 200);
-
-const effectMult = { base: 0, multiplier: 0.5, min: 0, max: 2000 };
-assert.equal(calculateSupportEffect(studentFull, { effect: effectMult, relatedAbility: "dynamicProgramming" }), 400);
-
-const effectCombined = { base: 100, multiplier: 0.2, min: 0, max: 2000 };
-assert.equal(calculateSupportEffect(studentFull, { effect: effectCombined, relatedAbility: "implementation" }), 300);
-
-const effectClampMin = { base: 0, multiplier: 0, min: 50, max: 2000 };
-assert.equal(calculateSupportEffect(studentFull, { effect: effectClampMin, relatedAbility: "overall" }), 50);
-
-const effectClampMax = { base: 10000, multiplier: 0, min: 0, max: 500 };
-assert.equal(calculateSupportEffect(studentFull, { effect: effectClampMax, relatedAbility: "overall" }), 500);
-
-const effectMissing = {};
-assert.equal(calculateSupportEffect(studentFull, { effect: effectMissing, relatedAbility: "overall" }), 0);
-
-const skillNoEffect = { relatedAbility: "overall" };
-assert.equal(calculateSupportEffect(studentFull, skillNoEffect), 0);
+assert.equal(calculateSupportEffect({ amount: 200 }), 200);
+assert.equal(calculateSupportEffect({ amount: 99.5 }), 100);
+assert.equal(calculateSupportEffect({ amount: 99.4 }), 99);
+assert.equal(calculateSupportEffect({}), 0);
+assert.equal(calculateSupportEffect(undefined), 0);
 
 console.log("combat-math tests passed");

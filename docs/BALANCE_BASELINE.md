@@ -4,8 +4,8 @@ The balance gate simulates every three-student combination from the six starter 
 
 | Level | Approved win rate | Seeds | Review threshold |
 | --- | ---: | --- | --- |
-| `chapter-1-1` | 0.00% | 1, 2, 3, 4, 5 | 10 percentage points |
-| `chapter-1-2` | 5.83% | 1, 2, 3, 4, 5 | 10 percentage points |
+| `chapter-1-1` | 34.33% | 1, 2, 3, 4, 5 | 10 percentage points |
+| `chapter-1-2` | 1.17% | 1, 2, 3, 4, 5 | 10 percentage points |
 | `chapter-1-3` | 0.00% | 1, 2, 3, 4, 5 | 10 percentage points |
 | `chapter-1-4` | 0.00% | 1, 2, 3, 4, 5 | 10 percentage points |
 | `chapter-2-1` | 0.00% | 1, 2, 3, 4, 5 | 10 percentage points |

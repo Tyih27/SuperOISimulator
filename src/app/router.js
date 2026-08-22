@@ -191,6 +191,7 @@ export class AppRouter {
     this.lineupOpen = false;
     this.lineupSaving = false;
     this.rosterSelectedId = null;
+    this.fillSlotId = null;
     this.enhanceOpen = false;
     this.replaceOpen = false;
     this.dismissOpen = false;
@@ -200,7 +201,7 @@ export class AppRouter {
     this.detailNameEditing = false;
     this.dragStudentId = null;
     this.battle = null;
-    this.arena = { defense: null, opponents: [], history: [], match: null, replay: null, battlesToday: null, dailyLimit: null };
+    this.arena = { defense: null, defenseSnapshot: null, opponents: [], history: [], match: null, replay: null, battlesToday: null, dailyLimit: null };
     this.message = "";
     this.messageIsError = false;
     this.root.addEventListener("submit", (event) => this.onSubmit(event));
@@ -252,6 +253,7 @@ export class AppRouter {
     if (this.route !== "roster") {
       this.lineupOpen = false;
       this.rosterSelectedId = null;
+      this.fillSlotId = null;
       this.enhanceOpen = false;
       this.replaceOpen = false;
       this.dismissOpen = false;
@@ -281,7 +283,8 @@ export class AppRouter {
       const data = await this.client.get("/arena/defense");
       this.arena.battlesToday = data.battlesToday ?? 0;
       this.arena.dailyLimit = data.dailyLimit ?? null;
-      if (data.defense) this.arena.defense = data.defense;
+      this.arena.defense = data.defense ?? null;
+      this.arena.defenseSnapshot = data.snapshot ?? null;
     } catch (error) {
       this.message = messageFor(error);
     }
@@ -314,7 +317,7 @@ export class AppRouter {
       return;
     }
     let content;
-    if (this.route === "roster") content = renderRoster({ profile: this.profile, selectedId: this.rosterSelectedId, enhanceOpen: this.enhanceOpen, replaceOpen: this.replaceOpen, dismissOpen: this.dismissOpen, dismissSelected: this.dismissSelected, dismissConfirmPending: this.dismissConfirmPending, message: this.message, messageIsError: this.messageIsError });
+    if (this.route === "roster") content = renderRoster({ profile: this.profile, selectedId: this.rosterSelectedId, fillSlotId: this.fillSlotId, enhanceOpen: this.enhanceOpen, replaceOpen: this.replaceOpen, dismissOpen: this.dismissOpen, dismissSelected: this.dismissSelected, dismissConfirmPending: this.dismissConfirmPending, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "progression") content = renderProgression({ profile: this.profile, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "account") content = renderAccountScreen({ account: this.account, feedback: this.feedback ?? [], feedbackLoading: this.feedbackLoading, message: this.message, messageIsError: this.messageIsError });
     else if (this.route === "battle" && this.battle) content = renderBattle({ battle: this.battle, message: this.message, messageIsError: this.messageIsError });
@@ -327,10 +330,11 @@ export class AppRouter {
     }
     else content = renderCampaign({ profile: this.profile, selectedLevelId: this.selectedLevelId, message: this.message, messageIsError: this.messageIsError });
     const detailStudent = this.detailStudentId ? this.profile.students?.[this.detailStudentId] : null;
+    const rosterAbilityMax = Math.max(0, ...Object.values(this.profile.students ?? {}).flatMap((student) => Object.values(student.abilities ?? {})));
     const dismissible = Boolean(detailStudent
       && !Object.values(this.profile.formation ?? {}).includes(detailStudent.id));
     const lineupDialog = this.lineupOpen && this.route === "roster" ? renderLineupDialog({ profile: this.profile }) : "";
-    this.root.innerHTML = renderShell({ account: this.account, route: this.route, content: `${content}${lineupDialog}${renderStudentDetail({ student: detailStudent, editingName: this.detailNameEditing, dismissible })}` });
+    this.root.innerHTML = renderShell({ account: this.account, route: this.route, content: `${content}${lineupDialog}${renderStudentDetail({ student: detailStudent, editingName: this.detailNameEditing, dismissible, abilityScaleMax: rosterAbilityMax })}` });
     if (detailStudent) {
       const focusTarget = this.detailNameEditing
         ? this.root.querySelector("[data-name-input]")
@@ -402,13 +406,29 @@ export class AppRouter {
       this.render();
       return;
     }
-    if (button.matches("[data-select-roster-student]")) {
+    if (button.matches("[data-select-roster-slot]")) {
       event.preventDefault();
-      this.rosterSelectedId = button.dataset.selectRosterStudent;
+      this.fillSlotId = button.dataset.selectRosterSlot;
+      this.rosterSelectedId = null;
       this.enhanceOpen = false;
       this.replaceOpen = false;
       this.message = "";
       this.render();
+      return;
+    }
+    if (button.matches("[data-select-roster-student]")) {
+      event.preventDefault();
+      this.rosterSelectedId = button.dataset.selectRosterStudent;
+      this.fillSlotId = null;
+      this.enhanceOpen = false;
+      this.replaceOpen = false;
+      this.message = "";
+      this.render();
+      return;
+    }
+    if (button.matches("[data-fill-with]")) {
+      event.preventDefault();
+      await this.fillRosterSlot(button.dataset.fillTarget, button.dataset.fillWith);
       return;
     }
     if (button.matches("[data-replace-with]")) {
@@ -435,6 +455,7 @@ export class AppRouter {
         this.battle = null;
         this.lineupOpen = false;
         this.rosterSelectedId = null;
+        this.fillSlotId = null;
         this.enhanceOpen = false;
         this.replaceOpen = false;
         this.detailStudentId = null;
@@ -455,12 +476,16 @@ export class AppRouter {
         return;
       } else if (action === "open-lineup-editor") {
         this.lineupOpen = true;
-        this.message = "拖拽卡片即可互换站位，修改即时保存。";
+        this.message = "拖拽卡片即可互换站位或填入空位，修改即时保存。";
       } else if (action === "close-lineup-editor") {
         this.lineupOpen = false;
         this.message = "";
+      } else if (action === "cancel-fill") {
+        this.fillSlotId = null;
+        this.message = "";
       } else if (action === "open-replace") {
         this.replaceOpen = true;
+        this.fillSlotId = null;
         this.enhanceOpen = false;
         this.message = "";
       } else if (action === "cancel-replace") {
@@ -468,6 +493,7 @@ export class AppRouter {
         this.message = "";
       } else if (action === "open-enhance") {
         this.enhanceOpen = true;
+        this.fillSlotId = null;
         this.message = "";
       } else if (action === "cancel-enhance") {
         this.enhanceOpen = false;
@@ -567,6 +593,7 @@ export class AppRouter {
         } else {
           const saved = await this.client.put("/arena/defense", { version: this.profile.version, teamIds, formation: this.profile.formation });
           this.arena.defense = saved.defense;
+          if (saved.snapshot) this.arena.defenseSnapshot = saved.snapshot;
           this.message = "防守编队已锁定。";
         }
       } else if (action === "settle-arena") {
@@ -746,6 +773,31 @@ export class AppRouter {
     } finally {
       this.lineupSaving = false;
     }
+  }
+
+  async fillRosterSlot(slot, studentId) {
+    const formation = { ...this.profile.formation };
+    const incoming = this.profile.students?.[studentId];
+    if (!POSITIONS.includes(slot) || !incoming || Object.values(formation).includes(studentId)) {
+      this.message = "无法安排该学生上场，请刷新后重试。";
+      this.render();
+      return;
+    }
+    if (formation[slot]) {
+      this.message = "该站位已有学生，请在其档案页使用「替换学生」。";
+      this.render();
+      return;
+    }
+    formation[slot] = studentId;
+    try {
+      await this.applyFormation(formation);
+      this.fillSlotId = null;
+      this.rosterSelectedId = studentId;
+      this.message = `${incoming.name} 已安排到 ${slot} 位。`;
+    } catch (error) {
+      this.message = messageFor(error);
+    }
+    this.render();
   }
 
   async replaceStarter(outgoingId, incomingId) {

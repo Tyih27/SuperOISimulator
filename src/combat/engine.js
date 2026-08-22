@@ -164,7 +164,7 @@ export class CombatEngine {
           });
         }
       } else {
-        const amount = calculateSupportEffect(this.effectiveStudent(snapshot, actorId), skill);
+        const amount = calculateSupportEffect(skill);
         const supportTargets = this.selectStudentTargets(skill.targetRule, position, snapshot);
         targetIds = supportTargets.map((target) => target.id);
         for (const target of supportTargets) {

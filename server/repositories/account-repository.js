@@ -106,6 +106,13 @@ export class AccountRepository {
     const ledger = await client.query("SELECT currency, delta, source_type, source_id, created_at FROM currency_ledger WHERE account_id = $1 ORDER BY id", [accountId]);
     const inventory = await client.query("SELECT item_id, quantity, source_type, source_id, created_at FROM inventory_entries WHERE account_id = $1 ORDER BY id", [accountId]);
     const battles = await client.query("SELECT id, level_id, status, snapshot, result, event_log, event_log_hash, created_at, settled_at FROM battle_records WHERE account_id = $1 ORDER BY created_at", [accountId]);
+    const profileSnapshots = await client.query(
+      `SELECT id, profile_version, action_type, profile, created_at
+         FROM profile_snapshots
+        WHERE account_id = $1
+        ORDER BY id`,
+      [accountId],
+    );
     const audit = await client.query("SELECT action_type, payload_hash, created_at FROM account_audit_log WHERE account_id = $1 ORDER BY id", [accountId]);
     const feedback = await client.query("SELECT id, category, message, created_at FROM account_feedback WHERE account_id = $1 ORDER BY created_at", [accountId]);
     return {
@@ -113,6 +120,7 @@ export class AccountRepository {
       currencyLedger: ledger.rows,
       inventoryEntries: inventory.rows,
       battles: battles.rows,
+      profileSnapshots: profileSnapshots.rows,
       audit: audit.rows,
       feedback: feedback.rows,
     };

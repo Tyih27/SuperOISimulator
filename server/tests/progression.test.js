@@ -105,12 +105,26 @@ try {
   assert.equal(materialTraining.json().training.increment, SPECIALIST_TRAINING_INCREMENTS.普通);
   assert.equal(materialTraining.json().profile.students.graphist.abilities.graphTheory, graphistAbilityBefore + SPECIALIST_TRAINING_INCREMENTS.普通);
   assert.equal(materialTraining.json().profile.inventory["student-training-material"], 0);
+  const trainingSnapshots = await app.db.query(
+    "SELECT profile_version, action_type, profile FROM profile_snapshots WHERE account_id = $1 ORDER BY id",
+    [before.accountId],
+  );
+  const latestTrainingSnapshot = trainingSnapshots.rows.at(-1);
+  assert.equal(latestTrainingSnapshot.action_type, "specialist_training");
+  assert.equal(latestTrainingSnapshot.profile_version, materialTraining.json().profile.version);
+  assert.equal(latestTrainingSnapshot.profile.students.graphist.abilities.graphTheory, graphistAbilityBefore + SPECIALIST_TRAINING_INCREMENTS.普通);
+  const snapshotCountAfterTraining = trainingSnapshots.rows.length;
   const failedTraining = await request(app, {
     method: "POST", url: "/api/v1/progression/training/specialist", cookies: auth,
     payload: { studentId: "graphist", ability: "graphTheory" },
   });
   assert.equal(failedTraining.statusCode, 400);
   assert.match(failedTraining.json().message, /Not enough specialist training books or student training materials/);
+  const snapshotsAfterFailedTraining = await app.db.query(
+    "SELECT count(*)::int AS total FROM profile_snapshots WHERE account_id = $1",
+    [before.accountId],
+  );
+  assert.equal(snapshotsAfterFailedTraining.rows[0].total, snapshotCountAfterTraining);
   const afterFailedTraining = await app.inject({ method: "GET", url: "/api/v1/profile", cookies: auth });
   assert.equal(afterFailedTraining.json().version, materialTraining.json().profile.version);
 

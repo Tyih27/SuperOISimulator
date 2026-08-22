@@ -71,6 +71,15 @@ try {
   assert.equal(savedProfile.students.planner.name, "林澈");
   assert.equal(savedProfile.students.planner.id, "planner");
   assert.deepEqual(savedProfile.students.planner.abilities, initialProfile.students.planner.abilities);
+  const profileSnapshots = await app.db.query(
+    "SELECT profile_version, action_type, profile FROM profile_snapshots WHERE account_id = $1 ORDER BY id",
+    [initialProfile.accountId],
+  );
+  assert.equal(profileSnapshots.rows.length, 1);
+  assert.equal(profileSnapshots.rows[0].profile_version, savedProfile.version);
+  assert.equal(profileSnapshots.rows[0].action_type, "student_rename");
+  assert.deepEqual(profileSnapshots.rows[0].profile.formation, savedProfile.formation);
+  assert.equal(profileSnapshots.rows[0].profile.students.planner.name, "林澈");
   const profileAudit = await app.db.query(
     "SELECT action_type FROM account_audit_log WHERE account_id = $1 ORDER BY id",
     [initialProfile.accountId],

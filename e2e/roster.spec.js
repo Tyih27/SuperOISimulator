@@ -406,7 +406,15 @@ test("lineup editor allows fielding fewer than three students", async ({ page })
   await expect(page.getByText("阵容已调整。")).toBeVisible();
 
   await page.locator('[data-action="close-lineup-editor"]').click();
-  await expect(page.locator(".roster-tab")).toHaveCount(2);
+  await expect(page.locator(".roster-tab")).toHaveCount(3);
+  await expect(page.locator(".roster-tab-empty")).toHaveCount(1);
+
+  // A benched student can be fielded again from the empty-slot panel.
+  await page.locator('[data-select-roster-slot="A1"]').click();
+  await expect(page.getByRole("heading", { name: "安排学生上场" })).toBeVisible();
+  await page.locator('[data-fill-with="planner"][data-fill-target="A1"]').click();
+  await expect(page.getByText("林澈 已安排到 A1 位。")).toBeVisible();
+  await expect(page.locator(".roster-tab-empty")).toHaveCount(0);
 });
 
 // ── Horizontal overflow check ────────────────────────────────────────────────

@@ -15,6 +15,8 @@ import { LedgerRepository } from "../repositories/ledger-repository.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
 import { ProfileService, profileFromRow } from "./profile-service.js";
 import { AuditRepository } from "../repositories/audit-repository.js";
+import { ProfileSnapshotRepository } from "../repositories/profile-snapshot-repository.js";
+import { syncArenaDefenseSnapshot } from "./arena-defense-sync.js";
 
 const levelById = new Map(LEVELS.map((level) => [level.id, level]));
 const offerById = new Map(SHOP_OFFERS.map((offer) => [offer.id, offer]));
@@ -77,6 +79,7 @@ export class ProgressionService {
     this.repository = new ProfileRepository(pool);
     this.ledger = new LedgerRepository();
     this.audit = new AuditRepository();
+    this.snapshots = new ProfileSnapshotRepository();
     this.profileDefaults = new ProfileService(pool, { starterStudentIds });
     this.now = now;
     this.idFactory = idFactory;
@@ -94,7 +97,14 @@ export class ProgressionService {
       const outcome = await mutate({ client, profile, currentVersion: row.version });
       profile.version = row.version + 1;
       const saved = await this.repository.update(client, { accountId, version: profile.version, profile });
+      await syncArenaDefenseSnapshot(client, { accountId, profile, now: this.now });
       const { auditAction = "progression_update", auditPayload = {}, ...publicOutcome } = outcome;
+      await this.snapshots.create(client, {
+        accountId,
+        profileVersion: saved.version,
+        actionType: auditAction,
+        profile: saved.payload,
+      });
       await this.audit.append(client, { accountId, actionType: auditAction, payload: auditPayload });
       await client.query("COMMIT");
       return { ...publicOutcome, profile: structuredClone(saved.payload) };
